@@ -61,7 +61,7 @@ export const siteConfig = {
   name: 'Kortix Suna',
   description: 'The Generalist AI Worker that can act on your behalf.',
   cta: 'Start Free',
-  url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+  url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3015',
   keywords: ['AI Worker', 'Generalist AI', 'Open Source AI', 'Autonomous Agent'],
   links: {
     email: 'support@kortix.ai',

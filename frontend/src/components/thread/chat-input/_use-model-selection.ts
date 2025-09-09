@@ -86,6 +86,12 @@ export const MODELS = {
     recommended: true,
     lowQuality: false
   },
+  'glm-4.5': { 
+    tier: 'premium', 
+    priority: 95,
+    recommended: false,
+    lowQuality: false
+  },
   'deepseek': { 
     tier: 'none', 
     priority: 95,

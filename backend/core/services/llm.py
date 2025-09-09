@@ -43,9 +43,10 @@ def setup_api_keys() -> None:
         "MORPH",
         "GEMINI",
         "OPENAI_COMPATIBLE",
+        "Z_AI",
     ]
     for provider in providers:
-        key = getattr(config, f"{provider}_API_KEY")
+        key = getattr(config, f"{provider}_API_KEY", None)
         if key:
             logger.debug(f"API key set for provider: {provider}")
         else:
@@ -315,13 +316,26 @@ def prepare_params(
         params["model_id"] = model_id
 
     if model_name.startswith("openai-compatible/"):
-        # Check if have required config either from parameters or environment
-        if (not api_key and not config.OPENAI_COMPATIBLE_API_KEY) or (
-            not api_base and not config.OPENAI_COMPATIBLE_API_BASE
-        ):
-            raise LLMError(
-                "OPENAI_COMPATIBLE_API_KEY and OPENAI_COMPATIBLE_API_BASE is required for openai-compatible models. If just updated the environment variables,  wait a few minutes or restart the service to ensure they are loaded."
-            )
+        # Special handling for Z AI GLM-4.5 model
+        if "glm-4.5" in model_name.lower():
+            # Use Z AI specific configuration
+            if not api_key:
+                api_key = getattr(config, "Z_AI_API_KEY", None)
+            if not api_base:
+                api_base = getattr(config, "Z_AI_API_BASE", "https://api.z.ai/api/coding/paas/v4")
+            
+            if not api_key:
+                raise LLMError(
+                    "Z_AI_API_KEY is required for GLM-4.5 model. Please set it in your environment variables."
+                )
+        else:
+            # Check if have required config either from parameters or environment
+            if (not api_key and not config.OPENAI_COMPATIBLE_API_KEY) or (
+                not api_base and not config.OPENAI_COMPATIBLE_API_BASE
+            ):
+                raise LLMError(
+                    "OPENAI_COMPATIBLE_API_KEY and OPENAI_COMPATIBLE_API_BASE is required for openai-compatible models. If just updated the environment variables,  wait a few minutes or restart the service to ensure they are loaded."
+                )
         
         setup_provider_router(api_key, api_base)
 

@@ -1,0 +1,236 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server /usr/local/etc/redis/redis.conf --appendonly yes
+    networks:
+      - dokploy-network
+    ports:
+      - "6379:6379"
+    volumes:
+      # Dokploy persistent storage - survives redeployments
+      - "../files/redis-data:/data"
+      - "./backend/core/services/docker/redis.conf:/usr/local/etc/redis/redis.conf:ro"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    environment:
+      - REDIS_REPLICATION_MODE=master
+
+  backend:
+    image: ghcr.io/suna-ai/suna-backend:latest
+    platform: linux/amd64
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    networks:
+      - dokploy-network
+    ports:
+      - "8000:8000"
+    environment:
+      # Database
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      
+      # Redis - internal connection
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_SSL=false
+      
+      # Environment
+      - ENV_MODE=${ENV_MODE:-production}
+      
+      # LLM Providers
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - XAI_API_KEY=${XAI_API_KEY:-}
+      - Z_AI_API_KEY=${Z_AI_API_KEY:-}
+      - Z_AI_API_BASE=${Z_AI_API_BASE:-https://api.z.ai/api/coding/paas/v4}
+      
+      # AWS Bedrock (optional)
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_REGION_NAME=${AWS_REGION_NAME:-}
+      
+      # OpenAI Compatible
+      - OPENAI_COMPATIBLE_API_KEY=${OPENAI_COMPATIBLE_API_KEY:-}
+      - OPENAI_COMPATIBLE_API_BASE=${OPENAI_COMPATIBLE_API_BASE:-}
+      
+      # Search & Data
+      - RAPID_API_KEY=${RAPID_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      
+      # Web Scraping
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
+      - FIRECRAWL_URL=${FIRECRAWL_URL:-https://api.firecrawl.dev}
+      
+      # Daytona Sandbox
+      - DAYTONA_API_KEY=${DAYTONA_API_KEY}
+      - DAYTONA_SERVER_URL=${DAYTONA_SERVER_URL:-https://app.daytona.io/api}
+      - DAYTONA_TARGET=${DAYTONA_TARGET:-us}
+      
+      # Security & Webhooks
+      - MCP_CREDENTIAL_ENCRYPTION_KEY=${MCP_CREDENTIAL_ENCRYPTION_KEY:-}
+      - WEBHOOK_BASE_URL=${WEBHOOK_BASE_URL:-http://localhost:8000}
+      - TRIGGER_WEBHOOK_SECRET=${TRIGGER_WEBHOOK_SECRET:-}
+      
+      # Observability (optional)
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_HOST=${LANGFUSE_HOST:-https://cloud.langfuse.com}
+      
+      # Billing (optional)
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_DEFAULT_PLAN_ID=${STRIPE_DEFAULT_PLAN_ID:-}
+      - STRIPE_DEFAULT_TRIAL_DAYS=${STRIPE_DEFAULT_TRIAL_DAYS:-14}
+      
+      # Admin
+      - KORTIX_ADMIN_API_KEY=${KORTIX_ADMIN_API_KEY:-}
+      
+      # Integrations
+      - COMPOSIO_API_KEY=${COMPOSIO_API_KEY:-}
+      - COMPOSIO_WEBHOOK_SECRET=${COMPOSIO_WEBHOOK_SECRET:-}
+      - COMPOSIO_API_BASE=${COMPOSIO_API_BASE:-https://backend.composio.dev}
+      
+      # Pipedream (optional, for MCP)
+      - PIPEDREAM_PROJECT_ID=${PIPEDREAM_PROJECT_ID:-}
+      - PIPEDREAM_CLIENT_ID=${PIPEDREAM_CLIENT_ID:-}
+      - PIPEDREAM_CLIENT_SECRET=${PIPEDREAM_CLIENT_SECRET:-}
+      - PIPEDREAM_X_PD_ENVIRONMENT=${PIPEDREAM_X_PD_ENVIRONMENT:-development}
+      
+      # Google (optional, for Google Slides)
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-http://localhost:8000/api/google/callback}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3015}
+      
+      # Zendesk (optional)
+      - ZENDESK_AUTH_CONFIG=${ZENDESK_AUTH_CONFIG:-}
+      
+    depends_on:
+      redis:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    restart: unless-stopped
+    labels:
+      # Traefik configuration for Dokploy routing
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`${BACKEND_DOMAIN}`) || (Host(`${APP_DOMAIN}`) && PathPrefix(`/api`))"
+      - "traefik.http.services.backend.loadbalancer.server.port=8000"
+      - "traefik.http.routers.backend.tls=true"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+
+  worker:
+    image: ghcr.io/suna-ai/suna-backend:latest
+    platform: linux/amd64
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: uv run dramatiq --skip-logging --processes 4 --threads 4 run_agent_background
+    networks:
+      - dokploy-network
+    environment:
+      # Same environment variables as backend service
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_SSL=false
+      - ENV_MODE=${ENV_MODE:-production}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - XAI_API_KEY=${XAI_API_KEY:-}
+      - Z_AI_API_KEY=${Z_AI_API_KEY:-}
+      - Z_AI_API_BASE=${Z_AI_API_BASE:-https://api.z.ai/api/coding/paas/v4}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_REGION_NAME=${AWS_REGION_NAME:-}
+      - OPENAI_COMPATIBLE_API_KEY=${OPENAI_COMPATIBLE_API_KEY:-}
+      - OPENAI_COMPATIBLE_API_BASE=${OPENAI_COMPATIBLE_API_BASE:-}
+      - RAPID_API_KEY=${RAPID_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
+      - FIRECRAWL_URL=${FIRECRAWL_URL:-https://api.firecrawl.dev}
+      - DAYTONA_API_KEY=${DAYTONA_API_KEY}
+      - DAYTONA_SERVER_URL=${DAYTONA_SERVER_URL:-https://app.daytona.io/api}
+      - DAYTONA_TARGET=${DAYTONA_TARGET:-us}
+      - MCP_CREDENTIAL_ENCRYPTION_KEY=${MCP_CREDENTIAL_ENCRYPTION_KEY:-}
+      - WEBHOOK_BASE_URL=${WEBHOOK_BASE_URL:-http://localhost:8000}
+      - TRIGGER_WEBHOOK_SECRET=${TRIGGER_WEBHOOK_SECRET:-}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_HOST=${LANGFUSE_HOST:-https://cloud.langfuse.com}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_DEFAULT_PLAN_ID=${STRIPE_DEFAULT_PLAN_ID:-}
+      - STRIPE_DEFAULT_TRIAL_DAYS=${STRIPE_DEFAULT_TRIAL_DAYS:-14}
+      - KORTIX_ADMIN_API_KEY=${KORTIX_ADMIN_API_KEY:-}
+      - COMPOSIO_API_KEY=${COMPOSIO_API_KEY:-}
+      - COMPOSIO_WEBHOOK_SECRET=${COMPOSIO_WEBHOOK_SECRET:-}
+      - COMPOSIO_API_BASE=${COMPOSIO_API_BASE:-https://backend.composio.dev}
+      - PIPEDREAM_PROJECT_ID=${PIPEDREAM_PROJECT_ID:-}
+      - PIPEDREAM_CLIENT_ID=${PIPEDREAM_CLIENT_ID:-}
+      - PIPEDREAM_CLIENT_SECRET=${PIPEDREAM_CLIENT_SECRET:-}
+      - PIPEDREAM_X_PD_ENVIRONMENT=${PIPEDREAM_X_PD_ENVIRONMENT:-development}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-http://localhost:8000/api/google/callback}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3015}
+      - ZENDESK_AUTH_CONFIG=${ZENDESK_AUTH_CONFIG:-}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    init: true
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    networks:
+      - dokploy-network
+    ports:
+      - "3015:3015"
+    environment:
+      # Frontend environment variables (NEXT_PUBLIC_* are built into the app)
+      - NEXT_PUBLIC_ENV_MODE=${NEXT_PUBLIC_ENV_MODE:-production}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL:-http://backend:8000/api}
+      - NEXT_PUBLIC_URL=${NEXT_PUBLIC_URL:-http://localhost:3015}
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+      - NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY:-}
+      - KORTIX_ADMIN_API_KEY=${KORTIX_ADMIN_API_KEY:-}
+      - EDGE_CONFIG=${EDGE_CONFIG:-}
+    depends_on:
+      - backend
+    restart: unless-stopped
+    labels:
+      # Traefik configuration for Dokploy routing
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3015"
+      - "traefik.http.routers.frontend.tls=true"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+
+networks:
+  dokploy-network:
+    external: true

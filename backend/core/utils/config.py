@@ -264,6 +264,10 @@ class Configuration:
     OPENROUTER_API_BASE: Optional[str] = "https://openrouter.ai/api/v1"
     OPENAI_COMPATIBLE_API_KEY: Optional[str] = None
     OPENAI_COMPATIBLE_API_BASE: Optional[str] = None
+    
+    # Z AI API credentials
+    Z_AI_API_KEY: Optional[str] = None
+    Z_AI_API_BASE: str = "https://api.z.ai/api/coding/paas/v4"
     OR_SITE_URL: Optional[str] = "https://kortix.ai"
     OR_APP_NAME: Optional[str] = "Kortix AI"    
     
@@ -416,16 +420,22 @@ class Configuration:
 
     def __init__(self):
         """Initialize configuration by loading from environment variables."""
-        # Load environment variables from .env file if it exists
-        load_dotenv()
-        
-        # Set environment mode first
+        # Set environment mode first to determine if we should load .env
         env_mode_str = os.getenv("ENV_MODE", EnvMode.LOCAL.value)
         try:
             self.ENV_MODE = EnvMode(env_mode_str.lower())
         except ValueError:
             logger.warning(f"Invalid ENV_MODE: {env_mode_str}, defaulting to LOCAL")
             self.ENV_MODE = EnvMode.LOCAL
+        
+        # Only load .env file in local development
+        # In production/staging with Dokploy, environment variables are managed by the platform
+        if self.ENV_MODE == EnvMode.LOCAL:
+            # Load environment variables from .env file if it exists
+            load_dotenv()
+            logger.debug("Loaded .env file for local development")
+        else:
+            logger.debug(f"Running in {self.ENV_MODE.value} mode - using system environment variables")
             
         logger.debug(f"Environment mode: {self.ENV_MODE.value}")
         

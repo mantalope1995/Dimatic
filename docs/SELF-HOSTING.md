@@ -91,7 +91,7 @@ Frontend keys:
 | NEXT_PUBLIC_SUPABASE_URL      |      Yes | -                     | Must match backend Supabase project |
 | NEXT_PUBLIC_SUPABASE_ANON_KEY |      Yes | -                     | Supabase anon key                   |
 | NEXT_PUBLIC_BACKEND_URL       |      Yes | http://localhost:8000 | Backend API base URL                |
-| NEXT_PUBLIC_URL               |       No | http://localhost:3000 | Public site URL                     |
+| NEXT_PUBLIC_URL               |       No | http://localhost:3015 | Public site URL                     |
 
 Notes:
 
@@ -177,7 +177,7 @@ NEXT_PUBLIC_ENV_MODE=local
 NEXT_PUBLIC_SUPABASE_URL=YOUR_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
-NEXT_PUBLIC_URL=http://localhost:3000
+NEXT_PUBLIC_URL=http://localhost:3015
 ```
 
 ## Hosting Options
@@ -195,7 +195,7 @@ docker compose up -d --build
 
 3. Access:
 
-- Frontend: http://localhost:3000
+- Frontend: http://localhost:3015
 - Backend API: http://localhost:8000
 
 4. Logs and lifecycle:
@@ -253,17 +253,17 @@ npm install
 npm run dev
 ```
 
-Visit http://localhost:3000 and sign up via Supabase auth.
+Visit http://localhost:3015 and sign up via Supabase auth.
 
 ## Post‑Installation Checks
 
-- Frontend loads at http://localhost:3000
+- Frontend loads at http://localhost:3015
 - Backend health: http://localhost:8000/health returns OK
 - Create an account and start an agent; verify logs for worker activity
 
 ## Troubleshooting
 
-- Docker services fail: check `docker compose logs -f` and port conflicts (3000, 8000, 6379)
+- Docker services fail: check `docker compose logs -f` and port conflicts (3015, 8000, 6379)
 - Supabase errors: confirm URL and keys; basejump schema is exposed
 - LLM errors: ensure at least one LLM API key is set and not rate-limited
 - Daytona errors: verify API key/URL/target; sandbox operations require valid Daytona setup

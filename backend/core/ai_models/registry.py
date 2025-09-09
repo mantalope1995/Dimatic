@@ -172,6 +172,29 @@ class ModelRegistry:
             priority=100,
             enabled=True
         ))
+        
+        self.register(Model(
+            id="openai-compatible/glm-4.5",
+            name="GLM-4.5",
+            provider=ModelProvider.Z_AI,
+            aliases=["glm-4.5", "GLM-4.5", "z-ai/glm-4.5"],
+            context_window=128_000,
+            max_output_tokens=96_000,
+            capabilities=[
+                ModelCapability.CHAT,
+                ModelCapability.FUNCTION_CALLING,
+                ModelCapability.STRUCTURED_OUTPUT,
+                ModelCapability.THINKING,
+            ],
+            pricing=ModelPricing(
+                input_cost_per_million_tokens=0.60,
+                output_cost_per_million_tokens=2.20
+            ),
+            tier_availability=["paid"],
+            priority=95,
+            recommended=False,
+            enabled=True
+        ))
 
         """
         # DeepSeek Models
