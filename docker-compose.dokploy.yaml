@@ -4,8 +4,6 @@ services:
     command: redis-server /usr/local/etc/redis/redis.conf --appendonly yes
     networks:
       - dokploy-network
-    ports:
-      - "6379:6379"
     volumes:
       # Dokploy persistent storage - survives redeployments
       - "../files/redis-data:/data"
@@ -27,8 +25,6 @@ services:
       dockerfile: Dockerfile
     networks:
       - dokploy-network
-    ports:
-      - "8000:8000"
     environment:
       # Database
       - SUPABASE_URL=${SUPABASE_URL}
@@ -211,8 +207,6 @@ services:
         - NEXT_PUBLIC_URL=${NEXT_PUBLIC_URL:-http://localhost:3015}
     networks:
       - dokploy-network
-    ports:
-      - "3015:3015"
     environment:
       # Frontend environment variables (NEXT_PUBLIC_* are built into the app)
       - NEXT_PUBLIC_ENV_MODE=${NEXT_PUBLIC_ENV_MODE:-production}
