@@ -203,6 +203,12 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-https://placeholder.supabase.co}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-placeholder_key_for_build_only}
+        - NEXT_PUBLIC_ENV_MODE=${NEXT_PUBLIC_ENV_MODE:-local}
+        - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8000/api}
+        - NEXT_PUBLIC_URL=${NEXT_PUBLIC_URL:-http://localhost:3015}
     networks:
       - dokploy-network
     ports:

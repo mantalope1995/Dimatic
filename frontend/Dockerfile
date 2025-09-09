@@ -37,6 +37,21 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Build arguments for required environment variables
+# These use placeholder values that will be overridden at runtime
+ARG NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder_key_for_build_only
+ARG NEXT_PUBLIC_ENV_MODE=local
+ARG NEXT_PUBLIC_BACKEND_URL=http://localhost:8000/api
+ARG NEXT_PUBLIC_URL=http://localhost:3015
+
+# Set as environment variables for build
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_ENV_MODE=$NEXT_PUBLIC_ENV_MODE
+ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
+ENV NEXT_PUBLIC_URL=$NEXT_PUBLIC_URL
+
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
 ENV NEXT_TELEMETRY_DISABLED=1
