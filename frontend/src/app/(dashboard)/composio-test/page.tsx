@@ -1,5 +1,8 @@
 'use client';
 
+// Force dynamic rendering for this test page
+export const dynamic = 'force-dynamic';
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -222,7 +225,7 @@ export default function ComposioTestPage() {
                             <SelectContent>
                               {commonToolkits.map((tool) => (
                                 <SelectItem key={tool} value={tool}>
-                                  {tool.charAt(0).toUpperCase() + tool.slice(1)}
+                                  {tool ? tool.charAt(0).toUpperCase() + tool.slice(1) : ''}
                                 </SelectItem>
                               ))}
                             </SelectContent>
