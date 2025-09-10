@@ -177,7 +177,7 @@ class ModelRegistry:
             id="openai-compatible/glm-4.5",
             name="GLM-4.5",
             provider=ModelProvider.Z_AI,
-            aliases=["glm-4.5", "GLM-4.5", "z-ai/glm-4.5"],
+            aliases=["glm-4.5", "GLM-4.5", "z-ai/glm-4.5", "openai-compatible/glm-4.5"],
             context_window=128_000,
             max_output_tokens=96_000,
             capabilities=[

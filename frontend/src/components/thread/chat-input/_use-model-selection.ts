@@ -92,6 +92,12 @@ export const MODELS = {
     recommended: false,
     lowQuality: false
   },
+  'openai-compatible/glm-4.5': { 
+    tier: 'premium', 
+    priority: 95,
+    recommended: false,
+    lowQuality: false
+  },
   'deepseek': { 
     tier: 'none', 
     priority: 95,
