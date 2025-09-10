@@ -27,24 +27,6 @@ class TrialService:
                 'message': 'Trials are not enabled'
             }
 
-        trial_history_result = await client.from_('trial_history')\
-            .select('id, started_at, ended_at, converted_to_paid')\
-            .eq('account_id', account_id)\
-            .execute()
-        
-        if trial_history_result.data and len(trial_history_result.data) > 0:
-            history = trial_history_result.data[0]
-            return {
-                'has_trial': False,
-                'trial_status': 'used',
-                'message': 'You have already used your free trial',
-                'trial_history': {
-                    'started_at': history.get('started_at'),
-                    'ended_at': history.get('ended_at'),
-                    'converted_to_paid': history.get('converted_to_paid', False)
-                }
-            }
-
         account_result = await client.from_('credit_accounts').select(
             'tier, trial_status, trial_ends_at, stripe_subscription_id'
         ).eq('account_id', account_id).execute()
@@ -53,14 +35,34 @@ class TrialService:
             account = account_result.data[0]
             trial_status = account.get('trial_status', 'none')
             
-            if trial_status and trial_status != 'none':
+            if trial_status == 'active':
                 return {
                     'has_trial': True,
                     'trial_status': trial_status,
                     'trial_ends_at': account.get('trial_ends_at'),
                     'tier': account.get('tier')
                 }
+            
+            if trial_status in ['expired', 'converted', 'cancelled']:
+                trial_history_result = await client.from_('trial_history')\
+                    .select('id, started_at, ended_at, converted_to_paid')\
+                    .eq('account_id', account_id)\
+                    .execute()
+                
+                if trial_history_result.data and len(trial_history_result.data) > 0:
+                    history = trial_history_result.data[0]
+                    return {
+                        'has_trial': False,
+                        'trial_status': 'used',
+                        'message': 'You have already used your free trial',
+                        'trial_history': {
+                            'started_at': history.get('started_at'),
+                            'ended_at': history.get('ended_at'),
+                            'converted_to_paid': history.get('converted_to_paid', False)
+                        }
+                    }
 
+        # No trial history - user can start a trial
         return {
             'has_trial': False,
             'trial_status': 'none',
@@ -196,25 +198,42 @@ class TrialService:
                     logger.error(f"[TRIAL SECURITY] Error checking existing subscription: {e}")
         
         ledger_check = await client.from_('credit_ledger')\
-            .select('id')\
+            .select('id, description')\
             .eq('account_id', account_id)\
-            .like('description', '%trial%')\
-            .limit(1)\
+            .or_(
+                'description.ilike.%trial credits%,'
+                'description.ilike.%free trial%,'
+                'description.ilike.%day trial%,'
+                'type.eq.trial_grant'
+            )\
             .execute()
         
         if ledger_check.data:
-            logger.warning(f"[TRIAL SECURITY] Trial attempt rejected - account {account_id} has trial-related ledger entries")
-            await client.from_('trial_history').upsert({
-                'account_id': account_id,
-                'started_at': datetime.now(timezone.utc).isoformat(),
-                'ended_at': datetime.now(timezone.utc).isoformat(),
-                'note': 'Created from credit_ledger detection during blocked trial attempt'
-            }, on_conflict='account_id').execute()
+            has_actual_trial = False
+            for entry in ledger_check.data:
+                desc = entry.get('description', '').lower()
+                if 'trial credits' in desc or 'free trial' in desc or 'day trial' in desc:
+                    has_actual_trial = True
+                    break
+                elif 'start a trial' in desc or 'please start a trial' in desc:
+                    continue
+                else:
+                    has_actual_trial = True
+                    break
             
-            raise HTTPException(
-                status_code=403,
-                detail="Trial history detected. Each account is limited to one free trial."
-            )
+            if has_actual_trial:
+                logger.warning(f"[TRIAL SECURITY] Trial attempt rejected - account {account_id} has trial-related ledger entries")
+                await client.from_('trial_history').upsert({
+                    'account_id': account_id,
+                    'started_at': datetime.now(timezone.utc).isoformat(),
+                    'ended_at': datetime.now(timezone.utc).isoformat(),
+                    'note': 'Created from credit_ledger detection during blocked trial attempt'
+                }, on_conflict='account_id').execute()
+                
+                raise HTTPException(
+                    status_code=403,
+                    detail="Trial history detected. Each account is limited to one free trial."
+                )
         
         try:
             from .subscription_service import subscription_service

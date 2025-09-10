@@ -27,6 +27,12 @@ class WebhookService:
             payload = await request.body()
             sig_header = request.headers.get('stripe-signature')
             
+
+            logger.info(f"[WEBHOOK] Received webhook request, signature present: {bool(sig_header)}")
+            if not config.STRIPE_WEBHOOK_SECRET:
+                logger.error("[WEBHOOK] STRIPE_WEBHOOK_SECRET is not configured!")
+                raise HTTPException(status_code=500, detail="Webhook secret not configured")
+            
             event = stripe.Webhook.construct_event(
                 payload, sig_header, config.STRIPE_WEBHOOK_SECRET
             )
@@ -253,6 +259,12 @@ class WebhookService:
         prev_status = previous_attributes.get('status')
         prev_default_payment = previous_attributes.get('default_payment_method')
         
+        logger.info(f"[WEBHOOK] Subscription updated: id={subscription['id']}, "
+                   f"status={subscription.status}, prev_status={prev_status}, "
+                   f"has_payment={bool(subscription.get('default_payment_method'))}")
+        logger.info(f"[WEBHOOK] Previous attributes: {previous_attributes}")
+        logger.info(f"[WEBHOOK] Account ID from metadata: {subscription.metadata.get('account_id')}")
+        
         if subscription.status == 'trialing' and subscription.get('default_payment_method') and not prev_default_payment:
             account_id = subscription.metadata.get('account_id')
             if account_id:
@@ -274,8 +286,24 @@ class WebhookService:
                 
                 logger.info(f"[WEBHOOK] Marked trial as converted (payment added) for account {account_id}, tier: {tier_name}")
         
+        # Handle trial end (transition from trialing to any other status)
         if prev_status == 'trialing' and subscription.status != 'trialing':
             account_id = subscription.metadata.get('account_id')
+            
+            # Fallback: try to get account_id from customer if not in metadata
+            if not account_id:
+                logger.warning(f"[WEBHOOK] No account_id in subscription metadata, trying customer lookup")
+                customer_result = await client.schema('basejump').from_('billing_customers')\
+                    .select('account_id')\
+                    .eq('id', subscription['customer'])\
+                    .execute()
+                    
+                if customer_result.data and customer_result.data[0].get('account_id'):
+                    account_id = customer_result.data[0]['account_id']
+                    logger.info(f"[WEBHOOK] Found account_id {account_id} from customer {subscription['customer']}")
+                else:
+                    logger.error(f"[WEBHOOK] Could not find account for customer {subscription['customer']}")
+                    return
             
             if account_id:
                 if subscription.status == 'active':
@@ -287,7 +315,8 @@ class WebhookService:
                     
                     await client.from_('credit_accounts').update({
                         'trial_status': 'converted',
-                        'tier': tier_name
+                        'tier': tier_name,
+                        'stripe_subscription_id': subscription['id']
                     }).eq('account_id', account_id).execute()
                     
                     await client.from_('trial_history').update({
@@ -295,7 +324,7 @@ class WebhookService:
                         'converted_to_paid': True
                     }).eq('account_id', account_id).is_('ended_at', 'null').execute()
                     
-                    logger.info(f"[WEBHOOK] Trial conversion completed for account {account_id} to tier {tier_name}")
+                    logger.info(f"[WEBHOOK] Trial conversion completed for account {account_id} to tier {tier_name}, subscription: {subscription['id']}")
                     
                 elif subscription.status == 'canceled':
                     logger.info(f"[WEBHOOK] Trial cancelled for account {account_id}")
@@ -606,14 +635,17 @@ class WebhookService:
             client = await db.client
             
             subscription_id = invoice.get('subscription')
-            if not subscription_id:
+            invoice_id = invoice.get('id')
+            
+            if not subscription_id or not invoice_id:
+                logger.warning(f"Invoice missing subscription or ID: {invoice}")
                 return
 
             period_start = invoice.get('period_start')
             period_end = invoice.get('period_end')
             
             if not period_start or not period_end:
-                logger.warning(f"Invoice missing period information: {invoice.get('id')}")
+                logger.warning(f"Invoice missing period information: {invoice_id}")
                 return
             
             customer_result = await client.schema('basejump').from_('billing_customers')\
@@ -627,7 +659,7 @@ class WebhookService:
             account_id = customer_result.data[0]['account_id']
             
             account_result = await client.from_('credit_accounts')\
-                .select('tier, last_grant_date, next_credit_grant, billing_cycle_anchor')\
+                .select('tier, last_grant_date, next_credit_grant, billing_cycle_anchor, last_processed_invoice_id, trial_status')\
                 .eq('account_id', account_id)\
                 .execute()
             
@@ -636,14 +668,24 @@ class WebhookService:
             
             account = account_result.data[0]
             tier = account['tier']
+            trial_status = account.get('trial_status')
             period_start_dt = datetime.fromtimestamp(period_start, tz=timezone.utc)
             
-            if account.get('last_grant_date'):
-                last_grant = datetime.fromisoformat(account['last_grant_date'].replace('Z', '+00:00'))
+            if account.get('last_processed_invoice_id') == invoice_id:
+                logger.info(f"[IDEMPOTENCY] Invoice {invoice_id} already processed for account {account_id}")
+                return
                 
-                if period_start_dt <= last_grant:
-                    logger.info(f"Skipping renewal for user {account_id} - already processed")
+            if account.get('last_grant_date') and trial_status != 'converted':
+                last_grant = datetime.fromisoformat(account['last_grant_date'].replace('Z', '+00:00'))
+
+                time_diff = abs((period_start_dt - last_grant).total_seconds())
+                if time_diff < 300:
+                    logger.info(f"[IDEMPOTENCY] Skipping renewal for user {account_id} - "
+                              f"already processed at {account['last_grant_date']} "
+                              f"(current period_start: {period_start_dt.isoformat()}, diff: {time_diff}s)")
                     return
+            elif trial_status == 'converted':
+                logger.info(f"[WEBHOOK] Processing first payment after trial conversion for account {account_id}")
             
             monthly_credits = get_monthly_credits(tier)
             if monthly_credits > 0:
@@ -668,10 +710,17 @@ class WebhookService:
                 
                 next_grant = datetime.fromtimestamp(period_end, tz=timezone.utc)
                 
-                await client.from_('credit_accounts').update({
+                update_data = {
                     'last_grant_date': period_start_dt.isoformat(),
-                    'next_credit_grant': next_grant.isoformat()
-                }).eq('account_id', account_id).execute()
+                    'next_credit_grant': next_grant.isoformat(),
+                    'last_processed_invoice_id': invoice_id
+                }
+
+                if trial_status == 'converted':
+                    update_data['trial_status'] = 'none'
+                    logger.info(f"[WEBHOOK] Clearing converted status for account {account_id}")
+                
+                await client.from_('credit_accounts').update(update_data).eq('account_id', account_id).execute()
                 
                 final_state = await client.from_('credit_accounts').select(
                     'balance, expiring_credits, non_expiring_credits'

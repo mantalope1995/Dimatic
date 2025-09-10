@@ -1,23 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, CreditCard, Zap, Shield, ArrowRight, CheckCircle, Loader2 } from 'lucide-react';
+import { Sparkles, CreditCard, Zap, Shield, ArrowRight, CheckCircle, Loader2, Clock, XCircle, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useSubscription } from '@/hooks/react-query/use-billing-v2';
+import { useState, useEffect } from 'react';
 import { useTrialStatus, useStartTrial } from '@/hooks/react-query/billing/use-trial-status';
+import { useSubscription } from '@/hooks/react-query/use-billing-v2';
+import { Skeleton } from '@/components/ui/skeleton';
 import { KortixLogo } from '@/components/sidebar/kortix-logo';
 import Link from 'next/link';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { createClient } from '@/lib/supabase/client';
+import { clearUserLocalStorage } from '@/lib/utils/clear-local-storage';
+import { useMaintenanceNoticeQuery } from '@/hooks/react-query/edge-flags';
+import { MaintenanceAlert } from '@/components/maintenance-alert';
 
 export default function ActivateTrialPage() {
   const router = useRouter();
   const { data: subscription, isLoading: isLoadingSubscription } = useSubscription();
   const { data: trialStatus, isLoading: isLoadingTrial } = useTrialStatus();
   const startTrialMutation = useStartTrial();
+  const { data: maintenanceNotice, isLoading: maintenanceLoading } = useMaintenanceNoticeQuery();
 
   useEffect(() => {
     if (!isLoadingSubscription && !isLoadingTrial && subscription && trialStatus) {
@@ -54,27 +60,50 @@ export default function ActivateTrialPage() {
     }
   };
 
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    clearUserLocalStorage();
+    router.push('/auth');
+  };
+
+  const isMaintenanceLoading = maintenanceLoading;
+
+  if (isMaintenanceLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (maintenanceNotice?.enabled) {
+    return <MaintenanceAlert open={true} onOpenChange={() => {}} closeable={false} />;
+  }
+
   const isLoading = isLoadingSubscription || isLoadingTrial;
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl">
-          <CardHeader>
-            <Skeleton className="h-8 w-48 mb-2" />
-            <Skeleton className="h-4 w-64" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-12 w-full" />
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
+      <div className="absolute top-4 right-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleLogout}
+          className="gap-2"
+        >
+          <LogOut className="h-4 w-4" />
+          Log Out
+        </Button>
+      </div>
       <Card className="w-full max-w-2xl border-2 shadow-none bg-transparent border-none">
         <CardHeader className="text-center space-y-4">
           <div>
