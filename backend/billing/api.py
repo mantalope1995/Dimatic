@@ -305,57 +305,100 @@ async def deduct_token_usage(
 async def get_credit_balance(
     account_id: str = Depends(verify_and_get_user_id_from_jwt)
 ) -> Dict:
-    db = DBConnection()
-    client = await db.client
-    
-    result = await client.from_('credit_accounts').select(
-        'balance, expiring_credits, non_expiring_credits, tier, next_credit_grant, trial_status, trial_ends_at'
-    ).eq('account_id', account_id).execute()
-    
-    if result.data and len(result.data) > 0:
-        account = result.data[0]
-        tier_name = account.get('tier', 'none')
-        trial_status = account.get('trial_status')
-        trial_ends_at = account.get('trial_ends_at')
-        tier_info = get_tier_by_name(tier_name)
-        
-        is_trial = trial_status == 'active'
-        
+    # Local development mode bypass
+    if config.ENV_MODE == EnvMode.LOCAL:
         return {
-            'balance': float(account.get('balance', 0)),
-            'expiring_credits': float(account.get('expiring_credits', 0)),
-            'non_expiring_credits': float(account.get('non_expiring_credits', 0)),
-            'tier': tier_name,
-            'tier_display_name': tier_info.display_name if tier_info else 'No Plan',
-            'is_trial': is_trial,
-            'trial_status': trial_status,
-            'trial_ends_at': trial_ends_at,
-            'can_purchase_credits': tier_info.can_purchase_credits if tier_info else False,
-            'next_credit_grant': account.get('next_credit_grant'),
+            'balance': 999999.0,
+            'expiring_credits': 0.0,
+            'non_expiring_credits': 999999.0,
+            'tier': 'local_dev',
+            'tier_display_name': 'Local Development',
+            'is_trial': False,
+            'trial_status': None,
+            'trial_ends_at': None,
+            'can_purchase_credits': True,
+            'next_credit_grant': None,
             'breakdown': {
-                'expiring': float(account.get('expiring_credits', 0)),
-                'non_expiring': float(account.get('non_expiring_credits', 0)),
-                'total': float(account.get('balance', 0))
+                'expiring': 0.0,
+                'non_expiring': 999999.0,
+                'total': 999999.0
             }
         }
     
-    return {
-        'balance': 0.0,
-        'expiring_credits': 0.0,
-        'non_expiring_credits': 0.0,
-        'tier': 'none',
-        'tier_display_name': 'No Plan',
-        'is_trial': False,
-        'trial_status': None,
-        'trial_ends_at': None,
-        'can_purchase_credits': False,
-        'next_credit_grant': None,
-        'breakdown': {
-            'expiring': 0.0,
-            'non_expiring': 0.0,
-            'total': 0.0
+    try:
+        db = DBConnection()
+        client = await db.client
+        
+        result = await client.from_('credit_accounts').select(
+            'balance, expiring_credits, non_expiring_credits, tier, next_credit_grant, trial_status, trial_ends_at'
+        ).eq('account_id', account_id).execute()
+        
+        if result.data and len(result.data) > 0:
+            account = result.data[0]
+            tier_name = account.get('tier', 'none')
+            trial_status = account.get('trial_status')
+            trial_ends_at = account.get('trial_ends_at')
+            tier_info = get_tier_by_name(tier_name)
+            
+            is_trial = trial_status == 'active'
+            
+            return {
+                'balance': float(account.get('balance', 0)),
+                'expiring_credits': float(account.get('expiring_credits', 0)),
+                'non_expiring_credits': float(account.get('non_expiring_credits', 0)),
+                'tier': tier_name,
+                'tier_display_name': tier_info.display_name if tier_info else 'No Plan',
+                'is_trial': is_trial,
+                'trial_status': trial_status,
+                'trial_ends_at': trial_ends_at,
+                'can_purchase_credits': tier_info.can_purchase_credits if tier_info else False,
+                'next_credit_grant': account.get('next_credit_grant'),
+                'breakdown': {
+                    'expiring': float(account.get('expiring_credits', 0)),
+                    'non_expiring': float(account.get('non_expiring_credits', 0)),
+                    'total': float(account.get('balance', 0))
+                }
+            }
+        
+        # No credit account found - return default
+        return {
+            'balance': 0.0,
+            'expiring_credits': 0.0,
+            'non_expiring_credits': 0.0,
+            'tier': 'none',
+            'tier_display_name': 'No Plan',
+            'is_trial': False,
+            'trial_status': None,
+            'trial_ends_at': None,
+            'can_purchase_credits': False,
+            'next_credit_grant': None,
+            'breakdown': {
+                'expiring': 0.0,
+                'non_expiring': 0.0,
+                'total': 0.0
+            }
         }
-    }
+        
+    except Exception as e:
+        logger.error(f"Error getting credit balance for account {account_id}: {e}", exc_info=True)
+        # Return default balance instead of raising 500 error
+        return {
+            'balance': 0.0,
+            'expiring_credits': 0.0,
+            'non_expiring_credits': 0.0,
+            'tier': 'none',
+            'tier_display_name': 'No Plan',
+            'is_trial': False,
+            'trial_status': None,
+            'trial_ends_at': None,
+            'can_purchase_credits': False,
+            'next_credit_grant': None,
+            'breakdown': {
+                'expiring': 0.0,
+                'non_expiring': 0.0,
+                'total': 0.0
+            }
+        }
 
 @router.post("/purchase-credits")
 async def purchase_credits_checkout(
