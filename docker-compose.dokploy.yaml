@@ -75,7 +75,7 @@ services:
       
       # Security & Webhooks
       - MCP_CREDENTIAL_ENCRYPTION_KEY=${MCP_CREDENTIAL_ENCRYPTION_KEY:-}
-      - WEBHOOK_BASE_URL=${WEBHOOK_BASE_URL:-http://localhost:8000}
+      - WEBHOOK_BASE_URL=${WEBHOOK_BASE_URL:-https://backend.dimatic.com.au}
       - TRIGGER_WEBHOOK_SECRET=${TRIGGER_WEBHOOK_SECRET:-}
       
       # Observability (optional)
@@ -106,8 +106,8 @@ services:
       # Google (optional, for Google Slides)
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
-      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-http://localhost:8000/api/google/callback}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3015}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-https://backend.dimatic.com.au/api/google/callback}
+      - FRONTEND_URL=${FRONTEND_URL:-https://dimatic.com.au}
       
       # Zendesk (optional)
       - ZENDESK_AUTH_CONFIG=${ZENDESK_AUTH_CONFIG:-}
@@ -161,7 +161,7 @@ services:
       - DAYTONA_SERVER_URL=${DAYTONA_SERVER_URL:-https://app.daytona.io/api}
       - DAYTONA_TARGET=${DAYTONA_TARGET:-us}
       - MCP_CREDENTIAL_ENCRYPTION_KEY=${MCP_CREDENTIAL_ENCRYPTION_KEY:-}
-      - WEBHOOK_BASE_URL=${WEBHOOK_BASE_URL:-http://localhost:8000}
+      - WEBHOOK_BASE_URL=${WEBHOOK_BASE_URL:-https://backend.dimatic.com.au}
       - TRIGGER_WEBHOOK_SECRET=${TRIGGER_WEBHOOK_SECRET:-}
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
@@ -180,8 +180,8 @@ services:
       - PIPEDREAM_X_PD_ENVIRONMENT=${PIPEDREAM_X_PD_ENVIRONMENT:-development}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
-      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-http://localhost:8000/api/google/callback}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3015}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-https://backend.dimatic.com.au/api/google/callback}
+      - FRONTEND_URL=${FRONTEND_URL:-https://dimatic.com.au}
       - ZENDESK_AUTH_CONFIG=${ZENDESK_AUTH_CONFIG:-}
     depends_on:
       redis:
@@ -197,8 +197,8 @@ services:
         - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-https://placeholder.supabase.co}
         - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-placeholder_key_for_build_only}
         - NEXT_PUBLIC_ENV_MODE=${NEXT_PUBLIC_ENV_MODE:-local}
-        - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8000/api}
-        - NEXT_PUBLIC_URL=${NEXT_PUBLIC_URL:-http://localhost:3015}
+        - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL:-https://backend.dimatic.com.au/api}
+        - NEXT_PUBLIC_URL=${NEXT_PUBLIC_URL:-https://dimatic.com.au}
     networks:
       - dokploy-network
     environment:
@@ -206,8 +206,8 @@ services:
       - NEXT_PUBLIC_ENV_MODE=${NEXT_PUBLIC_ENV_MODE:-production}
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-      - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL:-http://backend:8000/api}
-      - NEXT_PUBLIC_URL=${NEXT_PUBLIC_URL:-http://localhost:3015}
+      - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL:-https://backend.dimatic.com.au/api}
+      - NEXT_PUBLIC_URL=${NEXT_PUBLIC_URL:-https://dimatic.com.au}
       - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
       - NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY:-}
       - KORTIX_ADMIN_API_KEY=${KORTIX_ADMIN_API_KEY:-}
