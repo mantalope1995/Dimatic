@@ -39,7 +39,7 @@ services:
       - REDIS_SSL=false
       
       # Environment
-      - ENV_MODE=${ENV_MODE:-production}
+      - ENV_MODE=${ENV_MODE:-local}
       
       # LLM Providers
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
@@ -139,7 +139,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - REDIS_SSL=false
-      - ENV_MODE=${ENV_MODE:-production}
+      - ENV_MODE=${ENV_MODE:-local}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - GROQ_API_KEY=${GROQ_API_KEY:-}

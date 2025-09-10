@@ -127,18 +127,37 @@ async def log_requests_middleware(request: Request, call_next):
         raise
 
 # Define allowed origins based on environment
-allowed_origins = ["https://www.suna.so", "https://suna.so", "https://dimatic.com.au", "https://www.dimatic.com.au"]
+# Always include dimatic.com.au domains regardless of environment
+allowed_origins = [
+    "https://www.suna.so", 
+    "https://suna.so", 
+    "https://dimatic.com.au", 
+    "https://www.dimatic.com.au"
+]
 allow_origin_regex = None
 
-# Add staging-specific origins
+# Log environment mode for debugging
+logger.info(f"Environment mode: {config.ENV_MODE.value}")
+logger.info(f"Initial allowed origins: {allowed_origins}")
+
+# Add environment-specific origins
 if config.ENV_MODE == EnvMode.LOCAL:
     allowed_origins.append("http://localhost:3015")
+    # Also include production domains in local mode for Dokploy deployment
+    logger.info("Added localhost:3015 and production domains for LOCAL mode")
 
-# Add staging-specific origins
 if config.ENV_MODE == EnvMode.STAGING:
     allowed_origins.append("https://staging.suna.so")
     allowed_origins.append("http://localhost:3015")
     allow_origin_regex = r"https://suna-.*-prjcts\.vercel\.app"
+    logger.info("Added staging origins")
+
+# Production mode should already have dimatic.com.au domains
+if config.ENV_MODE == EnvMode.PRODUCTION:
+    logger.info("Running in PRODUCTION mode with dimatic.com.au domains")
+
+logger.info(f"Final allowed origins: {allowed_origins}")
+logger.info(f"Allow origin regex: {allow_origin_regex}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -148,6 +167,20 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-Project-Id", "X-MCP-URL", "X-MCP-Type", "X-MCP-Headers", "X-Refresh-Token", "X-API-Key"],
 )
+
+@app.middleware("http")
+async def cors_debug_middleware(request: Request, call_next):
+    """Debug middleware to log CORS-related information."""
+    origin = request.headers.get("origin")
+    if origin:
+        logger.info(f"Request from origin: {origin}")
+        if origin in allowed_origins:
+            logger.info(f"Origin {origin} is in allowed_origins")
+        else:
+            logger.warning(f"Origin {origin} NOT in allowed_origins: {allowed_origins}")
+    
+    response = await call_next(request)
+    return response
 
 # Create a main API router
 api_router = APIRouter()
