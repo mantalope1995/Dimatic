@@ -118,25 +118,7 @@ services:
       worker:
         condition: service_started
     restart: unless-stopped
-    labels:
-      # Traefik configuration for Dokploy routing
-      - "traefik.enable=true"
-      - "traefik.docker.network=dokploy-network"
-      
-      # HTTP router with unique name
-      - "traefik.http.routers.dimatic-backend.rule=Host(`${BACKEND_DOMAIN}`) || (Host(`${APP_DOMAIN}`) && PathPrefix(`/api`))"
-      - "traefik.http.routers.dimatic-backend.entrypoints=web"
-      - "traefik.http.routers.dimatic-backend.service=dimatic-backend-svc"
-      
-      # HTTPS router with unique name
-      - "traefik.http.routers.dimatic-backend-secure.rule=Host(`${BACKEND_DOMAIN}`) || (Host(`${APP_DOMAIN}`) && PathPrefix(`/api`))"
-      - "traefik.http.routers.dimatic-backend-secure.entrypoints=websecure"
-      - "traefik.http.routers.dimatic-backend-secure.tls=true"
-      - "traefik.http.routers.dimatic-backend-secure.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.dimatic-backend-secure.service=dimatic-backend-svc"
-      
-      # Service definition with unique name
-      - "traefik.http.services.dimatic-backend-svc.loadbalancer.server.port=8000"
+    # Traefik labels handled by Dokploy automatically
 
   worker:
     image: ghcr.io/suna-ai/suna-backend:latest
@@ -233,25 +215,7 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
-    labels:
-      # Traefik configuration for Dokploy routing
-      - "traefik.enable=true"
-      - "traefik.docker.network=dokploy-network"
-      
-      # HTTP router with unique name
-      - "traefik.http.routers.dimatic-frontend.rule=Host(`${APP_DOMAIN}`)"
-      - "traefik.http.routers.dimatic-frontend.entrypoints=web"
-      - "traefik.http.routers.dimatic-frontend.service=dimatic-frontend-svc"
-      
-      # HTTPS router with unique name
-      - "traefik.http.routers.dimatic-frontend-secure.rule=Host(`${APP_DOMAIN}`)"
-      - "traefik.http.routers.dimatic-frontend-secure.entrypoints=websecure"
-      - "traefik.http.routers.dimatic-frontend-secure.tls=true"
-      - "traefik.http.routers.dimatic-frontend-secure.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.dimatic-frontend-secure.service=dimatic-frontend-svc"
-      
-      # Service definition with unique name
-      - "traefik.http.services.dimatic-frontend-svc.loadbalancer.server.port=3015"
+    # Traefik labels handled by Dokploy automatically
 
 networks:
   dokploy-network:
