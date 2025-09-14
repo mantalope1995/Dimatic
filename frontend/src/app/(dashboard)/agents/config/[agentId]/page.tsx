@@ -29,7 +29,7 @@ import { TourConfirmationDialog } from '@/components/tour/TourConfirmationDialog
 const agentConfigTourSteps: Step[] = [
   {
     target: '[data-tour="agent-header"]',
-    content: 'This is your agent\'s profile. You can edit the name and profile picture to personalize your agent.',
+    content: 'This is your agent\'s profile. You can edit the name and profile picture to personalise your digital assistant.',
     title: 'Agent Profile',
     placement: 'bottom',
     disableBeacon: true,

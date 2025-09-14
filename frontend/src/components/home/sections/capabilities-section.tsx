@@ -36,7 +36,7 @@ const capabilities = [
     icon: <Globe className="size-6" />,
   },
   {
-    title: 'Analyze Your Data',
+    title: 'Analyse Your Data',
     description: 'Upload spreadsheets, sales data, or any files and get insights, trends, forecasts, and beautiful charts in minutes.',
     icon: <BarChart3 className="size-6" />,
   },

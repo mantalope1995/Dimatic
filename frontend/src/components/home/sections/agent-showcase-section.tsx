@@ -83,7 +83,7 @@ const CustomAgentCard = () => {
               Custom Agent
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              Create a specialized AI Worker tailored to your unique business needs and workflow.
+              Create a specialised digital assistant tailored to your unique business needs and workflow.
             </p>
           </div>
 
@@ -100,10 +100,10 @@ const CustomAgentCard = () => {
       
       <div className="flex-1 flex-col gap-2 p-6">
         <h4 className="text-lg tracking-tighter font-semibold">
-          Custom Agent • Your Choice
+          Custom Assistant • Your Choice
         </h4>
         <p className="text-muted-foreground text-sm">
-          Design your own AI specialist for any task or industry
+          Design your own digital assistant for any task or industry
         </p>
       </div>
     </motion.div>

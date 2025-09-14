@@ -54,7 +54,7 @@ export default function IntroductionPage() {
       <DocsBody className="mb-8">
         <h2 id="overview">What is Kortix?</h2>
         <p className="text-lg mb-6">
-          Kortix is an open source platform where you can build AI agents that handle real work. Think of it as the infrastructure and tools you need to create agents that can browse the web, manage files, analyze data, and automate workflows.
+          Kortix is an open source platform where you can build AI agents that handle real work. Think of it as the infrastructure and tools you need to create agents that can browse the web, manage files, analyse data, and automate workflows.
         </p>
         
         <h3 id="meet-suna">Suna - Our Flagship Agent</h3>
@@ -63,7 +63,7 @@ export default function IntroductionPage() {
         </p>
         <ul className="list-disc pl-6 mb-6 space-y-1">
           <li>Research topics and gather information from across the web</li>
-          <li>Analyze documents and data files</li>
+          <li>Analyse documents and data files</li>
           <li>Automate browser tasks and web scraping</li>
           <li>Manage files and handle document processing</li>
           <li>Execute complex multi-step workflows</li>

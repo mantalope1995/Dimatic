@@ -81,7 +81,7 @@ const ChatDropdown = () => {
                         <FileText size={18} />
                         <div className="flex flex-col">
                             <span className="font-semibold text-sm">Document Helper</span>
-                            <span className="text-xs text-muted-foreground">Analyze documents</span>
+                            <span className="text-xs text-muted-foreground">Analyse documents</span>
                         </div>
                     </DropdownMenuItem>
 

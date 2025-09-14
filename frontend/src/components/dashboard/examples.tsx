@@ -109,7 +109,7 @@ const allPrompts: PromptExample[] = [
     icon: <Brain className="text-fuchsia-700 dark:text-fuchsia-400" size={16} />,
   },
   {
-    title: 'Analyze market opportunities',
+    title: 'Analyse market opportunities',
     query: '1. Research ASX tech sector for investment opportunities\n2. Analyse market size, growth, and key players\n3. Identify investment themes and risks\n4. Assess market challenges and barriers\n5. Create investment presentation with recommendations',
     icon: <Rocket className="text-green-600 dark:text-green-300" size={16} />,
   },
