@@ -380,7 +380,7 @@ export function HeroSection() {
                 <ChatInput
                   ref={chatInputRef}
                   onSubmit={handleChatInputSubmit}
-                  placeholder="Give Kortix a task to complete..."
+                  placeholder="Give Suna a task to complete..."
                   loading={isSubmitting}
                   disabled={isSubmitting}
                   value={inputValue}
