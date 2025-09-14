@@ -33,9 +33,9 @@ export default function Home() {
             {/* <DeliverablesSection />             */}
             <BentoSection />
             
-            {/* <AgentShowcaseSection /> */}
-            <OpenSourceSection />
-            <PricingSection />
+            * <AgentShowcaseSection /> */
+            {/* <OpenSourceSection /> */}
+            {/* <PricingSection /> */}
             {/* <TestimonialSection /> */}
             {/* <FAQSection /> */}
             <CTASection />
