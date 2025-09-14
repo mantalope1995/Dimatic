@@ -169,7 +169,7 @@ export async function GET(request: NextRequest) {
                 bottom: '40px',
               }}
             >
-              <span style={{ color: '#64748b', fontSize: '20px' }}>Kortix Suna</span>
+              <span style={{ color: '#64748b', fontSize: '20px' }}>Dimatic Suna</span>
               <span style={{ color: '#334155', fontSize: '20px' }}>•</span>
               <span style={{ color: '#64748b', fontSize: '20px' }}>AI Agent Marketplace</span>
             </div>
@@ -222,7 +222,7 @@ export async function GET(request: NextRequest) {
                 marginBottom: '16px',
               }}
             >
-              AI Agent Template
+              Assistant Template
             </h1>
             <p
               style={{
@@ -230,7 +230,7 @@ export async function GET(request: NextRequest) {
                 color: '#94a3b8',
               }}
             >
-              Discover powerful AI agents on Kortix Suna
+              Discover powerful digital assistants on Dimatic Suna
             </p>
           </div>
         </div>

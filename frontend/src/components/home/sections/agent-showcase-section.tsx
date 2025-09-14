@@ -118,49 +118,49 @@ const AgentGrid = () => {
       role: 'Copywriter', 
       icon: '✍️', 
       desc: 'Creates compelling copy for ads, blogs, and marketing campaigns that convert readers into customers.',
-      shortDesc: 'AI copywriter for marketing content and campaigns'
+      shortDesc: 'Copywriter for marketing content and campaigns'
     },
     { 
       name: 'Hunter', 
       role: 'Recruiter', 
       icon: '🎯', 
       desc: 'Turns hiring challenges into opportunities with magnetic job posts and smooth onboarding.',
-      shortDesc: 'AI recruiter for job posting and candidate screening'
+      shortDesc: 'Recruiter for job posting and candidate screening'
     },
     { 
       name: 'Nova', 
       role: 'SEO Specialist', 
       icon: '📈', 
-      desc: 'Boosts website rankings with proven SEO strategies and optimized content.',
-      shortDesc: 'AI SEO expert for website optimization and rankings'
+      desc: 'Boosts website rankings with proven SEO strategies and optimised content.',
+      shortDesc: 'SEO expert for website optimisation and rankings'
     },
     { 
       name: 'Pixel', 
       role: 'Social Media Manager', 
       icon: '📱', 
       desc: 'Generates content, plans strategies, and manages social media presence effectively.',
-      shortDesc: 'AI social media manager for content and engagement'
+      shortDesc: 'Social media manager for content and engagement'
     },
     { 
       name: 'Sage', 
       role: 'Data Analyst', 
       icon: '📊', 
       desc: 'Transforms raw data into actionable insights with comprehensive analysis and reporting.',
-      shortDesc: 'AI data analyst for insights and reporting'
+      shortDesc: 'Data analyst for insights and reporting'
     },
     { 
       name: 'Echo', 
       role: 'Project Manager', 
       icon: '📋', 
       desc: 'Streamlines workflows, coordinates tasks, and ensures timely project delivery.',
-      shortDesc: 'AI project manager for workflow coordination'
+      shortDesc: 'Project manager for workflow coordination'
     },
     { 
       name: 'Byte', 
       role: 'Code Assistant', 
       icon: '💻', 
       desc: 'Provides expert programming support with code review, debugging, and architecture design.',
-      shortDesc: 'AI coding assistant for development and debugging'
+      shortDesc: 'Coding assistant for development and debugging'
     },
   ];
 
@@ -184,10 +184,10 @@ export function AgentShowcaseSection() {
         <div className="max-w-6xl mx-auto border-l border-r">
           <SectionHeader>
             <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance pb-1">
-              Build Your AI Team
+              Build Your Team
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              Specialized AI Workers ready to transform your workflow. Choose from our curated team of experts.
+              Specialised digital assistants ready to transform your workflow. Choose from our curated team of experts.
             </p>
           </SectionHeader>
 
