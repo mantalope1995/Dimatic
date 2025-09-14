@@ -674,7 +674,7 @@ class SetupWizard:
                 "DAYTONA_SERVER_URL"
             ] = "https://app.daytona.io/api"
         if not self.env_vars["daytona"]["DAYTONA_TARGET"]:
-            self.env_vars["daytona"]["DAYTONA_TARGET"] = "us"
+            self.env_vars["daytona"]["DAYTONA_TARGET"] = "in"
 
         print_success("Daytona information saved.")
 

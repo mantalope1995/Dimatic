@@ -4,17 +4,17 @@ import { siteConfig } from '@/lib/site';
 export const metadata: Metadata = {
   title: siteConfig.name,
   description: siteConfig.description,
-  keywords: ['Kortix Suna', 'Kortix', 'Suna', 'AI', 'Agent', 'Open Source'],
+  keywords: ['Dimatic Suna', 'Dimatic', 'Suna', 'AI', 'Agent'],
   authors: [
     {
-      name: 'Kortix AI Corp',
-      url: 'https://kortix.ai',
+      name: 'Dimatic',
+      url: 'https://Dimatic.com.au',
     },
   ],
-  creator: 'Kortix AI Corp',
+  creator: 'Dimatic',
   openGraph: {
     type: 'website',
-    locale: 'en_US',
+    locale: 'en_AUS',
     url: siteConfig.url,
     title: siteConfig.name,
     description: siteConfig.description,
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: siteConfig.name,
     description: siteConfig.description,
-    creator: '@kortixai',
+    creator: '@Dimatic',
     images: ['/banner.png'],
   },
   robots: {

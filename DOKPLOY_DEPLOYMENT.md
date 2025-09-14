@@ -74,7 +74,7 @@ FIRECRAWL_API_KEY=your-firecrawl-api-key
 # Agent Sandbox (Required for agent execution)
 DAYTONA_API_KEY=your-daytona-api-key
 DAYTONA_SERVER_URL=https://app.daytona.io/api
-DAYTONA_TARGET=us
+DAYTONA_TARGET=in
 ```
 
 #### LLM Provider Variables (At least one required)

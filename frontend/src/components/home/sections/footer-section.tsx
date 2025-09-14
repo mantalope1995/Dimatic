@@ -46,7 +46,7 @@ export function FooterSection() {
 
               <div className="flex items-center gap-4">
             <a
-              href="https://github.com/kortix-ai/suna"
+              href="https://github.com/Dimatic-ai/suna"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="GitHub"
@@ -63,7 +63,7 @@ export function FooterSection() {
               </svg>
             </a>
             <a
-              href="https://x.com/kortixai"
+              href="https://x.com/Dimaticai"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="X (Twitter)"
@@ -80,7 +80,7 @@ export function FooterSection() {
               </svg>
             </a>
             <a
-              href="https://www.linkedin.com/company/kortix/"
+              href="https://www.linkedin.com/company/Dimatic/"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="LinkedIn"
@@ -134,7 +134,7 @@ export function FooterSection() {
         </div>
       </div>
       <Link
-        href="https://www.youtube.com/watch?v=nuf5BF1jvjQ"
+        href=""
         target="_blank"
         rel="noopener noreferrer"
         className="block w-full h-48 md:h-64 relative mt-24 z-0 cursor-pointer"

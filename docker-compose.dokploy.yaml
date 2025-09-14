@@ -71,7 +71,7 @@ services:
       # Daytona Sandbox
       - DAYTONA_API_KEY=${DAYTONA_API_KEY}
       - DAYTONA_SERVER_URL=${DAYTONA_SERVER_URL:-https://app.daytona.io/api}
-      - DAYTONA_TARGET=${DAYTONA_TARGET:-us}
+      - DAYTONA_TARGET=${DAYTONA_TARGET:-in}
       
       # Security & Webhooks
       - MCP_CREDENTIAL_ENCRYPTION_KEY=${MCP_CREDENTIAL_ENCRYPTION_KEY:-}
@@ -159,7 +159,7 @@ services:
       - FIRECRAWL_URL=${FIRECRAWL_URL:-https://api.firecrawl.dev}
       - DAYTONA_API_KEY=${DAYTONA_API_KEY}
       - DAYTONA_SERVER_URL=${DAYTONA_SERVER_URL:-https://app.daytona.io/api}
-      - DAYTONA_TARGET=${DAYTONA_TARGET:-us}
+      - DAYTONA_TARGET=${DAYTONA_TARGET:-in}
       - MCP_CREDENTIAL_ENCRYPTION_KEY=${MCP_CREDENTIAL_ENCRYPTION_KEY:-}
       - WEBHOOK_BASE_URL=${WEBHOOK_BASE_URL:-https://backend.dimatic.com.au}
       - TRIGGER_WEBHOOK_SECRET=${TRIGGER_WEBHOOK_SECRET:-}
