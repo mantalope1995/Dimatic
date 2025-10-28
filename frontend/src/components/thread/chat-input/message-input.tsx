@@ -38,8 +38,9 @@ interface MessageInputProps {
   messages?: any[]; // Add messages prop
   isLoggedIn?: boolean;
 
-  selectedModel: string;
-  onModelChange: (model: string) => void;
+  // Model-related props removed - users now use default model automatically
+  // selectedModel: string;
+  // onModelChange: (model: string) => void;
   modelOptions: any[];
   subscriptionStatus: SubscriptionStatus;
   canAccessModel: (modelId: string) => boolean;
@@ -76,8 +77,9 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
       messages = [],
       isLoggedIn = true,
 
-      selectedModel,
-      onModelChange,
+      // Model-related props removed
+      // selectedModel,
+      // onModelChange,
       modelOptions,
       subscriptionStatus,
       canAccessModel,
@@ -168,12 +170,14 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
             isLoggedIn={isLoggedIn}
             selectedAgentId={!hideAgentSelection ? selectedAgentId : undefined}
             onAgentSelect={!hideAgentSelection ? onAgentSelect : undefined}
-            selectedModel={selectedModel}
-            onModelChange={onModelChange}
-            modelOptions={modelOptions}
-            subscriptionStatus={subscriptionStatus}
-            canAccessModel={canAccessModel}
-            refreshCustomModels={refreshCustomModels}
+            // Model-related props removed
+            // selectedModel={selectedModel}
+            // onModelChange={onModelChange}
+            // Model-related props removed
+            // modelOptions={modelOptions}
+            // subscriptionStatus={subscriptionStatus}
+            // canAccessModel={canAccessModel}
+            // refreshCustomModels={refreshCustomModels}
           />
         </div>
       );

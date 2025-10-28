@@ -144,14 +144,16 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(
     const [billingModalOpen, setBillingModalOpen] = useState(false);
 
     const {
-      selectedModel,
-      setSelectedModel: handleModelChange,
       subscriptionStatus,
-      allModels: modelOptions,
-      canAccessModel,
       getActualModelId,
-      refreshCustomModels,
     } = useModelSelection();
+    
+    // Get default model based on subscription status
+    const getDefaultModel = () => {
+      return subscriptionStatus === 'active' ? 'claude-sonnet-4' : 'moonshotai/kimi-k2';
+    };
+    
+    const selectedModel = getDefaultModel();
 
     const { data: subscriptionData } = useSubscriptionData();
     const deleteFileMutation = useFileDelete();
@@ -241,10 +243,11 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(
 
       let baseModelName = getActualModelId(selectedModel);
       let thinkingEnabled = false;
-      if (selectedModel.endsWith('-thinking')) {
-        baseModelName = getActualModelId(selectedModel.replace(/-thinking$/, ''));
-        thinkingEnabled = true;
-      }
+      // Note: Thinking mode disabled since users can't select models
+      // if (selectedModel.endsWith('-thinking')) {
+      //   baseModelName = getActualModelId(selectedModel.replace(/-thinking$/, ''));
+      //   thinkingEnabled = true;
+      // }
 
       posthog.capture("task_prompt_submitted", { message });
 
@@ -412,12 +415,11 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(
                   hideAttachments={hideAttachments}
                   messages={messages}
 
-                  selectedModel={selectedModel}
-                  onModelChange={handleModelChange}
-                  modelOptions={modelOptions}
+                  // Add dummy props to satisfy MessageInput interface (not actually used)
+                  modelOptions={[]}
                   subscriptionStatus={subscriptionStatus}
-                  canAccessModel={canAccessModel}
-                  refreshCustomModels={refreshCustomModels}
+                  canAccessModel={() => true}
+                  refreshCustomModels={() => {}}
                   isLoggedIn={isLoggedIn}
 
                   selectedAgentId={selectedAgentId}

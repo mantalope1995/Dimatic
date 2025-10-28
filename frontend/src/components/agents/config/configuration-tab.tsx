@@ -6,7 +6,8 @@ import { AgentMCPConfiguration } from '../agent-mcp-configuration';
 import { AgentKnowledgeBaseManager } from '../knowledge-base/agent-knowledge-base-manager';
 import { AgentPlaybooksConfiguration } from '../playbooks/agent-playbooks-configuration';
 import { AgentTriggersConfiguration } from '../triggers/agent-triggers-configuration';
-import { AgentModelSelector } from './model-selector';
+// AgentModelSelector import removed - no longer needed
+// import { AgentModelSelector } from './model-selector';
 import { toast } from 'sonner';
 import { KortixLogo } from '../../sidebar/kortix-logo';
 
@@ -140,79 +141,42 @@ export function ConfigurationTab({
           )}
 
           <div className="space-y-3">
+            {/* Model configuration section removed - agents now use default model automatically */}
+            
             {!isSunaAgent && (
-              <>
-                <div className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:border-primary/10" data-tour="model-section">
-                  <button
-                    className="w-full p-4 text-left group-hover:bg-muted/30 transition-all duration-300"
-                    onClick={() => setOpenAccordion(openAccordion === 'model' ? '' : 'model')}
-                    disabled={isLoading}
-                  >
-                    <div className="flex items-center gap-4 w-full">
-                      <div className="relative flex-shrink-0">
-                        <div className="bg-muted rounded-xl h-10 w-10 flex items-center justify-center transition-all duration-300 group-hover:scale-105">
-                          <Brain className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      </div>
-                      <div className="text-left flex-1 min-w-0">
-                        <h4 className="text-sm font-semibold text-foreground mb-1 group-hover:text-primary transition-colors duration-300">Model Configuration</h4>
-                        <p className="text-xs text-muted-foreground group-hover:text-foreground/70 transition-colors duration-300">Choose the AI model for your agent</p>
-                      </div>
-                      <ChevronDown className={`h-4 w-4 flex-shrink-0 transition-transform duration-300 ease-out ${openAccordion === 'model' ? 'rotate-180' : ''}`} />
-                    </div>
-                  </button>
-                  {openAccordion === 'model' && (
-                    <div className="border-t border-border bg-muted/10">
-                      <div className="p-4">
-                        <AgentModelSelector
-                          value={displayData.model}
-                          onChange={(model) => {
-                            if (onModelSave) {
-                              onModelSave(model);
-                            } else {
-                              onFieldChange('model', model);
-                            }
-                          }}
-                          disabled={isViewingOldVersion || isLoading}
-                        />
+              <div className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:border-primary/10" data-tour="system-prompt">
+                <button
+                  className="w-full p-4 text-left group-hover:bg-muted/30 transition-all duration-300"
+                  onClick={() => setOpenAccordion(openAccordion === 'system' ? '' : 'system')}
+                  disabled={isLoading}
+                >
+                  <div className="flex items-center gap-4 w-full">
+                    <div className="relative flex-shrink-0">
+                      <div className="bg-muted rounded-xl h-10 w-10 flex items-center justify-center transition-all duration-300 group-hover:scale-105">
+                        <Settings className="h-5 w-5 text-muted-foreground" />
                       </div>
                     </div>
-                  )}
-                </div>
-                <div className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:border-primary/10" data-tour="system-prompt">
-                  <button
-                    className="w-full p-4 text-left group-hover:bg-muted/30 transition-all duration-300"
-                    onClick={() => setOpenAccordion(openAccordion === 'system' ? '' : 'system')}
-                    disabled={isLoading}
-                  >
-                    <div className="flex items-center gap-4 w-full">
-                      <div className="relative flex-shrink-0">
-                        <div className="bg-muted rounded-xl h-10 w-10 flex items-center justify-center transition-all duration-300 group-hover:scale-105">
-                          <Settings className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      </div>
-                      <div className="text-left flex-1 min-w-0">
-                        <h4 className="text-sm font-semibold text-foreground mb-1 group-hover:text-primary transition-colors duration-300">System Prompt</h4>
-                        <p className="text-xs text-muted-foreground group-hover:text-foreground/70 transition-colors duration-300">Define agent behavior and goals</p>
-                      </div>
-                      <ChevronDown className={`h-4 w-4 flex-shrink-0 transition-transform duration-300 ease-out ${openAccordion === 'system' ? 'rotate-180' : ''}`} />
+                    <div className="text-left flex-1 min-w-0">
+                      <h4 className="text-sm font-semibold text-foreground mb-1 group-hover:text-primary transition-colors duration-300">System Prompt</h4>
+                      <p className="text-xs text-muted-foreground group-hover:text-foreground/70 transition-colors duration-300">Define agent behavior and goals</p>
                     </div>
-                  </button>
-                  {openAccordion === 'system' && (
-                    <div className="border-t border-border bg-muted/10">
-                      <div className="p-4">
-                        <ExpandableMarkdownEditor
-                          value={displayData.system_prompt}
-                          onSave={handleSystemPromptChange}
-                          placeholder="Click to set system instructions..."
-                          title="System Instructions"
-                          disabled={!isSystemPromptEditable || isLoading}
-                        />
-                      </div>
+                    <ChevronDown className={`h-4 w-4 flex-shrink-0 transition-transform duration-300 ease-out ${openAccordion === 'system' ? 'rotate-180' : ''}`} />
+                  </div>
+                </button>
+                {openAccordion === 'system' && (
+                  <div className="border-t border-border bg-muted/10">
+                    <div className="p-4">
+                      <ExpandableMarkdownEditor
+                        value={displayData.system_prompt}
+                        onSave={handleSystemPromptChange}
+                        placeholder="Click to set system instructions..."
+                        title="System Instructions"
+                        disabled={!isSystemPromptEditable || isLoading}
+                      />
                     </div>
-                  )}
-                </div>
-              </>
+                  </div>
+                )}
+              </div>
             )}
 
             <div className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:border-primary/10" data-tour="tools-section">
@@ -305,7 +269,7 @@ export function ConfigurationTab({
                   </div>
                   <div className="text-left flex-1 min-w-0">
                     <h4 className="text-sm font-semibold text-foreground mb-1 group-hover:text-primary transition-colors duration-300">Knowledge Base</h4>
-                    <p className="text-xs text-muted-foreground group-hover:text-foreground/70 transition-colors duration-300">Upload and manage knowledge for the agent</p>
+                    <p className="text-xs text-muted-foreground group-hover:text-foreground/70 transition-colors duration-300">Upload and manage knowledge for agent</p>
                   </div>
                   <ChevronDown className={`h-4 w-4 flex-shrink-0 transition-transform duration-300 ease-out ${openAccordion === 'knowledge' ? 'rotate-180' : ''}`} />
                 </div>

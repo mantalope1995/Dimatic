@@ -17,8 +17,9 @@ import { cn } from '@/lib/utils';
 import { Cpu, Search, Check, ChevronDown, Plus, ExternalLink } from 'lucide-react';
 import { useAgents } from '@/hooks/react-query/agents/use-agents';
 import { KortixLogo } from '@/components/sidebar/kortix-logo';
-import type { ModelOption, SubscriptionStatus } from './_use-model-selection';
-import { MODELS } from './_use-model-selection';
+// Model-related imports removed - no longer needed
+// import type { ModelOption, SubscriptionStatus } from './_use-model-selection';
+// import { MODELS } from './_use-model-selection';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { IntegrationsRegistry } from '@/components/agents/integrations-registry';
@@ -28,7 +29,8 @@ import { NewAgentDialog } from '@/components/agents/new-agent-dialog';
 import { useAgentWorkflows } from '@/hooks/react-query/agents/use-agent-workflows';
 import { PlaybookExecuteDialog } from '@/components/playbooks/playbook-execute-dialog';
 import { AgentAvatar } from '@/components/thread/content/agent-avatar';
-import { AgentModelSelector } from '@/components/agents/config/model-selector';
+// AgentModelSelector import removed - no longer needed
+// import { AgentModelSelector } from '@/components/agents/config/model-selector';
 import { useRouter } from 'next/navigation';
 
 type UnifiedConfigMenuProps = {
@@ -38,13 +40,13 @@ type UnifiedConfigMenuProps = {
     selectedAgentId?: string;
     onAgentSelect?: (agentId: string | undefined) => void;
 
-    // Model
-    selectedModel: string;
-    onModelChange: (modelId: string) => void;
-    modelOptions: ModelOption[];
-    subscriptionStatus: SubscriptionStatus;
-    canAccessModel: (modelId: string) => boolean;
-    refreshCustomModels?: () => void;
+    // Model props removed - users now use default model automatically
+    // selectedModel: string;
+    // onModelChange: (modelId: string) => void;
+    // modelOptions: ModelOption[];
+    // subscriptionStatus: SubscriptionStatus;
+    // canAccessModel: (modelId: string) => boolean;
+    // refreshCustomModels?: () => void;
     onUpgradeRequest?: () => void;
 };
 
@@ -52,11 +54,6 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = ({
     isLoggedIn = true,
     selectedAgentId,
     onAgentSelect,
-    selectedModel,
-    onModelChange,
-    modelOptions,
-    canAccessModel,
-    subscriptionStatus,
     onUpgradeRequest,
 }) => {
     const router = useRouter();
@@ -238,18 +235,7 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = ({
 
                     {onAgentSelect && <DropdownMenuSeparator className="!mt-0" />}
 
-                    {/* Models */}
-                    <div className="px-1.5">
-                        <div className="px-3 py-1 text-[11px] font-medium text-muted-foreground">Models</div>
-                        <AgentModelSelector
-                            value={selectedModel}
-                            onChange={onModelChange}
-                            disabled={false}
-                            variant="menu-item"
-                        />
-                    </div>
-
-                    <DropdownMenuSeparator />
+                    {/* Models section removed - users now use default model automatically */}
 
                     {/* Quick Actions */}
                     {onAgentSelect && (selectedAgentId || displayAgent?.agent_id) && (
