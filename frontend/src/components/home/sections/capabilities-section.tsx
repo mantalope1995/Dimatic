@@ -71,7 +71,7 @@ export function CapabilitiesSection() {
         <div className="max-w-6xl mx-auto border-l border-r border-border">
           <SectionHeader>
             <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance pb-1">
-              What Can Suna Do For You?
+              What Can Dimatic Do For You?
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
               From content creation to data analysis, Suna handles the work that takes you hours in just minutes.

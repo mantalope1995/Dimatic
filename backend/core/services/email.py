@@ -25,8 +25,8 @@ class EmailService:
     
         if not user_name:
             user_name = user_email.split('@')[0].title()
-        
-        subject = "🎉 Welcome to Suna — Let's Get Started "
+
+        subject = "🎉 Welcome to Dimatic — Let's Get Started "
         html_content = self._get_welcome_email_template(user_name)
         text_content = self._get_welcome_email_text(user_name)
         
@@ -167,7 +167,7 @@ class EmailService:
     def _get_welcome_email_text(self, user_name: str) -> str:
         return f"""Hi {user_name},
 
-Welcome to Suna — we're excited to have you on board!
+Welcome to Dimatic — we're excited to have you on board!
 
 To get started, we'd like to get to know you better: fill out this short form!
 https://docs.google.com/forms/d/e/1FAIpQLSef1EHuqmIh_iQz-kwhjnzSC3Ml-V_5wIySDpMoMU9W_j24JQ/viewform

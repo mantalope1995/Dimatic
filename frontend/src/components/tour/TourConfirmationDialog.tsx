@@ -30,7 +30,7 @@ export const TourConfirmationDialog = React.memo(({ open, onAccept, onDecline }:
             <div className="flex items-center gap-4 mt-4">
               <div>
                 <AlertDialogTitle className="text-xl font-semibold">
-                  Welcome to Suna
+                  Welcome to Dimatic
                 </AlertDialogTitle>
               </div>
             </div>
