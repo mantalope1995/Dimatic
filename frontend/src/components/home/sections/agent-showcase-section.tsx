@@ -114,49 +114,49 @@ const CustomAgentCard = () => {
 const AgentGrid = () => {
   const agents = [
     { 
-      name: 'Maya', 
+      name: 'Maya (Coming Soon)', 
       role: 'Copywriter', 
       icon: '✍️', 
       desc: 'Creates compelling copy for ads, blogs, and marketing campaigns that convert readers into customers.',
       shortDesc: 'Copywriter for marketing content and campaigns'
     },
     { 
-      name: 'Hunter', 
+      name: 'Hunter (Coming Soon)', 
       role: 'Recruiter', 
       icon: '🎯', 
       desc: 'Turns hiring challenges into opportunities with magnetic job posts and smooth onboarding.',
       shortDesc: 'Recruiter for job posting and candidate screening'
     },
     { 
-      name: 'Nova', 
+      name: 'Nova (Coming Soon)', 
       role: 'SEO Specialist', 
       icon: '📈', 
       desc: 'Boosts website rankings with proven SEO strategies and optimised content.',
       shortDesc: 'SEO expert for website optimisation and rankings'
     },
     { 
-      name: 'Pixel', 
+      name: 'Pixel (Coming Soon)', 
       role: 'Social Media Manager', 
       icon: '📱', 
       desc: 'Generates content, plans strategies, and manages social media presence effectively.',
       shortDesc: 'Social media manager for content and engagement'
     },
     { 
-      name: 'Sage', 
+      name: 'Sage (Coming Soon)', 
       role: 'Data Analyst', 
       icon: '📊', 
       desc: 'Transforms raw data into actionable insights with comprehensive analysis and reporting.',
       shortDesc: 'Data analyst for insights and reporting'
     },
     { 
-      name: 'Echo', 
+      name: 'Echo (Coming Soon)', 
       role: 'Project Manager', 
       icon: '📋', 
       desc: 'Streamlines workflows, coordinates tasks, and ensures timely project delivery.',
       shortDesc: 'Project manager for workflow coordination'
     },
     { 
-      name: 'Byte', 
+      name: 'Byte (Coming Soon)', 
       role: 'Code Assistant', 
       icon: '💻', 
       desc: 'Provides expert programming support with code review, debugging, and architecture design.',
