@@ -9,7 +9,9 @@ import {
   BarChart3,
   ShoppingCart,
   Users,
-  Clock
+  Clock,
+  Network,
+  ShieldCheck
 } from 'lucide-react';
 
 const capabilities = [
@@ -20,28 +22,38 @@ const capabilities = [
   },
   {
     title: 'Reclaim Your 15-20 Hours/Week',
-    description: 'Stop manually reconciling sales logs , updating stock sheets[cite: 6], or cross-referencing data. Automate the repetitive admin [cite: 22] that is killing your week and stifling your growth[cite: 4, 6].',
+    description: 'Stop manually reconciling sales logs, updating stock sheets, or cross-referencing data. Automate the repetitive admin that is killing your week and stifling your growth.',
     icon: <ShoppingCart className="size-6" />, // Changed from original to better fit inventory
   },
   {
     title: 'Get Real-Time Low-Stock Alerts',
-    description: 'Never lose a major sale to a preventable stockout again[cite: 16, 24]. Get automatic alerts on your high-turnover items *before* you run out [cite: 20, 22], based on your real sales velocity.',
+    description: 'Never lose a major sale to a preventable stockout again. Get automatic alerts on your high-turnover items *before* you run out, based on your real sales velocity.',
     icon: <Users className="size-6" />, // Changed from original
   },
   {
     title: 'Run Stock Audits Overnight',
-    description: 'Why spend a weekend manually reconciling spreadsheets for tax time? [cite: 25] Schedule your inventory audits [cite: 22] and sales reconciliations to run automatically while you sleep.',
+    description: 'Why spend a weekend manually reconciling spreadsheets for tax time? Schedule your inventory audits and sales reconciliations to run automatically while you sleep.',
     icon: <Clock className="size-6" />,
   },
   {
     title: 'Monitor Competitor & Supplier Pricing',
-    description: 'Get comprehensive, automated reports on competitor price changes [cite: 22] and supplier delays. Stop making reactive purchasing decisions  and get ahead of supply chain issues.',
+    description: 'Get comprehensive, automated reports on competitor price changes and supplier delays. Stop making reactive purchasing decisions and get ahead of supply chain issues.',
     icon: <Globe className="size-6" />,
   },
   {
     title: 'Generate Instant Stock Reports',
     description: 'Turn your messy spreadsheets into clean, daily reports  that show sales velocity, profitability per SKU, and inventory accuracy. No IT team or developer needed.',
     icon: <FileText className="size-6" />,
+  },
+  {
+    title: 'Sync Your Multi-Channel Sales',
+    description: 'Stop the chaos of selling on 2+ channels. Connect your e-commerce site, online marketplace, and sales logs to one central, real-time inventory. End overselling and get your inventory accuracy above 80%.',
+    icon: <Network className="size-6" />, 
+  },
+  {
+    title: 'Create a Single Source of Truth',
+    description: 'That massive, complex spreadsheet is your single biggest bottleneck. Turn its chaos into a simple, trustworthy dashboard your entire team can use—making your "system" finally teachable for new employees.',
+    icon: <ShieldCheck className="size-6" />,
   },
 ];
 
@@ -62,7 +74,7 @@ export function CapabilitiesSection() {
               What Can Dimatic Do For You?
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              From content creation to data analysis, Suna handles the work that takes you hours in just minutes.
+              From content creation to data analysis, Dimatic handles the work that takes you hours in just minutes.
             </p>
           </SectionHeader>
 

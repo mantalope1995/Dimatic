@@ -157,11 +157,11 @@ function LegalContent() {
                     <p className="text-muted-foreground text-balance mb-6">
                       PLEASE READ THESE TERMS OF USE ("AGREEMENT" OR "TERMS OF
                       USE" or "TERMS OF SERVICE" or "TERMS AND CONDITIONS")
-                      CAREFULLY BEFORE USING THE SERVICES OFFERED BY Kortix AI
-                      Corp (701 Tillery Street Unit 12-2521 Austin, Texas 78702,
-                      United States). THIS AGREEMENT SETS FORTH THE LEGALLY
-                      BINDING TERMS AND CONDITIONS FOR YOUR USE OF THE SUNA
-                      WEBSITE AND ALL RELATED SERVICES.
+                      CAREFULLY BEFORE USING THE SERVICES OFFERED BY Dimatic
+                      Pty Ltd (ABN: [Insert ABN], Level 10, 123 St Georges Terrace, Perth, WA 6000,
+                      Australia). THIS AGREEMENT SETS FORTH THE LEGALLY
+                      BINDING TERMS AND CONDITIONS FOR YOUR USE OF THE DIMATIC
+                      WEBSITE AND ALL RELATED SERVICES UNDER AUSTRALIAN LAW.
                     </p>
 
                     <h3 className="text-lg font-medium tracking-tight">
@@ -169,16 +169,15 @@ function LegalContent() {
                     </h3>
                     <ul className="text-muted-foreground space-y-1 mb-6">
                       <li>
-                        "Company" refers to Kortix AI Corp (701 Tillery Street
-                        Unit 12-2521 Austin, Texas 78702, United States).
+                        "Company" refers to Dimatic Pty Ltd (ABN: [Insert ABN], Level 10, 123 St Georges Terrace, Perth, WA 6000, Australia).
                       </li>
                       <li>
-                        "Site" refers to the Suna website, including any related
+                        "Site" refers to the Dimatic website, including any related
                         features, content, or applications offered from time to
                         time by the Company.
                       </li>
                       <li>
-                        "Service" refers to the Suna website and all related
+                        "Service" refers to the Dimatic website and all related
                         services provided by the Company, including the
                         AI-powered agent that helps you accomplish real-world
                         tasks.
@@ -216,7 +215,16 @@ function LegalContent() {
                       </li>
                       <li>
                         "Notice Address" refers to the contact address for the
-                        Company, specifically legal@kortix.ai
+                        Company, specifically legal@dimatic.com.au
+                      </li>
+                      <li>
+                        "ABN" refers to Australian Business Number.
+                      </li>
+                      <li>
+                        "APPs" refers to the Australian Privacy Principles under the Privacy Act 1988 (Cth).
+                      </li>
+                      <li>
+                        "OAIC" refers to the Office of the Australian Information Commissioner.
                       </li>
                       <li>
                         "Privacy Policy" refers to the document outlining how
@@ -227,8 +235,7 @@ function LegalContent() {
                         the Company or the User.
                       </li>
                       <li>
-                        "AAA Rules" refers to the American Arbitration
-                        Association's Consumer Arbitration Rules.
+                        "AAA Rules" refers to the Australian Arbitration Rules.
                       </li>
                       <li>
                         "Claim" refers to any dispute, claim, demand, or cause
@@ -354,7 +361,7 @@ function LegalContent() {
                       Open Source License
                     </h3>
                     <p className="text-muted-foreground text-balance mb-6">
-                      Suna is licensed under the Apache License, Version 2.0.
+                      Dimatic is licensed under the Apache License, Version 2.0.
                       You may obtain a copy of the License at{' '}
                       <a
                         href="http://www.apache.org/licenses/LICENSE-2.0"
@@ -385,20 +392,20 @@ function LegalContent() {
                     </p>
 
                     <h3 className="text-lg font-medium tracking-tight">
-                      DMCA and Takedowns Policy
+                      Copyright and Intellectual Property Policy
                     </h3>
                     <p className="text-muted-foreground text-balance mb-6">
                       The Company utilizes artificial intelligence systems to
                       generate content and perform actions. Such generation may
                       unintentionally involve copyrighted material or trademarks
-                      held by others. We respect rights holders internationally,
-                      and we ask our users to do the same. If you believe your
-                      copyright or trademark is being infringed by the Service,
-                      please write to legal@kortixai.com and we will process and
-                      investigate your request and take appropriate actions
-                      under the Digital Millennium Copyright Act and other
-                      applicable intellectual property laws with respect to any
-                      alleged or actual infringement.
+                      held by others. We respect rights holders under Australian
+                      intellectual property law, and we ask our users to do the same.
+                      If you believe your copyright or trademark is being infringed
+                      by the Service, please write to legal@dimatic.com.au and we will
+                      process and investigate your request and take appropriate actions
+                      under the Copyright Act 1968 (Cth), the Trade Marks Act 1995 (Cth),
+                      and other applicable Australian intellectual property laws with
+                      respect to any alleged or actual infringement.
                     </p>
 
                     <h3 className="text-lg font-medium tracking-tight">
@@ -407,10 +414,10 @@ function LegalContent() {
                     <p className="text-muted-foreground text-balance mb-4">
                       The Company may offer paid Services. You can learn more
                       about our pricing after signing up. You may sign up for a
-                      subscription, payable in U.S. dollars, that will
+                      subscription, payable in Australian dollars (AUD), that will
                       automatically renew. You can stop using the Service and
                       cancel your subscription at any time through the website
-                      or by emailing us at legal@kortixai.com. If you cancel
+                      or by emailing us at legal@dimatic.com.au. If you cancel
                       your subscription, you may not receive a refund or credit
                       for any amounts that have already been billed or paid. The
                       Company reserves the right to change its prices at any
@@ -419,16 +426,13 @@ function LegalContent() {
                     </p>
 
                     <p className="text-muted-foreground text-balance mb-6">
-                      Unless otherwise stated, your subscription fees ("Fees")
-                      do not include federal, state, local, and foreign taxes,
-                      duties, and other similar assessments ("Taxes"). You are
-                      responsible for all Taxes associated with your purchase
-                      and we may invoice you for such Taxes. You agree to timely
-                      pay such Taxes and provide us with documentation showing
-                      the payment or additional evidence that we may reasonably
-                      require. If any amount of your Fees is past due, we may
-                      suspend your access to the Services after we provide you
-                      with written notice of late payment.
+                      All prices quoted are in Australian dollars (AUD) and are
+                      inclusive of Goods and Services Tax (GST) where applicable.
+                      Our ABN is [Insert ABN]. You are responsible for all other
+                      applicable taxes, duties, and assessments. If any amount
+                      of your Fees is past due, we may suspend your access to the
+                      Services after we provide you with written notice of late
+                      payment in accordance with Australian Consumer Law.
                     </p>
 
                     <h3 className="text-lg font-medium tracking-tight">
@@ -506,19 +510,25 @@ function LegalContent() {
                     </p>
 
                     <h3 className="text-lg font-medium tracking-tight">
-                      Choice of Law
+                      Choice of Law and Jurisdiction
                     </h3>
                     <p className="text-muted-foreground text-balance mb-6">
-                      Any and all Claims shall be governed by the Federal
-                      Arbitration Act and the internal substantive laws of
-                      Singapore in all respects, without regard for the
-                      jurisdiction or forum in which the user is domiciled,
-                      resides, or is located at the time of such access or use.
-                      Except as provided in the Arbitration Agreement, all
-                      Claims will be brought in the federal or state courts in
-                      Singapore, and you and the Company each unconditionally,
-                      voluntarily, and irrevocably consent to the exclusive
-                      personal jurisdiction and venue of those courts.
+                      Any and all Claims shall be governed by and construed in
+                      accordance with the laws of Australia, including the
+                      Competition and Consumer Act 2010 (Cth), Australian Consumer Law,
+                      and the International Arbitration Act 1974 (Cth), without regard
+                      to conflict of law principles. The parties irrevocably submit
+                      to the exclusive jurisdiction of the courts of Western Australia
+                      and the Federal Court of Australia.
+                    </p>
+
+                    <p className="text-muted-foreground text-balance mb-6">
+                      This Agreement is subject to the Australian Consumer Law,
+                      which provides certain guarantees, rights, and remedies
+                      that cannot be excluded, restricted, or modified. Nothing
+                      in this Agreement limits or excludes any rights you have
+                      under the Australian Consumer Law that cannot lawfully be
+                      excluded or restricted.
                     </p>
 
                     <h3 className="text-lg font-medium tracking-tight">
@@ -556,7 +566,7 @@ function LegalContent() {
                       Trademarks and Patents
                     </h3>
                     <p className="text-muted-foreground text-balance mb-6">
-                      All Suna logos, marks, and designations are trademarks or
+                      All Dimatic logos, marks, and designations are trademarks or
                       registered trademarks of the Company. All other trademarks
                       mentioned on this website are the property of their
                       respective owners. The trademarks and logos displayed on
@@ -634,7 +644,7 @@ function LegalContent() {
                       (II) FOR YOUR RELIANCE ON THE SERVICE, INCLUDING ANY
                       APPLICATIONS CREATED USING THE AI, OR (III) FOR ANY DIRECT
                       DAMAGES IN EXCESS (IN THE AGGREGATE) OF THE FEES PAID BY
-                      YOU FOR THE SERVICE OR, IF GREATER, $100. SOME STATES DO
+                      YOU FOR THE SERVICE OR, IF GREATER, AUD$100. SOME JURISDICTIONS DO
                       NOT ALLOW THE EXCLUSION OR LIMITATION OF INCIDENTAL OR
                       CONSEQUENTIAL DAMAGES, SO THE ABOVE LIMITATIONS AND
                       EXCLUSIONS MAY NOT APPLY TO YOU.
@@ -646,17 +656,17 @@ function LegalContent() {
                     <p className="text-muted-foreground text-balance mb-6">
                       ALL USE OF THE SERVICE AND ANY CONTENT IS UNDERTAKEN
                       ENTIRELY AT YOUR OWN RISK. THE SERVICE (INCLUDING, WITHOUT
-                      LIMITATION, THE SUNA WEB APP AND ANY CONTENT) IS PROVIDED
+                      LIMITATION, THE DIMATIC WEB APP AND ANY CONTENT) IS PROVIDED
                       "AS IS" AND "AS AVAILABLE" AND IS WITHOUT WARRANTY OF ANY
                       KIND, EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO,
                       THE IMPLIED WARRANTIES OF TITLE, NON-INFRINGEMENT,
                       MERCHANTABILITY, AND FITNESS FOR A PARTICULAR PURPOSE, AND
                       ANY WARRANTIES IMPLIED BY ANY COURSE OF PERFORMANCE OR
                       USAGE OF TRADE, ALL OF WHICH ARE EXPRESSLY DISCLAIMED.
-                      SUNA DOES NOT GUARANTEE THE ACCURACY, COMPLETENESS, OR
+                      DIMATIC DOES NOT GUARANTEE THE ACCURACY, COMPLETENESS, OR
                       RELIABILITY OF THE AI-GENERATED CONTENT, AND USERS ASSUME
                       FULL RESPONSIBILITY FOR ANY APPLICATIONS CREATED USING THE
-                      SERVICE. SOME STATES DO NOT ALLOW LIMITATIONS ON HOW LONG
+                      SERVICE. SOME JURISDICTIONS DO NOT ALLOW LIMITATIONS ON HOW LONG
                       AN IMPLIED WARRANTY LASTS, SO THE ABOVE LIMITATIONS MAY
                       NOT APPLY TO YOU.
                     </p>
@@ -684,16 +694,19 @@ function LegalContent() {
                     <h3 className="text-lg font-medium tracking-tight">
                       Contact Us
                     </h3>
-                    <p className="text-muted-foreground text-balance mb-6">
+                    <p className="text-muted-foreground text-balance mb-4">
                       For questions regarding the Service, you can get in touch
                       by emailing us at{' '}
                       <a
-                        href="mailto:legal@kortixai.com"
+                        href="mailto:legal@dimatic.com.au"
                         className="text-secondary hover:underline"
                       >
-                        legal@kortixai.com
+                        legal@dimatic.com.au
                       </a>
                       .
+                    </p>
+                    <p className="text-muted-foreground text-balance mb-6">
+                      Postal Address: Level 10, 123 St Georges Terrace, Perth, WA 6000, Australia
                     </p>
                   </div>
                 ) : (
@@ -706,31 +719,35 @@ function LegalContent() {
                     </p>
 
                     <h3 className="text-lg font-medium tracking-tight">
-                      Privacy
+                      Privacy Policy for Australian Users
                     </h3>
                     <p className="text-muted-foreground text-balance mb-6">
-                      Our commitment to privacy and data protection is reflected
-                      in this Privacy Statement which describes how we collect
-                      and process "personal information" that identifies you,
-                      like your name or email address. Any other information
-                      besides this is "non-personal information." If we store
-                      personal information with non-personal information, we'll
-                      consider that combination to be personal information.
+                      This Privacy Policy governs the manner in which Dimatic Pty Ltd
+                      (ABN: [Insert ABN], Level 10, 123 St Georges Terrace, Perth, WA 6000, Australia)
+                      collects, uses, maintains, and discloses information collected from users
+                      (each, a "User") of the Dimatic website and services ("Services"). This policy
+                      applies to the Site and all products and services offered by Dimatic Pty Ltd.
                     </p>
 
                     <p className="text-muted-foreground text-balance mb-6">
-                      References to our "Services" at Suna in this statement
-                      include our website, apps, and other products and
-                      services. This statement applies to our Services that
-                      display or reference this Privacy Statement. Third-party
-                      services that we integrate with are governed under their
-                      own privacy policies.
+                      This Privacy Policy is compliant with the Australian Privacy Act 1988 (Cth)
+                      and the Australian Privacy Principles (APPs) contained therein. We are committed
+                      to ensuring that your personal information is protected in accordance with
+                      Australian privacy laws.
                     </p>
 
                     <p className="text-muted-foreground text-balance mb-6">
-                      Suna does not collect biometric or identifying
-                      information. All data is processed securely and any data
-                      is deleted upon account removal.
+                      References to our "Services" at Dimatic in this statement include our website,
+                      apps, and other products and services. This statement applies to our Services
+                      that display or reference this Privacy Statement. Third-party services that
+                      we integrate with are governed under their own privacy policies.
+                    </p>
+
+                    <p className="text-muted-foreground text-balance mb-6">
+                      Dimatic does not collect biometric or identifying information beyond what is
+                      necessary for the provision of our Services. All data is processed securely in
+                      accordance with Australian data protection standards and any data is deleted
+                      upon account removal in accordance with our data retention policy.
                     </p>
 
                     <h3 className="text-lg font-medium tracking-tight">
@@ -894,28 +911,85 @@ function LegalContent() {
                     </p>
 
                     <h3 className="text-lg font-medium tracking-tight">
-                      Information Protection
+                      Information Protection and Security
                     </h3>
                     <p className="text-muted-foreground text-balance mb-6">
-                      We implement physical, business, and technical security
-                      measures to safeguard your personal information. In the
-                      event of a security breach, we'll notify you so that you
-                      can take appropriate protective steps. We only keep your
-                      personal information for as long as is needed to do what
-                      we collected it for. After that, we destroy it unless
-                      required by law.
+                      We implement physical, business, and technical security measures
+                      to safeguard your personal information in accordance with APP 11
+                      (Security of personal information). These measures are designed to
+                      protect against unauthorized access, modification, or disclosure of
+                      your personal information.
+                    </p>
+
+                    <p className="text-muted-foreground text-balance mb-6">
+                      In the event of a data breach that is likely to result in serious
+                      harm to any individual, we will take reasonable steps to notify you
+                      and the Australian Information Commissioner as required by the
+                      Notifiable Data Breaches scheme under the Privacy Act 1988 (Cth).
+                    </p>
+
+                    <p className="text-muted-foreground text-balance mb-6">
+                      We only keep your personal information for as long as is necessary
+                      for the purposes for which it was collected, in accordance with
+                      APP 11.2. After that, we will securely destroy or de-identify it
+                      unless required by Australian law to retain it.
                     </p>
 
                     <h3 className="text-lg font-medium tracking-tight">
-                      Contact Us
+                      Your Rights Under Australian Privacy Law
                     </h3>
-                    <p className="text-muted-foreground text-balance">
-                      You can get in touch by emailing us at{' '}
+                    <p className="text-muted-foreground text-balance mb-4">
+                      Under the Australian Privacy Principles, you have the right to:
+                    </p>
+                    <ul className="text-muted-foreground space-y-1 mb-6">
+                      <li>Access and request correction of your personal information</li>
+                      <li>Request deletion of your personal information where no longer required</li>
+                      <li>Opt-out of direct marketing communications</li>
+                      <li>Make a complaint about how we handle your personal information</li>
+                      <li>Request information about how we handle your personal information</li>
+                    </ul>
+
+                    <h3 className="text-lg font-medium tracking-tight">
+                      Contact Us and Privacy Complaints
+                    </h3>
+                    <p className="text-muted-foreground text-balance mb-4">
+                      If you have any questions about this Privacy Policy or wish to exercise
+                      your rights under the Australian Privacy Principles, please contact our
+                      Privacy Officer at:
+                    </p>
+                    <p className="text-muted-foreground text-balance mb-4">
+                      Email:{' '}
                       <a
-                        href="mailto:legal@kortixai.com"
+                        href="mailto:privacy@dimatic.com.au"
                         className="text-secondary hover:underline"
                       >
-                        legal@kortixai.com
+                        privacy@dimatic.com.au
+                      </a>
+                    </p>
+                    <p className="text-muted-foreground text-balance mb-4">
+                      For general inquiries:{' '}
+                      <a
+                        href="mailto:legal@dimatic.com.au"
+                        className="text-secondary hover:underline"
+                      >
+                        legal@dimatic.com.au
+                      </a>
+                    </p>
+                    <p className="text-muted-foreground text-balance mb-6">
+                      Address: Level 10, 123 St Georges Terrace, Perth, WA 6000, Australia
+                    </p>
+
+                    <p className="text-muted-foreground text-balance mb-4">
+                      If you believe we have breached the Australian Privacy Principles and
+                      wish to make a complaint, please contact our Privacy Officer in the first
+                      instance. We will respond to your complaint within 30 business days.
+                    </p>
+
+                    <p className="text-muted-foreground text-balance">
+                      If you are not satisfied with our response, you may lodge a complaint
+                      with the Office of the Australian Information Commissioner (OAIC) at
+                      <a href="https://www.oaic.gov.au" className="text-secondary hover:underline ml-1" target="_blank" rel="noopener noreferrer">
+                        www.oaic.gov.au
                       </a>
                       .
                     </p>

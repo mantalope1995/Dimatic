@@ -61,7 +61,25 @@ export function FooterSection() {
               </div>
               {/* Social media icons hidden */}
             </div>
-            {/* Footer links hidden */}
+            <div className="flex flex-col items-start justify-start md:flex-row md:items-center md:justify-between gap-y-5 lg:pl-10">
+              <div className="flex flex-col gap-y-2">
+                <div className="mb-2 text-sm font-semibold text-primary">
+                  Legal
+                </div>
+                <div className="group inline-flex cursor-pointer items-center justify-start gap-1 text-[15px]/snug text-muted-foreground">
+                  <Link href="/legal/terms-of-service">Terms of Service</Link>
+                  <div className="flex size-4 items-center justify-center border border-border rounded translate-x-0 transform opacity-0 transition-all duration-300 ease-out group-hover:translate-x-1 group-hover:opacity-100">
+                    <ChevronRightIcon className="h-4 w-4 " />
+                  </div>
+                </div>
+                <div className="group inline-flex cursor-pointer items-center justify-start gap-1 text-[15px]/snug text-muted-foreground">
+                  <Link href="/legal/privacy-policy">Privacy Policy</Link>
+                  <div className="flex size-4 items-center justify-center border border-border rounded translate-x-0 transform opacity-0 transition-all duration-300 ease-out group-hover:translate-x-1 group-hover:opacity-100">
+                    <ChevronRightIcon className="h-4 w-4 " />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
