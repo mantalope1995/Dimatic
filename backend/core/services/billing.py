@@ -46,27 +46,10 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 
 def get_plan_info(price_id: str) -> dict:
     PLAN_TIERS = {
-        config.STRIPE_TIER_2_20_ID: {'tier': 1, 'type': 'monthly', 'name': '2h/$20'},
-        config.STRIPE_TIER_6_50_ID: {'tier': 2, 'type': 'monthly', 'name': '6h/$50'},
-        config.STRIPE_TIER_12_100_ID: {'tier': 3, 'type': 'monthly', 'name': '12h/$100'},
-        config.STRIPE_TIER_25_200_ID: {'tier': 4, 'type': 'monthly', 'name': '25h/$200'},
-        config.STRIPE_TIER_50_400_ID: {'tier': 5, 'type': 'monthly', 'name': '50h/$400'},
-        config.STRIPE_TIER_125_800_ID: {'tier': 6, 'type': 'monthly', 'name': '125h/$800'},
-        config.STRIPE_TIER_200_1000_ID: {'tier': 7, 'type': 'monthly', 'name': '200h/$1000'},
-        
-        # Yearly plans
-        config.STRIPE_TIER_2_20_YEARLY_ID: {'tier': 1, 'type': 'yearly', 'name': '2h/$204/year'},
-        config.STRIPE_TIER_6_50_YEARLY_ID: {'tier': 2, 'type': 'yearly', 'name': '6h/$510/year'},
-        config.STRIPE_TIER_12_100_YEARLY_ID: {'tier': 3, 'type': 'yearly', 'name': '12h/$1020/year'},
-        config.STRIPE_TIER_25_200_YEARLY_ID: {'tier': 4, 'type': 'yearly', 'name': '25h/$2040/year'},
-        config.STRIPE_TIER_50_400_YEARLY_ID: {'tier': 5, 'type': 'yearly', 'name': '50h/$4080/year'},
-        config.STRIPE_TIER_125_800_YEARLY_ID: {'tier': 6, 'type': 'yearly', 'name': '125h/$8160/year'},
-        config.STRIPE_TIER_200_1000_YEARLY_ID: {'tier': 7, 'type': 'yearly', 'name': '200h/$10200/year'},
-        
-        # Yearly commitment plans
-        config.STRIPE_TIER_2_17_YEARLY_COMMITMENT_ID: {'tier': 1, 'type': 'yearly_commitment', 'name': '2h/$17/month'},
-        config.STRIPE_TIER_6_42_YEARLY_COMMITMENT_ID: {'tier': 2, 'type': 'yearly_commitment', 'name': '6h/$42.50/month'},
-        config.STRIPE_TIER_25_170_YEARLY_COMMITMENT_ID: {'tier': 4, 'type': 'yearly_commitment', 'name': '25h/$170/month'},
+        config.STRIPE_TIER_99_ID: {'tier': 1, 'type': 'monthly', 'name': '$99/month'},
+        config.STRIPE_TIER_149_ID: {'tier': 2, 'type': 'monthly', 'name': '$149/month'},
+        config.STRIPE_TIER_349_ID: {'tier': 3, 'type': 'monthly', 'name': '$349/month'},
+        config.STRIPE_TIER_499_ID: {'tier': 4, 'type': 'monthly', 'name': '$499/month'},
     }
     
     return PLAN_TIERS.get(price_id, {'tier': 0, 'type': 'unknown', 'name': 'Unknown'})
@@ -85,23 +68,8 @@ def is_plan_change_allowed(current_price_id: str, new_price_id: str) -> tuple[bo
     if current_price_id == new_price_id:
         return True, ""
     
-    # Restriction 1: Don't allow downgrade from monthly to lower monthly
-    if current_plan['type'] == 'monthly' and new_plan['type'] == 'monthly' and new_plan['tier'] < current_plan['tier']:
-        return False, "Downgrading to a lower monthly plan is not allowed. You can only upgrade to a higher tier or switch to yearly billing."
-    
-    # Restriction 2: Don't allow downgrade from yearly commitment to monthly
-    if current_plan['type'] == 'yearly_commitment' and new_plan['type'] == 'monthly':
-        return False, "Downgrading from yearly commitment to monthly is not allowed. You can only upgrade within yearly commitment plans."
-    
-    # Restriction 2b: Don't allow downgrade within yearly commitment plans
-    if current_plan['type'] == 'yearly_commitment' and new_plan['type'] == 'yearly_commitment' and new_plan['tier'] < current_plan['tier']:
-        return False, "Downgrading to a lower yearly commitment plan is not allowed. You can only upgrade to higher commitment tiers."
-    
-    # Restriction 3: Only allow upgrade from monthly to yearly commitment on same level or above
-    if current_plan['type'] == 'monthly' and new_plan['type'] == 'yearly_commitment' and new_plan['tier'] < current_plan['tier']:
-        return False, "You can only upgrade to yearly commitment plans at the same tier level or higher."
-    
-    # Allow all other changes (upgrades, yearly to yearly, yearly commitment upgrades, etc.)
+    # Allow all changes between monthly plans (upgrades and downgrades)
+    # Allow all other changes
     return True, ""
 
 # Simplified yearly commitment logic - no subscription schedules needed
@@ -136,25 +104,10 @@ def get_model_pricing(model: str) -> tuple[float, float] | None:
 
 SUBSCRIPTION_TIERS = {
     config.STRIPE_FREE_TIER_ID: {'name': 'free', 'minutes': 60, 'cost': 5},
-    config.STRIPE_TIER_2_20_ID: {'name': 'tier_2_20', 'minutes': 120, 'cost': 20 + 5},  # 2 hours
-    config.STRIPE_TIER_6_50_ID: {'name': 'tier_6_50', 'minutes': 360, 'cost': 50 + 5},  # 6 hours
-    config.STRIPE_TIER_12_100_ID: {'name': 'tier_12_100', 'minutes': 720, 'cost': 100 + 5},  # 12 hours
-    config.STRIPE_TIER_25_200_ID: {'name': 'tier_25_200', 'minutes': 1500, 'cost': 200 + 5},  # 25 hours
-    config.STRIPE_TIER_50_400_ID: {'name': 'tier_50_400', 'minutes': 3000, 'cost': 400 + 5},  # 50 hours
-    config.STRIPE_TIER_125_800_ID: {'name': 'tier_125_800', 'minutes': 7500, 'cost': 800 + 5},  # 125 hours
-    config.STRIPE_TIER_200_1000_ID: {'name': 'tier_200_1000', 'minutes': 12000, 'cost': 1000 + 5},  # 200 hours
-    # Yearly tiers (same usage limits, different billing period)
-    config.STRIPE_TIER_2_20_YEARLY_ID: {'name': 'tier_2_20', 'minutes': 120, 'cost': 20 + 5},  # 2 hours/month, $204/year
-    config.STRIPE_TIER_6_50_YEARLY_ID: {'name': 'tier_6_50', 'minutes': 360, 'cost': 50 + 5},  # 6 hours/month, $510/year
-    config.STRIPE_TIER_12_100_YEARLY_ID: {'name': 'tier_12_100', 'minutes': 720, 'cost': 100 + 5},  # 12 hours/month, $1020/year
-    config.STRIPE_TIER_25_200_YEARLY_ID: {'name': 'tier_25_200', 'minutes': 1500, 'cost': 200 + 5},  # 25 hours/month, $2040/year
-    config.STRIPE_TIER_50_400_YEARLY_ID: {'name': 'tier_50_400', 'minutes': 3000, 'cost': 400 + 5},  # 50 hours/month, $4080/year
-    config.STRIPE_TIER_125_800_YEARLY_ID: {'name': 'tier_125_800', 'minutes': 7500, 'cost': 800 + 5},  # 125 hours/month, $8160/year
-    config.STRIPE_TIER_200_1000_YEARLY_ID: {'name': 'tier_200_1000', 'minutes': 12000, 'cost': 1000 + 5},  # 200 hours/month, $10200/year
-    # Yearly commitment tiers (15% discount, monthly payments with 12-month commitment via schedules)
-    config.STRIPE_TIER_2_17_YEARLY_COMMITMENT_ID: {'name': 'tier_2_17_yearly_commitment', 'minutes': 120, 'cost': 20 + 5},  # 2 hours/month, $17/month (12-month commitment)
-    config.STRIPE_TIER_6_42_YEARLY_COMMITMENT_ID: {'name': 'tier_6_42_yearly_commitment', 'minutes': 360, 'cost': 50 + 5},  # 6 hours/month, $42.50/month (12-month commitment)
-    config.STRIPE_TIER_25_170_YEARLY_COMMITMENT_ID: {'name': 'tier_25_170_yearly_commitment', 'minutes': 1500, 'cost': 200 + 5},  # 25 hours/month, $170/month (12-month commitment)
+    config.STRIPE_TIER_99_ID: {'name': 'tier_99', 'minutes': 600, 'cost': 99},  # $99 tier
+    config.STRIPE_TIER_149_ID: {'name': 'tier_149', 'minutes': 900, 'cost': 149},  # $149 tier
+    config.STRIPE_TIER_349_ID: {'name': 'tier_349', 'minutes': 2100, 'cost': 349},  # $349 tier
+    config.STRIPE_TIER_499_ID: {'name': 'tier_499', 'minutes': 3000, 'cost': 499},  # $499 tier
 }
 
 # Pydantic models for request/response validation
@@ -327,18 +280,8 @@ async def get_user_subscription(user_id: str) -> Optional[Dict]:
                 price_id = item.get('price', {}).get('id')
                 if price_id in [
                     config.STRIPE_FREE_TIER_ID,
-                    config.STRIPE_TIER_2_20_ID, config.STRIPE_TIER_6_50_ID, config.STRIPE_TIER_12_100_ID,
-                    config.STRIPE_TIER_25_200_ID, config.STRIPE_TIER_50_400_ID, config.STRIPE_TIER_125_800_ID,
-                    config.STRIPE_TIER_200_1000_ID,
-                    # Yearly tiers
-                    config.STRIPE_TIER_2_20_YEARLY_ID, config.STRIPE_TIER_6_50_YEARLY_ID,
-                    config.STRIPE_TIER_12_100_YEARLY_ID, config.STRIPE_TIER_25_200_YEARLY_ID,
-                    config.STRIPE_TIER_50_400_YEARLY_ID, config.STRIPE_TIER_125_800_YEARLY_ID,
-                    config.STRIPE_TIER_200_1000_YEARLY_ID,
-                    # Yearly commitment tiers (monthly payments with 12-month commitment)
-                    config.STRIPE_TIER_2_17_YEARLY_COMMITMENT_ID,
-                    config.STRIPE_TIER_6_42_YEARLY_COMMITMENT_ID,
-                    config.STRIPE_TIER_25_170_YEARLY_COMMITMENT_ID
+                    config.STRIPE_TIER_99_ID, config.STRIPE_TIER_149_ID,
+                    config.STRIPE_TIER_349_ID, config.STRIPE_TIER_499_ID
                 ]:
                     our_subscriptions.append(sub)
         
@@ -993,12 +936,8 @@ async def check_subscription_commitment(subscription_id: str) -> dict:
         # Check if subscription has commitment metadata OR uses a yearly commitment price ID
         commitment_type = subscription.metadata.get('commitment_type')
         
-        # Yearly commitment price IDs
-        yearly_commitment_price_ids = [
-            config.STRIPE_TIER_2_17_YEARLY_COMMITMENT_ID,
-            config.STRIPE_TIER_6_42_YEARLY_COMMITMENT_ID,
-            config.STRIPE_TIER_25_170_YEARLY_COMMITMENT_ID
-        ]
+        # No yearly commitment plans anymore
+        yearly_commitment_price_ids = []
         
         is_yearly_commitment = (
             commitment_type == 'yearly_commitment' or 
@@ -1059,7 +998,7 @@ async def check_subscription_commitment(subscription_id: str) -> dict:
         }
 
 async def is_user_on_highest_tier(user_id: str) -> bool:
-    """Check if user is on the highest subscription tier (200h/$1000)."""
+    """Check if user is on the highest subscription tier ($499)."""
     try:
         subscription = await get_user_subscription(user_id)
         if not subscription:
@@ -1073,14 +1012,9 @@ async def is_user_on_highest_tier(user_id: str) -> bool:
         
         logger.debug(f"User {user_id} subscription price_id: {price_id}")
         
-        # Check if it's one of the highest tier price IDs (200h/$1000 only)
+        # Check if it's one of the highest tier price IDs ($499 tier)
         highest_tier_price_ids = [
-            config.STRIPE_TIER_200_1000_ID,  # Monthly highest tier
-            config.STRIPE_TIER_200_1000_YEARLY_ID,  # Yearly highest tier
-            config.STRIPE_TIER_25_200_ID_STAGING,
-            config.STRIPE_TIER_25_200_YEARLY_ID_STAGING,
-            config.STRIPE_TIER_2_20_ID_STAGING,
-            config.STRIPE_TIER_2_20_YEARLY_ID_STAGING,
+            config.STRIPE_TIER_499_ID,  # Monthly highest tier
         ]
         
         is_highest = price_id in highest_tier_price_ids
@@ -2535,7 +2469,7 @@ async def purchase_credits(
         if not is_highest_tier:
             raise HTTPException(
                 status_code=403,
-                detail="Credit purchases are only available for users on the highest subscription tier ($1000/month)."
+                detail="Credit purchases are only available for users on the highest subscription tier ($499/month)."
             )
         
         # Validate amount
@@ -2729,7 +2663,7 @@ async def can_purchase_credits(
         
         return {
             "can_purchase": is_highest_tier,
-            "reason": "Credit purchases are available" if is_highest_tier else "Must be on the highest subscription tier ($1000/month) to purchase credits"
+            "reason": "Credit purchases are available" if is_highest_tier else "Must be on the highest subscription tier ($499/month) to purchase credits"
         }
         
     except Exception as e:

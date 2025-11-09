@@ -43,89 +43,46 @@ TIERS: Dict[str, Tier] = {
         models=[],
         project_limit=0
     ),
-    'tier_2_20': Tier(
-        name='tier_2_20',
+    'tier_99': Tier(
+        name='tier_99',
         price_ids=[
-            config.STRIPE_TIER_2_20_ID,
-            config.STRIPE_TIER_2_20_YEARLY_ID,
-            config.STRIPE_TIER_2_17_YEARLY_COMMITMENT_ID
+            config.STRIPE_TIER_99_ID,
         ],
-        monthly_credits=Decimal('20.00'),
+        monthly_credits=Decimal('99.00'),
         display_name='Starter',
-        can_purchase_credits=True,
-        models=['all'],
-        project_limit=100
-    ),
-    'tier_6_50': Tier(
-        name='tier_6_50',
-        price_ids=[
-            config.STRIPE_TIER_6_50_ID,
-            config.STRIPE_TIER_6_50_YEARLY_ID,
-            config.STRIPE_TIER_6_42_YEARLY_COMMITMENT_ID
-        ],
-        monthly_credits=Decimal('50.00'),
-        display_name='Professional',
         can_purchase_credits=True,
         models=['all'],
         project_limit=500
     ),
-    'tier_12_100': Tier(
-        name='tier_12_100',
+    'tier_149': Tier(
+        name='tier_149',
         price_ids=[
-            config.STRIPE_TIER_12_100_ID,
-            config.STRIPE_TIER_12_100_YEARLY_ID
+            config.STRIPE_TIER_149_ID,
         ],
-        monthly_credits=Decimal('100.00'),
-        display_name='Team',
+        monthly_credits=Decimal('149.00'),
+        display_name='Professional',
         can_purchase_credits=True,
         models=['all'],
-        project_limit=1000
+        project_limit=2000
     ),
-    'tier_25_200': Tier(
-        name='tier_25_200',
+    'tier_349': Tier(
+        name='tier_349',
         price_ids=[
-            config.STRIPE_TIER_25_200_ID,
-            config.STRIPE_TIER_25_200_YEARLY_ID,
-            config.STRIPE_TIER_25_170_YEARLY_COMMITMENT_ID
+            config.STRIPE_TIER_349_ID,
         ],
-        monthly_credits=Decimal('200.00'),
+        monthly_credits=Decimal('349.00'),
         display_name='Business',
-        can_purchase_credits=True,
-        models=['all'],
-        project_limit=2500
-    ),
-    'tier_50_400': Tier(
-        name='tier_50_400',
-        price_ids=[
-            config.STRIPE_TIER_50_400_ID,
-            config.STRIPE_TIER_50_400_YEARLY_ID
-        ],
-        monthly_credits=Decimal('400.00'),
-        display_name='Enterprise',
-        can_purchase_credits=True,
-        models=['all'],
-        project_limit=5000
-    ),
-    'tier_125_800': Tier(
-        name='tier_125_800',
-        price_ids=[
-            config.STRIPE_TIER_125_800_ID,
-            config.STRIPE_TIER_125_800_YEARLY_ID
-        ],
-        monthly_credits=Decimal('800.00'),
-        display_name='Enterprise Plus',
         can_purchase_credits=True,
         models=['all'],
         project_limit=10000
     ),
-    'tier_200_1000': Tier(
-        name='tier_200_1000',
+    'tier_499': Tier(
+        name='tier_499',
         price_ids=[
-            config.STRIPE_TIER_200_1000_ID,
-            config.STRIPE_TIER_200_1000_YEARLY_ID
+            config.STRIPE_TIER_499_ID,
         ],
-        monthly_credits=Decimal('1000.00'),
-        display_name='Ultimate',
+        monthly_credits=Decimal('499.00'),
+        display_name='Enterprise',
         can_purchase_credits=True,
         models=['all'],
         project_limit=25000

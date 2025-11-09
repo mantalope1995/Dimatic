@@ -44,13 +44,10 @@ class Configuration:
     
     # Subscription tier IDs - Production
     STRIPE_FREE_TIER_ID_PROD: str = 'price_1RILb4G6l1KZGqIrK4QLrx9i'
-    STRIPE_TIER_2_20_ID_PROD: str = 'price_1RILb4G6l1KZGqIrhomjgDnO'
-    STRIPE_TIER_6_50_ID_PROD: str = 'price_1RILb4G6l1KZGqIr5q0sybWn'
-    STRIPE_TIER_12_100_ID_PROD: str = 'price_1RILb4G6l1KZGqIr5Y20ZLHm'
-    STRIPE_TIER_25_200_ID_PROD: str = 'price_1RILb4G6l1KZGqIrGAD8rNjb'
-    STRIPE_TIER_50_400_ID_PROD: str = 'price_1RILb4G6l1KZGqIruNBUMTF1'
-    STRIPE_TIER_125_800_ID_PROD: str = 'price_1RILb3G6l1KZGqIrbJA766tN'
-    STRIPE_TIER_200_1000_ID_PROD: str = 'price_1RILb3G6l1KZGqIrmauYPOiN'
+    STRIPE_TIER_99_ID_PROD: str = 'price_1RILb4G6l1KZGqIrhomjgDnO'
+    STRIPE_TIER_149_ID_PROD: str = 'price_1RILb4G6l1KZGqIr5q0sybWn'
+    STRIPE_TIER_349_ID_PROD: str = 'price_1RILb4G6l1KZGqIr5Y20ZLHm'
+    STRIPE_TIER_499_ID_PROD: str = 'price_1RILb4G6l1KZGqIrGAD8rNjb'
     
     # Yearly subscription tier IDs - Production (15% discount)
     STRIPE_TIER_2_20_YEARLY_ID_PROD: str = 'price_1ReHB5G6l1KZGqIrD70I1xqM'
@@ -68,13 +65,10 @@ class Configuration:
 
     # Subscription tier IDs - Staging
     STRIPE_FREE_TIER_ID_STAGING: str = 'price_1RIGvuG6l1KZGqIrw14abxeL'
-    STRIPE_TIER_2_20_ID_STAGING: str = 'price_1RIGvuG6l1KZGqIrCRu0E4Gi'
-    STRIPE_TIER_6_50_ID_STAGING: str = 'price_1RIGvuG6l1KZGqIrvjlz5p5V'
-    STRIPE_TIER_12_100_ID_STAGING: str = 'price_1RIGvuG6l1KZGqIrT6UfgblC'
-    STRIPE_TIER_25_200_ID_STAGING: str = 'price_1RIGvuG6l1KZGqIrOVLKlOMj'
-    STRIPE_TIER_50_400_ID_STAGING: str = 'price_1RIKNgG6l1KZGqIrvsat5PW7'
-    STRIPE_TIER_125_800_ID_STAGING: str = 'price_1RIKNrG6l1KZGqIrjKT0yGvI'
-    STRIPE_TIER_200_1000_ID_STAGING: str = 'price_1RIKQ2G6l1KZGqIrum9n8SI7'
+    STRIPE_TIER_99_ID_STAGING: str = 'price_1RIGvuG6l1KZGqIrCRu0E4Gi'
+    STRIPE_TIER_149_ID_STAGING: str = 'price_1RIGvuG6l1KZGqIrvjlz5p5V'
+    STRIPE_TIER_349_ID_STAGING: str = 'price_1RIGvuG6l1KZGqIrT6UfgblC'
+    STRIPE_TIER_499_ID_STAGING: str = 'price_1RIGvuG6l1KZGqIrOVLKlOMj'
     
     # Yearly subscription tier IDs - Staging (15% discount)
     STRIPE_TIER_2_20_YEARLY_ID_STAGING: str = 'price_1ReGogG6l1KZGqIrEyBTmtPk'
@@ -114,46 +108,28 @@ class Configuration:
         return self.STRIPE_FREE_TIER_ID_PROD
     
     @property
-    def STRIPE_TIER_2_20_ID(self) -> str:
+    def STRIPE_TIER_99_ID(self) -> str:
         if self.ENV_MODE == EnvMode.STAGING:
-            return self.STRIPE_TIER_2_20_ID_STAGING
-        return self.STRIPE_TIER_2_20_ID_PROD
+            return self.STRIPE_TIER_99_ID_STAGING
+        return self.STRIPE_TIER_99_ID_PROD
     
     @property
-    def STRIPE_TIER_6_50_ID(self) -> str:
+    def STRIPE_TIER_149_ID(self) -> str:
         if self.ENV_MODE == EnvMode.STAGING:
-            return self.STRIPE_TIER_6_50_ID_STAGING
-        return self.STRIPE_TIER_6_50_ID_PROD
+            return self.STRIPE_TIER_149_ID_STAGING
+        return self.STRIPE_TIER_149_ID_PROD
     
     @property
-    def STRIPE_TIER_12_100_ID(self) -> str:
+    def STRIPE_TIER_349_ID(self) -> str:
         if self.ENV_MODE == EnvMode.STAGING:
-            return self.STRIPE_TIER_12_100_ID_STAGING
-        return self.STRIPE_TIER_12_100_ID_PROD
+            return self.STRIPE_TIER_349_ID_STAGING
+        return self.STRIPE_TIER_349_ID_PROD
     
     @property
-    def STRIPE_TIER_25_200_ID(self) -> str:
+    def STRIPE_TIER_499_ID(self) -> str:
         if self.ENV_MODE == EnvMode.STAGING:
-            return self.STRIPE_TIER_25_200_ID_STAGING
-        return self.STRIPE_TIER_25_200_ID_PROD
-    
-    @property
-    def STRIPE_TIER_50_400_ID(self) -> str:
-        if self.ENV_MODE == EnvMode.STAGING:
-            return self.STRIPE_TIER_50_400_ID_STAGING
-        return self.STRIPE_TIER_50_400_ID_PROD
-    
-    @property
-    def STRIPE_TIER_125_800_ID(self) -> str:
-        if self.ENV_MODE == EnvMode.STAGING:
-            return self.STRIPE_TIER_125_800_ID_STAGING
-        return self.STRIPE_TIER_125_800_ID_PROD
-    
-    @property
-    def STRIPE_TIER_200_1000_ID(self) -> str:
-        if self.ENV_MODE == EnvMode.STAGING:
-            return self.STRIPE_TIER_200_1000_ID_STAGING
-        return self.STRIPE_TIER_200_1000_ID_PROD
+            return self.STRIPE_TIER_499_ID_STAGING
+        return self.STRIPE_TIER_499_ID_PROD
     
     # Yearly tier computed properties
     @property
@@ -337,50 +313,20 @@ class Configuration:
     # Note: These limits are bypassed in local mode (ENV_MODE=local) where unlimited agents are allowed
     AGENT_LIMITS = {
         'free': 2,
-        'tier_2_20': 5,
-        'tier_6_50': 20,
-        'tier_12_100': 20,
-        'tier_25_200': 100,
-        'tier_50_400': 100,
-        'tier_125_800': 100,
-        'tier_200_1000': 100,
-        # Yearly plans have same limits as monthly
-        'tier_2_20_yearly': 5,
-        'tier_6_50_yearly': 20,
-        'tier_12_100_yearly': 20,
-        'tier_25_200_yearly': 100,
-        'tier_50_400_yearly': 100,
-        'tier_125_800_yearly': 100,
-        'tier_200_1000_yearly': 100,
-        # Yearly commitment plans
-        'tier_2_17_yearly_commitment': 5,
-        'tier_6_42_yearly_commitment': 20,
-        'tier_25_170_yearly_commitment': 100,
+        'tier_99': 10,
+        'tier_149': 50,
+        'tier_349': 100,
+        'tier_499': 100,
     }
 
     # Project limits per billing tier
     # Note: These limits are bypassed in local mode (ENV_MODE=local) where unlimited projects are allowed
     PROJECT_LIMITS = {
         'free': 3,
-        'tier_2_20': 100,
-        'tier_6_50': 500,
-        'tier_12_100': 1000,
-        'tier_25_200': 2500,
-        'tier_50_400': 5000,
-        'tier_125_800': 10000,
-        'tier_200_1000': 25000,
-        # Yearly plans have same limits as monthly
-        'tier_2_20_yearly': 100,
-        'tier_6_50_yearly': 500,
-        'tier_12_100_yearly': 1000,
-        'tier_25_200_yearly': 2500,
-        'tier_50_400_yearly': 5000,
-        'tier_125_800_yearly': 10000,
-        'tier_200_1000_yearly': 25000,
-        # Yearly commitment plans
-        'tier_2_17_yearly_commitment': 100,
-        'tier_6_42_yearly_commitment': 500,
-        'tier_25_170_yearly_commitment': 2500,
+        'tier_99': 500,
+        'tier_149': 2000,
+        'tier_349': 10000,
+        'tier_499': 25000,
     }
 
     @property
