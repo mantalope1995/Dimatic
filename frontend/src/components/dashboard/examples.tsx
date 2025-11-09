@@ -39,7 +39,7 @@ const allPrompts: PromptExample[] = [
     icon: <BarChart3 className="text-blue-700 dark:text-blue-400" size={16} />,
   },
   {
-    title: 'Optimize warehouse operations',
+    title: 'Optimise warehouse operations',
     query: '1. Analyse current warehouse layout and storage utilisation rates\n2. Map product movement patterns and picking frequency data\n3. Calculate optimal slotting based on velocity, size, and weight\n4. Design new layout with improved picking routes and workflow\n5. Generate implementation plan with ROI and productivity gains',
     icon: <Target className="text-cyan-700 dark:text-cyan-400" size={16} />,
   },
@@ -54,7 +54,7 @@ const allPrompts: PromptExample[] = [
     icon: <Shield className="text-indigo-700 dark:text-indigo-400" size={16} />,
   },
   {
-    title: 'Optimize picking efficiency',
+    title: 'Optimise picking efficiency',
     query: '1. Analyse order patterns and picking data from warehouse system\n2. Identify bottlenecks and inefficiencies in current picking process\n3. Calculate optimal picking routes and batch grouping strategies\n4. Generate improved pick lists with zone and wave picking\n5. Create productivity tracking and performance metrics',
     icon: <TrendingUp className="text-purple-700 dark:text-purple-400" size={16} />,
   },
@@ -79,7 +79,7 @@ const allPrompts: PromptExample[] = [
     icon: <RefreshCw className="text-yellow-600 dark:text-yellow-300" size={16} />,
   },
   {
-    title: 'Optimize stock rotation',
+    title: 'Optimise stock rotation',
     query: '1. Analyse inventory age and expiration dates across locations\n2. Identify slow-moving and obsolete stock items\n3. Calculate optimal rotation strategies and markdown recommendations\n4. Generate automated stock rotation schedules and alerts\n5. Create inventory aging reports and disposal recommendations',
     icon: <Settings className="text-orange-700 dark:text-orange-400" size={16} />,
   },
@@ -99,7 +99,7 @@ const allPrompts: PromptExample[] = [
     icon: <RefreshCw className="text-amber-700 dark:text-amber-400" size={16} />,
   },
   {
-    title: 'Optimize packing operations',
+    title: 'Optimise packing operations',
     query: '1. Analyse packing data and material usage patterns\n2. Calculate optimal box sizes and packing configurations\n3. Generate automated packing instructions and material lists\n4. Track packing efficiency and error rates\n5. Create packing cost analysis and optimisation recommendations',
     icon: <Settings className="text-stone-700 dark:text-stone-400" size={16} />,
   },
@@ -114,7 +114,7 @@ const allPrompts: PromptExample[] = [
     icon: <Shield className="text-blue-600 dark:text-blue-300" size={16} />,
   },
   {
-    title: 'Optimize shipping operations',
+    title: 'Optimise shipping operations',
     query: '1. Analyse shipping data and carrier performance metrics\n2. Calculate optimal shipping methods and carrier selection\n3. Generate automated shipping labels and documentation\n4. Track delivery performance and customer satisfaction\n5. Create shipping cost analysis and optimisation recommendations',
     icon: <Rocket className="text-red-600 dark:text-red-300" size={16} />,
   },
