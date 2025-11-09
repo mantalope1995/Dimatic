@@ -11,7 +11,7 @@ import { AnimatePresence, motion, useInView } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 
 export function ReasoningBasic() {
-  const reasoningText = `Perfect! I'll create a digital assistant that monitors your email, automatically categorises messages, and sends you daily summaries. The agent will also draft responses for common inquiries and flag urgent messages for immediate attention.`;
+  const reasoningText = `Perfect. Connect your existing Google Sheet or Excel file. I'll automatically sync your sales data, update your inventory in real-time, and reclaim those 20 hours a week. I will also send you daily low-stock alerts so you never lose a big sale to a preventable stockout again. I'll even show you exactly which dead-stock items are trapping your cash. No IT team needed.`;
 
   return (
     <Reasoning>
@@ -70,8 +70,7 @@ export function FirstBentoAnimation() {
             }}
           >
             <p className="text-sm">
-              I need a digital assistant to help manage my email inbox. Can you create 
-              one that categorises messages and drafts responses automatically?
+              My Google Sheet for inventory is a disaster. I'm losing 15-20 hours a week just manually updating stock levels and reconciling sales. We just lost a $15k order because the sheet said we had stock, but we didn't. I'm flying blind.
             </p>
           </motion.div>
           <div className="flex items-center bg-background rounded-full w-fit border border-border flex-shrink-0">

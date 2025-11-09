@@ -77,7 +77,7 @@ export const siteConfig = {
       // { id: 3, name: 'Use Cases', href: '#use-cases' },
       // { id: 4, name: 'Open Source', href: '#open-source' },
       // { id: 5, name: 'Pricing', href: '#pricing' },
-      { id: 6, name: 'Enterprise', href: '/enterprise' },
+      // { id: 6, name: 'Enterprise', href: '/enterprise' },
     ],
   },
   hero: {
@@ -111,7 +111,7 @@ export const siteConfig = {
     githubUrl: 'https://github.com/kortix-ai/suna',
     title: 'Dimatic – Build, manage and train your digital assistants.',
     description:
-      'Dimatic – AI made easy.',
+      'Dimatic – Stop Guessing. Start Knowing.',
     inputPlaceholder: 'Ask Suna to...',
   },
   cloudPricingItems: [
@@ -1230,46 +1230,7 @@ export const siteConfig = {
     subtext: 'Build, manage and train your AI Workforce',
   },
   footerLinks: [
-    {
-      title: 'Dimatic',
-      links: [
-        { id: 1, title: 'About', url: 'https://' },
-        { id: 3, title: 'Contact', url: 'mailto:hello@dimatic.com.au' },
-        { id: 4, title: 'Careers', url: 'https://dimatic.com.au/careers' },
-      ],
-    },
-    {
-      title: 'Resources',
-      links: [
-        {
-          id: 5,
-          title: 'Documentation',
-          url: '',
-        },
-        { id: 7, title: 'Discord', url: '' },
-        { id: 8, title: 'GitHub', url: '' },
-      ],
-    },
-    {
-      title: 'Legal',
-      links: [
-        {
-          id: 9,
-          title: 'Privacy Policy',
-          url: '',
-        },
-        {
-          id: 10,
-          title: 'Terms of Service',
-          url: '',
-        },
-        {
-          id: 11,
-          title: 'License Apache 2.0',
-          url: '',
-        },
-      ],
-    },
+    // All footer links hidden
   ],
   useCases: [
     {

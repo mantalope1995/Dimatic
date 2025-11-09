@@ -11,7 +11,7 @@ export function BentoSection() {
       content: <FirstBentoAnimation />,
       title: 'Describe your needs',
       description:
-        'Tell Suna what you need and customize your digital assistant for your use cases.',
+        'Say what you need and customise for your use cases.',
     },
     {
       id: 2,

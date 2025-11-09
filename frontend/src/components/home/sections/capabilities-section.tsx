@@ -3,57 +3,45 @@
 import { SectionHeader } from '@/components/home/section-header';
 import { motion, useInView } from 'motion/react';
 import { useRef } from 'react';
-import { 
+import {
   FileText,
-  Image,
-  Presentation,
   Globe,
   BarChart3,
   ShoppingCart,
   Users,
-  Clock 
+  Clock
 } from 'lucide-react';
 
 const capabilities = [
   {
-    title: 'Create Professional Documents',
-    description: 'Generate reports, proposals, contracts, and presentations that look like they came from a top agency. PDF, Word, PowerPoint - any format you need.',
-    icon: <FileText className="size-6" />,
-  },
-  {
-    title: 'Design Graphics & Visuals',
-    description: 'Create logos, social media graphics, infographics, and custom images from just a text description. No design skills required.',
-    icon: <Image className="size-6" />,
-  },
-  {
-    title: 'Build Stunning Presentations',
-    description: 'Turn your ideas into polished slide decks with professional layouts, charts, and images sourced automatically.',
-    icon: <Presentation className="size-6" />,
-  },
-  {
-    title: 'Research Anything Online',
-    description: 'Get comprehensive research reports on competitors, markets, trends, or any topic with verified sources and current data.',
-    icon: <Globe className="size-6" />,
-  },
-  {
-    title: 'Analyse Your Data',
-    description: 'Upload spreadsheets, sales data, or any files and get insights, trends, forecasts, and beautiful charts in minutes.',
+    title: 'Find Your Hidden Profits',
+    description: 'Stop guessing. Upload your existing Excel or Google Sheet  and instantly find the cash trapped in dead stock , spot your stockout risks , and see what to reorder based on data, not gut feel.',
     icon: <BarChart3 className="size-6" />,
   },
   {
-    title: 'Automate Online Tasks',
-    description: 'Fill out forms, collect data from websites, monitor prices, schedule posts, and handle repetitive web tasks while you sleep.',
-    icon: <ShoppingCart className="size-6" />,
+    title: 'Reclaim Your 15-20 Hours/Week',
+    description: 'Stop manually reconciling sales logs , updating stock sheets[cite: 6], or cross-referencing data. Automate the repetitive admin [cite: 22] that is killing your week and stifling your growth[cite: 4, 6].',
+    icon: <ShoppingCart className="size-6" />, // Changed from original to better fit inventory
   },
   {
-    title: 'Manage Your Workflows',
-    description: 'Set up automated processes for lead generation, customer follow-ups, content creation, and daily business operations.',
-    icon: <Users className="size-6" />,
+    title: 'Get Real-Time Low-Stock Alerts',
+    description: 'Never lose a major sale to a preventable stockout again[cite: 16, 24]. Get automatic alerts on your high-turnover items *before* you run out [cite: 20, 22], based on your real sales velocity.',
+    icon: <Users className="size-6" />, // Changed from original
   },
   {
-    title: 'Work Around the Clock',
-    description: 'Suna never sleeps. Schedule tasks to run overnight, on weekends, or whenever you need work done without being there.',
+    title: 'Run Stock Audits Overnight',
+    description: 'Why spend a weekend manually reconciling spreadsheets for tax time? [cite: 25] Schedule your inventory audits [cite: 22] and sales reconciliations to run automatically while you sleep.',
     icon: <Clock className="size-6" />,
+  },
+  {
+    title: 'Monitor Competitor & Supplier Pricing',
+    description: 'Get comprehensive, automated reports on competitor price changes [cite: 22] and supplier delays. Stop making reactive purchasing decisions  and get ahead of supply chain issues.',
+    icon: <Globe className="size-6" />,
+  },
+  {
+    title: 'Generate Instant Stock Reports',
+    description: 'Turn your messy spreadsheets into clean, daily reports  that show sales velocity, profitability per SKU, and inventory accuracy. No IT team or developer needed.',
+    icon: <FileText className="size-6" />,
   },
 ];
 

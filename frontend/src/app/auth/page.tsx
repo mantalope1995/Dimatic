@@ -247,8 +247,10 @@ function LoginContent() {
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
               <Link
-                href="/"
+                href="https://dimatic.com.au/"
                 className="flex h-11 items-center justify-center px-6 text-center rounded-lg border border-border bg-background hover:bg-accent transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 Return to home
               </Link>
@@ -276,8 +278,10 @@ function LoginContent() {
           <div className="relative flex-1 flex items-center justify-center p-4 lg:p-8">
             <div className="absolute top-6 right-10 z-10">
               <Link
-                href="/"
+                href="https://dimatic.com.au/"
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back to home
@@ -285,12 +289,13 @@ function LoginContent() {
             </div>
             <div className="w-full max-w-sm">
               <div className="mb-4 flex items-center flex-col gap-3 sm:gap-4 justify-center">
-                <ReleaseBadge className='mb-2 sm:mb-4' text="Custom Agents, Playbooks, and more!" link="/changelog" />
+                {/* Hidden: <ReleaseBadge className='mb-2 sm:mb-4' text="Custom Agents, Playbooks, and more!" link="/changelog" /> */}
                 <h1 className="text-xl sm:text-2xl font-semibold text-foreground text-center leading-tight">
                   {isSignUp ? 'Create your account' : 'Log into your account'}
                 </h1>
               </div>
-            <div className="space-y-3 mb-4">
+            {/* Google and GitHub sign-in options hidden */}
+            {/* <div className="space-y-3 mb-4">
               <GoogleSignIn returnUrl={returnUrl || undefined} />
               <GitHubSignIn returnUrl={returnUrl || undefined} />
             </div>
@@ -303,7 +308,7 @@ function LoginContent() {
                   or email
                 </span>
               </div>
-            </div>
+            </div> */}
             <form className="space-y-3">
               <Input
                 id="email"

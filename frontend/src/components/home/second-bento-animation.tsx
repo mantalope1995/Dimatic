@@ -48,7 +48,7 @@ export function SecondBentoAnimation() {
               <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" className="size-8" />
             </div>
             <div className="size-12 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-100">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/a/ab/Logo_TV_2015.svg" alt="Trello" className="size-8" />
+              <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/trello/trello-plain.svg" alt="Trello" className="size-8" />
             </div>
             <div className="size-12 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-100">
               <img src="https://upload.wikimedia.org/wikipedia/commons/0/05/Google_Sheets_icon_%282020%29.svg" alt="Google Sheets" className="size-8" />
@@ -69,7 +69,7 @@ export function SecondBentoAnimation() {
               <img src="https://upload.wikimedia.org/wikipedia/commons/f/f9/Salesforce.com_logo.svg" alt="Salesforce" className="size-8" />
             </div>
             <div className="size-12 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-100">
-              <img src="https://cdn.worldvectorlogo.com/logos/asana-logo.svg" alt="Asana" className="size-8" />
+              <img src="https://upload.wikimedia.org/wikipedia/commons/1/17/Asana-logo-orange.svg" alt="Asana" className="size-8" />
             </div>
             <div className="size-12 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-100">
               <img src="https://upload.wikimedia.org/wikipedia/commons/c/c9/Microsoft_Office_Teams_%282018%E2%80%93present%29.svg" alt="Teams" className="size-8" />

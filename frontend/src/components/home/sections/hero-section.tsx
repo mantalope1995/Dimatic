@@ -365,7 +365,7 @@ export function HeroSection() {
             <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-medium tracking-tighter text-balance text-center px-2">
               <span className="text-primary block">Dimatic for</span>
               <RotatingText 
-                texts={['Research', 'Presentations', 'Docs', 'Spreadsheets', 'Design', 'Data Analysis', 'Email Management', 'Social Media', 'SEO', 'Lead Generation', 'Customer Support', 'Content Creation', 'Project Management', 'Sales', 'Marketing', 'Analytics']}
+                texts={['Stock Control', 'Inventory Accuracy', 'Wholesale Operations', 'E-commerce Inventory', 'Finding Dead Stock', 'Improving Cash Flow', 'Automated Stock-takes', 'Data-Driven Ordering', 'Reclaiming Your Time', 'Australian Businesses', 'Sales Reconciliation', 'Smarter Purchasing']}
                 className="text-secondary block mt-2"
               />
             </h1>
@@ -430,13 +430,12 @@ export function HeroSection() {
 
 
 
-          {/* OAuth Sign In */}
-          <div className="w-full">
+          {/* OAuth Sign In - Hidden */}
+          {/* <div className="w-full">
             <GoogleSignIn returnUrl="/dashboard" />
             <GitHubSignIn returnUrl="/dashboard" />
           </div>
 
-          {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-border"></div>
@@ -446,7 +445,7 @@ export function HeroSection() {
                 or continue with email
               </span>
             </div>
-          </div>
+          </div> */}
 
           {/* Sign in options */}
           <div className="space-y-4 pt-4">

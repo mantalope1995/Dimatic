@@ -479,7 +479,7 @@ export const PlaybackControls = ({
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <div className="flex items-center justify-center w-6 h-6 rounded-md overflow-hidden bg-primary/10">
-                <Link href="/">
+                <Link href="https://dimatic.com.au/" target="_blank" rel="noopener noreferrer">
                   <img
                     src="/kortix-symbol.svg"
                     alt="Kortix"

@@ -576,7 +576,7 @@ export default function ShareThreadPage({
             <p className="text-sm text-muted-foreground">{error}</p>
             <button
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-              onClick={() => router.push('/')}
+              onClick={() => window.open('https://dimatic.com.au/', '_blank')}
             >
               Back to Home
             </button>
