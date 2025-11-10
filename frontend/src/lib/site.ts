@@ -1,5 +1,5 @@
 export const siteConfig = {
-  name: 'Dimatic Suna',
+  name: 'Dimatic - Stop Guessing. Start Knowing.',
   url: 'https://dimatic.com.au/',
   description: 'Dimatic',
   links: {

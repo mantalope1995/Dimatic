@@ -2,11 +2,11 @@ import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
-  title: 'Shared Conversation | Dimatic Suna',
-  description: 'Interactive conversation powered by Dimatic Suna',
+  title: 'Shared Conversation | Dimatic',
+  description: 'Interactive conversation powered by Dimatic',
   openGraph: {
-    title: 'Shared Conversation | Dimatic Suna',
-    description: 'Interactive  conversation powered by Dimatic Suna',
+    title: 'Shared Conversation | Dimatic',
+    description: 'Interactive  conversation powered by Dimatic',
     type: 'website',
   },
 };

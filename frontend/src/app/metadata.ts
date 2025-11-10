@@ -4,7 +4,7 @@ import { siteConfig } from '@/lib/site';
 export const metadata: Metadata = {
   title: siteConfig.name,
   description: siteConfig.description,
-  keywords: ['Dimatic Suna', 'Dimatic', 'Suna', 'AI', 'Agent'],
+  keywords: ['Dimatic', 'Suna', 'AI', 'Agent'],
   authors: [
     {
       name: 'Dimatic',

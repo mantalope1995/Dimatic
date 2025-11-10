@@ -47,7 +47,7 @@ const capabilities = [
   },
   {
     title: 'Sync Your Multi-Channel Sales',
-    description: 'Stop the chaos of selling on 2+ channels. Connect your e-commerce site, online marketplace, and sales logs to one central, real-time inventory. End overselling and get your inventory accuracy above 80%.',
+    description: 'Stop the chaos of selling on 2+ channels. Connect your e-commerce site, online marketplace, and sales logs to one central, real-time inventory. End overselling and get your inventory accuracy back.',
     icon: <Network className="size-6" />, 
   },
   {

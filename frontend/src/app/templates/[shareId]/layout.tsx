@@ -44,10 +44,10 @@ export async function generateMetadata({ params }: { params: Promise<{ shareId: 
     };
   } catch (error) {
     return {
-      title: 'Digital Assistant Template | Dimatic Suna',
+      title: 'Digital Assistant Template | Dimatic',
       description: 'Discover and install digital assistant templates to enhance your workflow with powerful automation capabilities.',
       openGraph: {
-        title: 'Digital Assistant Template | Dimatic Suna',
+        title: 'Digital Assistant Template | Dimatic',
         description: 'Discover and install digital assistant templates to enhance your workflow with powerful automation capabilities.',
         type: 'website',
         url: `${process.env.NEXT_PUBLIC_URL}/templates/${templateId}`,

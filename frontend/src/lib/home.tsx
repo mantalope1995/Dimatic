@@ -58,17 +58,17 @@ export interface PricingTier {
 }
 
 export const siteConfig = {
-  name: 'Dimatic Suna',
+  name: 'Dimatic - Stop Guessing. Start Knowing.',
   description: 'The digital assistant that works for you.',
-  cta: 'Start Free',
+  cta: 'Start Now',
   url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3015',
   keywords: ['AI Worker', 'Generalist AI', 'Open Source AI', 'Autonomous Agent'],
   links: {
-    email: 'support@kortix.ai',
-    twitter: 'https://x.com/kortixai',
+    email: 'support@dimatic.com.au',
+    twitter: 'https://x.com/dimatic',
     // discord: 'https://discord.gg/kortixai',
-    github: 'https://github.com/Kortix-ai/Suna',
-    instagram: 'https://instagram.com/kortixai',
+    github: 'https://github.com/',
+    instagram: 'https://instagram.com/dimatic',
   },
   nav: {
     links: [
@@ -108,7 +108,7 @@ export const siteConfig = {
       </svg>
     ),
     badge: '100% OPEN SOURCE',
-    githubUrl: 'https://github.com/kortix-ai/suna',
+    githubUrl: 'https://github.com/',
     title: 'Dimatic – Build, manage and train your digital assistants.',
     description:
       'Dimatic – Stop Guessing. Start Knowing.',

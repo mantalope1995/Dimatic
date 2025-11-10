@@ -715,7 +715,7 @@ export function ThreadComponent({ projectId, threadId, compact = false, configur
   // SEO title update
   useEffect(() => {
     if (projectName) {
-      document.title = `${projectName} | Dimatic Suna`;
+      document.title = `${projectName} | Dimatic`;
 
       const metaDescription = document.querySelector(
         'meta[name="description"]',
@@ -723,13 +723,13 @@ export function ThreadComponent({ projectId, threadId, compact = false, configur
       if (metaDescription) {
         metaDescription.setAttribute(
           'content',
-          `${projectName} - powered by Dimatic Suna`,
+          `${projectName} - powered by Dimatic`,
         );
       }
 
       const ogTitle = document.querySelector('meta[property="og:title"]');
       if (ogTitle) {
-        ogTitle.setAttribute('content', `${projectName} | Dimatic Suna`);
+        ogTitle.setAttribute('content', `${projectName} | Dimatic`);
       }
 
       const ogDescription = document.querySelector(
