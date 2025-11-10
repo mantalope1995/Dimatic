@@ -129,7 +129,7 @@ export default function ActivateTrialPage() {
                 <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="font-medium">$20 in Credits</p>
-                  <p className="text-sm text-muted-foreground">Full access to all AI models</p>
+                  <p className="text-sm text-muted-foreground">Full access to Dimatic</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">

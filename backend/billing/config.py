@@ -5,8 +5,8 @@ from core.utils.config import config
 
 TRIAL_ENABLED = True
 TRIAL_DURATION_DAYS = 7
-TRIAL_TIER = "tier_2_20"
-TRIAL_CREDITS = Decimal("5.00")
+TRIAL_TIER = "tier_149"
+TRIAL_CREDITS = Decimal("20.00")
 
 TOKEN_PRICE_MULTIPLIER = Decimal('1.2')
 MINIMUM_CREDIT_FOR_RUN = Decimal('0.01')
@@ -42,17 +42,6 @@ TIERS: Dict[str, Tier] = {
         can_purchase_credits=False,
         models=[],
         project_limit=0
-    ),
-    'tier_99': Tier(
-        name='tier_99',
-        price_ids=[
-            config.STRIPE_TIER_99_ID,
-        ],
-        monthly_credits=Decimal('99.00'),
-        display_name='Starter',
-        can_purchase_credits=False,
-        models=['all'],
-        project_limit=500
     ),
     'tier_149': Tier(
         name='tier_149',

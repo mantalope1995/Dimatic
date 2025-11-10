@@ -25,12 +25,6 @@ export const AgentCountLimitDialog: React.FC<AgentCountLimitDialogProps> = ({
   const getNextTierRecommendation = () => {
     if (tierName === 'free' || tierName === 'none') {
       return {
-        name: 'Starter',
-        price: '$99/month',
-        agentLimit: 5,
-      };
-    } else if (tierName.includes('tier_99')) {
-      return {
         name: 'Professional',
         price: '$149/month',
         agentLimit: 15,

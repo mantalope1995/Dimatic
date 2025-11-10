@@ -236,11 +236,11 @@ function PricingTier({
   const userPlanName = currentSubscription?.plan_name || 'none';
   const isCurrentActivePlan = isAuthenticated && (
     currentSubscription?.price_id === priceId ||
-    (userPlanName === 'trial' && tier.price === '$99') ||
-    (userPlanName === 'tier_99' && tier.price === '$99') ||
+    (userPlanName === 'trial' && tier.price === '$149') ||
+    (userPlanName === 'tier_149' && tier.price === '$149') ||
     (currentSubscription?.subscription &&
-     userPlanName === 'tier_99' &&
-     tier.price === '$99' &&
+     userPlanName === 'tier_149' &&
+     tier.price === '$149' &&
      currentSubscription?.subscription?.status === 'active')
   );
 

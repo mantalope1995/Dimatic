@@ -201,7 +201,7 @@ export function CreditBalanceCard({
           
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="amount">Credit Amount (USD)</Label>
+              <Label htmlFor="amount">Credit Amount (AUD)</Label>
               <Input
                 id="amount"
                 type="number"

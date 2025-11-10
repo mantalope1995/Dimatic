@@ -13,7 +13,6 @@ export interface SubscriptionTierData {
 
 // Subscription tiers structure
 export interface SubscriptionTiers {
-  TIER_99: SubscriptionTierData;
   TIER_149: SubscriptionTierData;
   TIER_349: SubscriptionTierData;
   TIER_499: SubscriptionTierData;
@@ -29,10 +28,6 @@ interface Config {
 
 // Production tier IDs
 const PROD_TIERS: SubscriptionTiers = {
-  TIER_99: {
-    priceId: 'price_1SRrlNJ07oA1wY5poOrM502j',
-    name: '$99',
-  },
   TIER_149: {
     priceId: 'price_1SRrleJ07oA1wY5p1MZtbovQ',
     name: '$149',
@@ -49,10 +44,6 @@ const PROD_TIERS: SubscriptionTiers = {
 
 // Staging tier IDs
 const STAGING_TIERS: SubscriptionTiers = {
-  TIER_99: {
-    priceId: 'price_1SRrujR7wSQ1yLTelA6IKBc3',
-    name: '$99',
-  },
   TIER_149: {
     priceId: 'price_1SRruqR7wSQ1yLTetkzzGUI5',
     name: '$149',
@@ -106,11 +97,11 @@ export const isStagingMode = (): boolean => {
 
 // Remove yearly commitment plans as we're simplifying to 4 tiers only
 
-// Plan type identification functions - simplified for 4-tier structure
+// Plan type identification functions - simplified for 3-tier structure
 export const isMonthlyPlan = (priceId: string): boolean => {
   const allTiers = config.SUBSCRIPTION_TIERS;
   const monthlyTiers = [
-    allTiers.TIER_99, allTiers.TIER_149, allTiers.TIER_349, allTiers.TIER_499
+    allTiers.TIER_149, allTiers.TIER_349, allTiers.TIER_499
   ];
   return monthlyTiers.some(tier => tier.priceId === priceId);
 };
@@ -120,19 +111,17 @@ export const isYearlyPlan = (priceId: string): boolean => {
   return false;
 };
 
-// Tier level mappings for simplified 4-tier structure
+// Tier level mappings for simplified 3-tier structure
 const PLAN_TIERS = {
   // Production monthly plans
-  [PROD_TIERS.TIER_99.priceId]: { tier: 1, type: 'monthly', name: '$99' },
-  [PROD_TIERS.TIER_149.priceId]: { tier: 2, type: 'monthly', name: '$149' },
-  [PROD_TIERS.TIER_349.priceId]: { tier: 3, type: 'monthly', name: '$349' },
-  [PROD_TIERS.TIER_499.priceId]: { tier: 4, type: 'monthly', name: '$499' },
+  [PROD_TIERS.TIER_149.priceId]: { tier: 1, type: 'monthly', name: '$149' },
+  [PROD_TIERS.TIER_349.priceId]: { tier: 2, type: 'monthly', name: '$349' },
+  [PROD_TIERS.TIER_499.priceId]: { tier: 3, type: 'monthly', name: '$499' },
 
   // Staging monthly plans
-  [STAGING_TIERS.TIER_99.priceId]: { tier: 1, type: 'monthly', name: '$99' },
-  [STAGING_TIERS.TIER_149.priceId]: { tier: 2, type: 'monthly', name: '$149' },
-  [STAGING_TIERS.TIER_349.priceId]: { tier: 3, type: 'monthly', name: '$349' },
-  [STAGING_TIERS.TIER_499.priceId]: { tier: 4, type: 'monthly', name: '$499' },
+  [STAGING_TIERS.TIER_149.priceId]: { tier: 1, type: 'monthly', name: '$149' },
+  [STAGING_TIERS.TIER_349.priceId]: { tier: 2, type: 'monthly', name: '$349' },
+  [STAGING_TIERS.TIER_499.priceId]: { tier: 3, type: 'monthly', name: '$499' },
 } as const;
 
 export const getPlanInfo = (priceId: string) => {

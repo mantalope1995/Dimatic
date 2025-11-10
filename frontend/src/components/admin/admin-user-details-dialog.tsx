@@ -378,7 +378,7 @@ export function AdminUserDetailsDialog({
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="refund-amount">Refund Amount (USD)</Label>
+                      <Label htmlFor="refund-amount">Refund Amount (AUD)</Label>
                       <Input
                         id="refund-amount"
                         type="number"

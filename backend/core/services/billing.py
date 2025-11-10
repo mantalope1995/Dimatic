@@ -46,10 +46,9 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 
 def get_plan_info(price_id: str) -> dict:
     PLAN_TIERS = {
-        config.STRIPE_TIER_99_ID: {'tier': 1, 'type': 'monthly', 'name': '$99/month'},
-        config.STRIPE_TIER_149_ID: {'tier': 2, 'type': 'monthly', 'name': '$149/month'},
-        config.STRIPE_TIER_349_ID: {'tier': 3, 'type': 'monthly', 'name': '$349/month'},
-        config.STRIPE_TIER_499_ID: {'tier': 4, 'type': 'monthly', 'name': '$499/month'},
+        config.STRIPE_TIER_149_ID: {'tier': 1, 'type': 'monthly', 'name': '$149/month'},
+        config.STRIPE_TIER_349_ID: {'tier': 2, 'type': 'monthly', 'name': '$349/month'},
+        config.STRIPE_TIER_499_ID: {'tier': 3, 'type': 'monthly', 'name': '$499/month'},
     }
     
     return PLAN_TIERS.get(price_id, {'tier': 0, 'type': 'unknown', 'name': 'Unknown'})
@@ -104,7 +103,6 @@ def get_model_pricing(model: str) -> tuple[float, float] | None:
 
 SUBSCRIPTION_TIERS = {
     config.STRIPE_FREE_TIER_ID: {'name': 'free', 'minutes': 60, 'cost': 5},
-    config.STRIPE_TIER_99_ID: {'name': 'tier_99', 'minutes': 600, 'cost': 99},  # $99 tier
     config.STRIPE_TIER_149_ID: {'name': 'tier_149', 'minutes': 900, 'cost': 149},  # $149 tier
     config.STRIPE_TIER_349_ID: {'name': 'tier_349', 'minutes': 2100, 'cost': 349},  # $349 tier
     config.STRIPE_TIER_499_ID: {'name': 'tier_499', 'minutes': 3000, 'cost': 499},  # $499 tier
@@ -280,7 +278,7 @@ async def get_user_subscription(user_id: str) -> Optional[Dict]:
                 price_id = item.get('price', {}).get('id')
                 if price_id in [
                     config.STRIPE_FREE_TIER_ID,
-                    config.STRIPE_TIER_99_ID, config.STRIPE_TIER_149_ID,
+                    config.STRIPE_TIER_149_ID,
                     config.STRIPE_TIER_349_ID, config.STRIPE_TIER_499_ID
                 ]:
                     our_subscriptions.append(sub)
@@ -2526,7 +2524,7 @@ async def purchase_credits(
                 payment_method_types=['card'],
                 line_items=[{
                     'price_data': {
-                        'currency': 'usd',
+                        'currency': 'aud',
                         'product_data': {
                             'name': f'Suna AI Credits',
                             'description': f'${request.amount_dollars:.2f} in usage credits for Suna AI',

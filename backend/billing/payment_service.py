@@ -35,7 +35,7 @@ class PaymentService:
             payment_method_types=['card'],
             line_items=[{
                 'price_data': {
-                    'currency': 'usd',
+                    'currency': 'aud',
                     'product_data': {'name': f'${amount} Credits'},
                     'unit_amount': int(amount * 100)
                 },

@@ -44,7 +44,6 @@ class Configuration:
     
     # Subscription tier IDs - Production
     STRIPE_FREE_TIER_ID_PROD: str = 'price_1SRrpZJ07oA1wY5pCq0Bs0sk'
-    STRIPE_TIER_99_ID_PROD: str = 'price_1SRrlNJ07oA1wY5poOrM502j'
     STRIPE_TIER_149_ID_PROD: str = 'price_1SRrleJ07oA1wY5p1MZtbovQ'
     STRIPE_TIER_349_ID_PROD: str = 'price_1SRrllJ07oA1wY5prLqXmTJy'
     STRIPE_TIER_499_ID_PROD: str = 'price_1SRrltJ07oA1wY5pxRzIvMgf'
@@ -65,7 +64,6 @@ class Configuration:
 
     # Subscription tier IDs - Staging
     STRIPE_FREE_TIER_ID_STAGING: str = 'price_1SRruAR7wSQ1yLTe5crEHRcx'
-    STRIPE_TIER_99_ID_STAGING: str = 'price_1SRrujR7wSQ1yLTelA6IKBc3'
     STRIPE_TIER_149_ID_STAGING: str = 'price_1SRruqR7wSQ1yLTetkzzGUI5'
     STRIPE_TIER_349_ID_STAGING: str = 'price_1SRrv0R7wSQ1yLTeBWHlOWsJ'
     STRIPE_TIER_499_ID_STAGING: str = 'price_1SRrv6R7wSQ1yLTeANVkJTa5'
@@ -107,11 +105,6 @@ class Configuration:
             return self.STRIPE_FREE_TIER_ID_STAGING
         return self.STRIPE_FREE_TIER_ID_PROD
     
-    @property
-    def STRIPE_TIER_99_ID(self) -> str:
-        if self.ENV_MODE == EnvMode.STAGING:
-            return self.STRIPE_TIER_99_ID_STAGING
-        return self.STRIPE_TIER_99_ID_PROD
     
     @property
     def STRIPE_TIER_149_ID(self) -> str:
@@ -313,7 +306,6 @@ class Configuration:
     # Note: These limits are bypassed in local mode (ENV_MODE=local) where unlimited agents are allowed
     AGENT_LIMITS = {
         'free': 2,
-        'tier_99': 10,
         'tier_149': 50,
         'tier_349': 100,
         'tier_499': 100,
@@ -323,7 +315,6 @@ class Configuration:
     # Note: These limits are bypassed in local mode (ENV_MODE=local) where unlimited projects are allowed
     PROJECT_LIMITS = {
         'free': 3,
-        'tier_99': 500,
         'tier_149': 2000,
         'tier_349': 10000,
         'tier_499': 25000,

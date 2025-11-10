@@ -116,33 +116,12 @@ export const siteConfig = {
   },
   cloudPricingItems: [
     {
-      name: 'Starter',
-      price: '$99',
-      description: 'Perfect for individuals and small projects',
-      buttonText: 'Get started',
-      buttonColor: 'bg-primary text-white dark:text-black',
-      isPopular: false,
-      /** @deprecated */
-      hours: '99 credits',
-      features: [
-        '$99 AI token credits/m',
-        '5 custom agents',
-        'Private projects',
-        'Custom abilities',
-        '100+ integrations',
-        'Premium AI Models',
-        'Advanced AI Capabilities',
-      ],
-      stripePriceId: config.SUBSCRIPTION_TIERS.TIER_99.priceId,
-      upgradePlans: [],
-    },
-    {
       name: 'Professional',
       price: '$149',
       description: 'Ideal for growing businesses',
       buttonText: 'Get started',
       buttonColor: 'bg-secondary text-white',
-      isPopular: true,
+      isPopular: false,
       /** @deprecated */
       hours: '149 credits',
       features: [
@@ -163,7 +142,7 @@ export const siteConfig = {
       description: 'For established businesses',
       buttonText: 'Get started',
       buttonColor: 'bg-secondary text-white',
-      isPopular: false,
+      isPopular: true,
       /** @deprecated */
       hours: '349 credits',
       features: [
