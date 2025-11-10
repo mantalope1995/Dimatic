@@ -247,10 +247,8 @@ function LoginContent() {
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
               <Link
-                href="https://dimatic.com.au/"
+                href="/"
                 className="flex h-11 items-center justify-center px-6 text-center rounded-lg border border-border bg-background hover:bg-accent transition-colors"
-                target="_blank"
-                rel="noopener noreferrer"
               >
                 Return to home
               </Link>
@@ -278,10 +276,8 @@ function LoginContent() {
           <div className="relative flex-1 flex items-center justify-center p-4 lg:p-8">
             <div className="absolute top-6 right-10 z-10">
               <Link
-                href="https://dimatic.com.au/"
+                href="/"
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
-                target="_blank"
-                rel="noopener noreferrer"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back to home
