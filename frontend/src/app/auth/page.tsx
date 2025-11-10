@@ -249,8 +249,6 @@ function LoginContent() {
               <Link
                 href="https://dimatic.com.au/"
                 className="flex h-11 items-center justify-center px-6 text-center rounded-lg border border-border bg-background hover:bg-accent transition-colors"
-                target="_blank"
-                rel="noopener noreferrer"
               >
                 Return to home
               </Link>
@@ -280,8 +278,6 @@ function LoginContent() {
               <Link
                 href="https://dimatic.com.au/"
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
-                target="_blank"
-                rel="noopener noreferrer"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back to home
