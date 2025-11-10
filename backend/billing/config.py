@@ -50,7 +50,7 @@ TIERS: Dict[str, Tier] = {
         ],
         monthly_credits=Decimal('99.00'),
         display_name='Starter',
-        can_purchase_credits=True,
+        can_purchase_credits=False,
         models=['all'],
         project_limit=500
     ),
@@ -61,7 +61,7 @@ TIERS: Dict[str, Tier] = {
         ],
         monthly_credits=Decimal('149.00'),
         display_name='Professional',
-        can_purchase_credits=True,
+        can_purchase_credits=False,
         models=['all'],
         project_limit=2000
     ),
@@ -72,7 +72,7 @@ TIERS: Dict[str, Tier] = {
         ],
         monthly_credits=Decimal('349.00'),
         display_name='Business',
-        can_purchase_credits=True,
+        can_purchase_credits=False,
         models=['all'],
         project_limit=10000
     ),

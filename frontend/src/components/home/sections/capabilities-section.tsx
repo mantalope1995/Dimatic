@@ -17,7 +17,7 @@ import {
 const capabilities = [
   {
     title: 'Find Your Hidden Profits',
-    description: 'Stop guessing. Upload your existing Excel or Google Sheet  and instantly find the cash trapped in dead stock , spot your stockout risks , and see what to reorder based on data, not gut feel.',
+    description: 'Stop guessing. Upload your existing Excel or Google Sheet  and instantly find the cash trapped in dead stock, spot your stockout risks, and see what to reorder based on data, not gut feel.',
     icon: <BarChart3 className="size-6" />,
   },
   {
@@ -27,12 +27,12 @@ const capabilities = [
   },
   {
     title: 'Get Real-Time Low-Stock Alerts',
-    description: 'Never lose a major sale to a preventable stockout again. Get automatic alerts on your high-turnover items *before* you run out, based on your real sales velocity.',
+    description: 'Never lose a major sale to a preventable stockout again. Get automatic alerts on your high-turnover items before you run out, based on your real sales velocity.',
     icon: <Users className="size-6" />, // Changed from original
   },
   {
     title: 'Run Stock Audits Overnight',
-    description: 'Why spend a weekend manually reconciling spreadsheets for tax time? Schedule your inventory audits and sales reconciliations to run automatically while you sleep.',
+    description: 'Why spend a weekend manually reconciling spreadsheets for tax time? Schedule your inventory audits and sales reconciliations to run while you sleep.',
     icon: <Clock className="size-6" />,
   },
   {
@@ -52,7 +52,7 @@ const capabilities = [
   },
   {
     title: 'Create a Single Source of Truth',
-    description: 'That massive, complex spreadsheet is your single biggest bottleneck. Turn its chaos into a simple, trustworthy dashboard your entire team can use—making your "system" finally teachable for new employees.',
+    description: 'That massive, complex spreadsheet is your single biggest bottleneck. Turn its chaos into a simple, trustworthy dashboard your entire team can use, making your system teachable for new employees.',
     icon: <ShieldCheck className="size-6" />,
   },
 ];
