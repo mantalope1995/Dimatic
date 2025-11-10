@@ -35,7 +35,7 @@ export default function Home() {
             
             {/* <AgentShowcaseSection /> */}
             {/* <OpenSourceSection /> */}
-            {/* <PricingSection /> */}
+            <PricingSection />
             {/* <TestimonialSection /> */}
             {/* <FAQSection /> */}
             {/* <CTASection /> */}
