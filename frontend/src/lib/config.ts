@@ -30,19 +30,19 @@ interface Config {
 // Production tier IDs
 const PROD_TIERS: SubscriptionTiers = {
   TIER_99: {
-    priceId: 'price_1RILb4G6l1KZGqIrhomjgDnO',
+    priceId: 'price_1SRrlNJ07oA1wY5poOrM502j',
     name: '$99',
   },
   TIER_149: {
-    priceId: 'price_1RILb4G6l1KZGqIr5q0sybWn',
+    priceId: 'price_1SRrleJ07oA1wY5p1MZtbovQ',
     name: '$149',
   },
   TIER_349: {
-    priceId: 'price_1RILb4G6l1KZGqIr5Y20ZLHm',
+    priceId: 'price_1SRrllJ07oA1wY5prLqXmTJy',
     name: '$349',
   },
   TIER_499: {
-    priceId: 'price_1RILb4G6l1KZGqIrGAD8rNjb',
+    priceId: 'price_1SRrltJ07oA1wY5pxRzIvMgf',
     name: '$499',
   },
 } as const;
@@ -50,19 +50,19 @@ const PROD_TIERS: SubscriptionTiers = {
 // Staging tier IDs
 const STAGING_TIERS: SubscriptionTiers = {
   TIER_99: {
-    priceId: 'price_1RIGvuG6l1KZGqIrCRu0E4Gi',
+    priceId: 'price_1SRrujR7wSQ1yLTelA6IKBc3',
     name: '$99',
   },
   TIER_149: {
-    priceId: 'price_1RIGvuG6l1KZGqIrvjlz5p5V',
+    priceId: 'price_1SRruqR7wSQ1yLTetkzzGUI5',
     name: '$149',
   },
   TIER_349: {
-    priceId: 'price_1RIGvuG6l1KZGqIrT6UfgblC',
+    priceId: 'price_1SRrv0R7wSQ1yLTeBWHlOWsJ',
     name: '$349',
   },
   TIER_499: {
-    priceId: 'price_1RIGvuG6l1KZGqIrOVLKlOMj',
+    priceId: 'price_1SRrv6R7wSQ1yLTeANVkJTa5',
     name: '$499',
   },
 } as const;
