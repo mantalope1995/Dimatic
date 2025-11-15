@@ -761,7 +761,7 @@ export function KnowledgeBaseManager({
                     delete newStatus[folderId];
                     return newStatus;
                 });
-            }, 3000);
+            }, 3015);
 
             if (successCount === totalFiles) {
                 toast.success(`Successfully uploaded ${successCount} file(s)`);

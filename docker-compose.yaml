@@ -20,7 +20,7 @@
 #   docker compose logs -f        # View all logs
 #
 # Access:
-#   - Suna Frontend:     http://localhost:3000
+#   - Suna Frontend:     http://localhost:3015
 #   - Suna Backend API:  http://localhost:8000
 # ============================================================================
 
@@ -84,7 +84,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3015:3015"
     depends_on:
       - backend
 

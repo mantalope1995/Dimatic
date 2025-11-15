@@ -96,7 +96,7 @@ def print_manual_instructions():
         print(f"{Colors.BOLD}To stop Local Supabase:{Colors.ENDC}")
         print(f"{Colors.CYAN}   cd backend && npx supabase stop{Colors.ENDC}\n")
 
-    print("Once all services are running, access Suna at: http://localhost:3000\n")
+    print("Once all services are running, access Suna at: http://localhost:3015\n")
 
     print(
         f"{Colors.YELLOW}💡 Tip:{Colors.ENDC} You can use '{Colors.CYAN}./start.py{Colors.ENDC}' to start/stop the infrastructure services."
@@ -204,7 +204,7 @@ def main():
         else:
             subprocess.run(["docker", "compose", "up", "-d"], shell=IS_WINDOWS)
             print(f"\n{Colors.GREEN}✅ All Suna services started.{Colors.ENDC}")
-            print(f"{Colors.CYAN}🌐 Access Suna at: http://localhost:3000{Colors.ENDC}")
+            print(f"{Colors.CYAN}🌐 Access Suna at: http://localhost:3015{Colors.ENDC}")
 
 
 if __name__ == "__main__":
