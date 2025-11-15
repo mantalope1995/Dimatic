@@ -1,8 +1,8 @@
 from typing import Dict, List, Optional, Set
 from .ai_models import Model, ModelProvider, ModelCapability, ModelPricing
 
-DEFAULT_FREE_MODEL = "GLM-4.5"
-DEFAULT_PREMIUM_MODEL = "GLM-4.5"
+DEFAULT_FREE_MODEL = "GLM-4.6"
+DEFAULT_PREMIUM_MODEL = "GLM-4.6"
 
 class ModelRegistry:
     def __init__(self):
@@ -28,7 +28,7 @@ class ModelRegistry:
                 output_cost_per_million_tokens=15.00
             ),
             tier_availability=["paid"],
-            priority=100,
+            priority=95,
             recommended=True,
             enabled=True
         ))
@@ -174,12 +174,12 @@ class ModelRegistry:
         ))
         
         self.register(Model(
-            id="openai-compatible/glm-4.5",
-            name="GLM-4.5",
+            id="openai-compatible/glm-4.6",
+            name="GLM-4.6",
             provider=ModelProvider.Z_AI,
-            aliases=["glm-4.5", "GLM-4.5", "z-ai/glm-4.5", "openai-compatible/glm-4.5"],
-            context_window=128_000,
-            max_output_tokens=96_000,
+            aliases=["glm-4.6", "GLM-4.6", "z-ai/glm-4.6", "openai-compatible/glm-4.6"],
+            context_window=200_000,
+            max_output_tokens=128_000,
             capabilities=[
                 ModelCapability.CHAT,
                 ModelCapability.FUNCTION_CALLING,
@@ -191,7 +191,7 @@ class ModelRegistry:
                 output_cost_per_million_tokens=2.20
             ),
             tier_availability=["free", "paid"],
-            priority=101,
+            priority=100,
             recommended=True,
             enabled=True
         ))

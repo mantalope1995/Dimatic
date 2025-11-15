@@ -45,8 +45,8 @@ export interface CustomModel {
 export const MODELS = {
   'claude-sonnet-4': { 
     tier: 'none',
-    priority: 100, 
-    recommended: true,
+    priority: 95, 
+    recommended: false
     lowQuality: false
   },
   'gpt-5': { 
@@ -82,20 +82,20 @@ export const MODELS = {
 
   'moonshotai/kimi-k2': { 
     tier: 'none', 
-    priority: 100,
+    priority: 95,
     recommended: true,
     lowQuality: false
   },
-  'glm-4.5': { 
+  'glm-4.6': { 
     tier: 'premium', 
-    priority: 95,
-    recommended: false,
+    priority: 100
+    recommended: true,
     lowQuality: false
   },
-  'openai-compatible/glm-4.5': { 
-    tier: 'premium', 
-    priority: 95,
-    recommended: false,
+  'openai-compatible/glm-4.6': { 
+    tier: 'none', 
+    priority: 100,
+    recommended: true,
     lowQuality: false
   },
   'deepseek': { 

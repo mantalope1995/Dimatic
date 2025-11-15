@@ -3,10 +3,10 @@ from core.prompts.prompt import SYSTEM_PROMPT
 # Suna default configuration - simplified and centralized
 SUNA_CONFIG = {
     "name": "Suna",
-    "description": "Suna is your AI assistant with access to various tools and integrations to help you with tasks across domains. Default model is now GLM-4.5.",
+    "description": "Suna is your AI assistant with access to various tools and integrations to help you with tasks across domains.",
     "avatar": "🌞",
     "avatar_color": "#F59E0B",
-    "model": "openai-compatible/glm-4.5",
+    "model": "openai-compatible/glm-4.6",
     "system_prompt": SYSTEM_PROMPT,
     "configured_mcps": [],
     "custom_mcps": [],
