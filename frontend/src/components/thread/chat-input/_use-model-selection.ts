@@ -46,7 +46,7 @@ export const MODELS = {
   'claude-sonnet-4': { 
     tier: 'none',
     priority: 95, 
-    recommended: false
+    recommended: false,
     lowQuality: false
   },
   'gpt-5': { 
