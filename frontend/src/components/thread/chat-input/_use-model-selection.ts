@@ -7,8 +7,8 @@ import { useAvailableModels } from '@/hooks/react-query/subscriptions/use-model'
 
 export const STORAGE_KEY_MODEL = 'suna-preferred-model-v3';
 export const STORAGE_KEY_CUSTOM_MODELS = 'customModels';
-export const DEFAULT_PREMIUM_MODEL_ID = 'claude-sonnet-4';
-export const DEFAULT_FREE_MODEL_ID = 'moonshotai/kimi-k2';
+export const DEFAULT_PREMIUM_MODEL_ID = 'glm-4.6';
+export const DEFAULT_FREE_MODEL_ID = 'glm-4.6';
 
 export const testLocalStorage = (): boolean => {
   if (typeof window === 'undefined') return false;
@@ -87,14 +87,14 @@ export const MODELS = {
     lowQuality: false
   },
   'glm-4.6': { 
-    tier: 'premium', 
-    priority: 95,
-    recommended: false,
+    tier: 'none', 
+    priority: 98,
+    recommended: true,
     lowQuality: false
   },
   'openai-compatible/glm-4.6': { 
-    tier: 'premium', 
-    priority: 95,
+    tier: 'none', 
+    priority: 97,
     recommended: false,
     lowQuality: false
   },

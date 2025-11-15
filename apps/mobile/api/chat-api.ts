@@ -545,8 +545,8 @@ export const startAgent = async (
     console.log(`[API] Starting agent for thread ${threadId}`);
 
     const defaultOptions = {
-      model_name: 'claude-sonnet-4',
-      enable_thinking: false,
+      model_name: 'glm-4.6',
+      enable_thinking: true
       reasoning_effort: 'low',
       stream: true,
       agent_id: undefined,
@@ -1064,4 +1064,4 @@ export const initiateAgent = async (
     console.error('[API] initiateAgent error:', error);
     throw error;
   }
-}; 
+};

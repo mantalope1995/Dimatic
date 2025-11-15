@@ -1,8 +1,8 @@
 from typing import Dict, List, Optional, Set
 from .ai_models import Model, ModelProvider, ModelCapability, ModelPricing
 
-DEFAULT_FREE_MODEL = "Kimi K2"
-DEFAULT_PREMIUM_MODEL = "Claude Sonnet 4"
+DEFAULT_FREE_MODEL = "GLM-4.6"
+DEFAULT_PREMIUM_MODEL = "GLM-4.6"
 
 class ModelRegistry:
     def __init__(self):
@@ -190,9 +190,9 @@ class ModelRegistry:
                 input_cost_per_million_tokens=0.60,
                 output_cost_per_million_tokens=2.20
             ),
-            tier_availability=["paid"],
-            priority=95,
-            recommended=False,
+            tier_availability=["free", "paid"],
+            priority=100,
+            recommended=True,
             enabled=True
         ))
 
@@ -347,4 +347,4 @@ class ModelRegistry:
             "PAID_TIER_MODELS": paid_models,
         }
 
-registry = ModelRegistry() 
+registry = ModelRegistry()
