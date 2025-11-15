@@ -174,10 +174,10 @@ class ModelRegistry:
         ))
         
         self.register(Model(
-            id="openai-compatible/glm-4.5",
-            name="GLM-4.5",
+            id="openai-compatible/glm-4.6",
+            name="GLM-4.6",
             provider=ModelProvider.Z_AI,
-            aliases=["glm-4.5", "GLM-4.5", "z-ai/glm-4.5", "openai-compatible/glm-4.5"],
+            aliases=["glm-4.6", "GLM-4.6", "z-ai/glm-4.6", "openai-compatible/glm-4.6"],
             context_window=128_000,
             max_output_tokens=96_000,
             capabilities=[

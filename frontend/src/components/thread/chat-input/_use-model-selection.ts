@@ -86,13 +86,13 @@ export const MODELS = {
     recommended: true,
     lowQuality: false
   },
-  'glm-4.5': { 
+  'glm-4.6': { 
     tier: 'premium', 
     priority: 95,
     recommended: false,
     lowQuality: false
   },
-  'openai-compatible/glm-4.5': { 
+  'openai-compatible/glm-4.6': { 
     tier: 'premium', 
     priority: 95,
     recommended: false,

@@ -98,7 +98,7 @@ OPENROUTER_API_KEY=your-openrouter-key
 # X.AI
 XAI_API_KEY=your-xai-key
 
-# Z AI (for GLM-4.5)
+# Z AI (for GLM-4.6)
 Z_AI_API_KEY=your-z-ai-key
 Z_AI_API_BASE=https://api.z.ai/api/coding/paas/v4
 ```

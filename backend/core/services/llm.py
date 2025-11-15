@@ -272,10 +272,10 @@ def prepare_params(
     resolved_model_name = model_manager.resolve_model_id(model_name)
     logger.debug(f"Model resolution: '{model_name}' -> '{resolved_model_name}'")
     
-    # If model wasn't resolved but it's glm-4.5, treat it as openai-compatible
-    if resolved_model_name is None and "glm-4.5" in model_name.lower():
-        resolved_model_name = "openai-compatible/glm-4.5"
-        logger.debug(f"Auto-resolved GLM-4.5 model: '{model_name}' -> '{resolved_model_name}'")
+    # If model wasn't resolved but it's glm-4.6, treat it as openai-compatible
+    if resolved_model_name is None and "glm-4.6" in model_name.lower():
+        resolved_model_name = "openai-compatible/glm-4.6"
+        logger.debug(f"Auto-resolved GLM-4.6 model: '{model_name}' -> '{resolved_model_name}'")
     
     params = {
         "model": resolved_model_name,
@@ -297,8 +297,8 @@ def prepare_params(
     # Check both the original and resolved model names for openai-compatible prefix
     if (model_name.startswith("openai-compatible/") or 
         (resolved_model_name and resolved_model_name.startswith("openai-compatible/"))):
-        # Special handling for Z AI GLM-4.5 model
-        if "glm-4.5" in model_name.lower() or (resolved_model_name and "glm-4.5" in resolved_model_name.lower()):
+        # Special handling for Z AI GLM-4.6 model
+        if "glm-4.6" in model_name.lower() or (resolved_model_name and "glm-4.6" in resolved_model_name.lower()):
             # Use Z AI specific configuration
             if not api_key:
                 api_key = getattr(config, "Z_AI_API_KEY", None)
@@ -307,7 +307,7 @@ def prepare_params(
             
             if not api_key:
                 raise LLMError(
-                    "Z_AI_API_KEY is required for GLM-4.5 model. Please set it in your backend/.env file or environment variables. "
+                    "Z_AI_API_KEY is required for GLM-4.6 model. Please set it in your backend/.env file or environment variables. "
                     "You can get an API key from https://z.ai/"
                 )
         else:
@@ -455,7 +455,7 @@ async def make_llm_api_call(
         error_msg = str(e)
         # Provide more specific error messages for common issues
         if "Z_AI_API_KEY" in error_msg:
-            logger.error(f"GLM-4.5 configuration error: {error_msg}")
+            logger.error(f"GLM-4.6 configuration error: {error_msg}")
             raise LLMError(error_msg)  # Re-raise with the detailed message
         elif "OPENAI_COMPATIBLE" in error_msg:
             logger.error(f"OpenAI-compatible model configuration error: {error_msg}")
