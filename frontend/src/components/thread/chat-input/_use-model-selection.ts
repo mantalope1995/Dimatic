@@ -88,7 +88,7 @@ export const MODELS = {
   },
   'glm-4.6': { 
     tier: 'premium', 
-    priority: 100
+    priority: 100,
     recommended: true,
     lowQuality: false
   },
