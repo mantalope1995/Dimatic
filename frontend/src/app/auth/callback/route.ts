@@ -29,10 +29,13 @@ export async function GET(request: NextRequest) {
       }
 
       if (data.user) {
+        // Welcome email is now sent automatically by Supabase database trigger
+        // See: backend/supabase/migrations/20251113000000_welcome_email_webhook.sql
+
         const { data: accountData } = await supabase
           .schema('basejump')
           .from('accounts')
-          .select('id')
+          .select('id, created_at')
           .eq('primary_owner_user_id', data.user.id)
           .eq('personal_account', true)
           .single();

@@ -4,38 +4,6 @@ import { createTrialCheckout } from '@/lib/api/billing';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
-async function sendWelcomeEmail(email: string, name?: string) {
-  try {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-    const adminApiKey = process.env.KORTIX_ADMIN_API_KEY;
-    
-    if (!adminApiKey) {
-      console.error('KORTIX_ADMIN_API_KEY not configured');
-      return;
-    }
-    
-    const response = await fetch(`${backendUrl}/api/send-welcome-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Api-Key': adminApiKey,
-      },
-      body: JSON.stringify({
-        email,
-        name,
-      }),
-    });
-
-    if (response.ok) {
-    } else {
-      const errorData = await response.json().catch(() => ({}));
-      console.error(`Failed to queue welcome email for ${email}:`, errorData);
-    }
-  } catch (error) {
-    console.error('Error sending welcome email:', error);
-  }
-}
-
 
 export async function signIn(prevState: any, formData: FormData) {
   const email = formData.get('email') as string;
@@ -98,16 +66,13 @@ export async function signUp(prevState: any, formData: FormData) {
     return { message: error.message || 'Could not create account' };
   }
 
-  const userName = email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  // Welcome email is now sent automatically by Supabase database trigger
+  // See: backend/supabase/migrations/20251113000000_welcome_email_webhook.sql
 
   const { error: signInError, data: signInData } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
-
-  if (signInData && signInData.user) {
-    sendWelcomeEmail(email, userName);
-  }
 
   if (signInError) {
     return {
