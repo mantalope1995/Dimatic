@@ -147,7 +147,9 @@ allow_origin_regex = None
 if config.ENV_MODE == EnvMode.LOCAL:
     allowed_origins.extend([
         "http://localhost:3015",
-        "http://18.141.208.211:3015"
+        "http://18.141.208.211:3015",
+        "https://dimatic.com.au",  # Add this line
+        "https://www.dimatic.com.au"  # Add this line
     ])
 
 if config.ENV_MODE == EnvMode.STAGING:
