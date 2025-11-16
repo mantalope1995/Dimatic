@@ -143,6 +143,16 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`dimatic.com.au`) && PathPrefix(`/api`)"
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
+      
+      # Add these CORS headers
+      - "traefik.http.middlewares.corsheaders.headers.accesscontrolallowcredentials=true"
+      - "traefik.http.middlewares.corsheaders.headers.accesscontrolallowheaders=Content-Type,Authorization,X-Project-Id,X-MCP-URL,X-MCP-Type,X-MCP-Headers,X-Refresh-Token,X-API-Key"
+      - "traefik.http.middlewares.corsheaders.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
+      - "traefik.http.middlewares.corsheaders.headers.accesscontrolalloworiginlist=https://dimatic.com.au,https://www.dimatic.com.au"
+      - "traefik.http.middlewares.corsheaders.headers.accesscontrolmaxage=86400"
+      
+      # Apply CORS middleware to router
+      - "traefik.http.routers.backend.middlewares=corsheaders@docker"
 
   worker:
     image: ghcr.io/suna-ai/suna-backend:latest
