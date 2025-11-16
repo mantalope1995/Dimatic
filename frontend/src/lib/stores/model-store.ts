@@ -39,8 +39,8 @@ interface ModelStore {
   resetToDefault: (subscriptionStatus: SubscriptionStatus) => void;
 }
 
-const DEFAULT_FREE_MODEL_ID = 'moonshotai/kimi-k2';
-const DEFAULT_PREMIUM_MODEL_ID = 'claude-sonnet-4';
+const DEFAULT_FREE_MODEL_ID = 'glm-4.6';
+const DEFAULT_PREMIUM_MODEL_ID = 'glm-4.6';
 
 export const useModelStore = create<ModelStore>()(
   persist(

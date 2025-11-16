@@ -62,18 +62,22 @@ export const useModelSelection = () => {
   const MODEL_OPTIONS = useMemo(() => {
     let models: ModelOption[] = [];
     if (!modelsData?.models || isLoadingModels) {
+      // Use the same defaults as the store for consistency
+      const freeDefaultModel = getDefaultModel('no_subscription');
+      const premiumDefaultModel = getDefaultModel('active');
+      
       models = [
-        { 
-          id: 'moonshotai/kimi-k2', 
-          label: 'Kimi K2', 
+        {
+          id: freeDefaultModel,
+          label: formatModelName(freeDefaultModel),
           requiresSubscription: false,
           priority: 100,
           recommended: true
         },
-        { 
-          id: 'claude-sonnet-4', 
-          label: 'Claude Sonnet 4', 
-          requiresSubscription: true, 
+        {
+          id: premiumDefaultModel,
+          label: formatModelName(premiumDefaultModel),
+          requiresSubscription: true,
           priority: 100,
           recommended: true
         },
