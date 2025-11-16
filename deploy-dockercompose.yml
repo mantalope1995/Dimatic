@@ -141,7 +141,8 @@ services:
         condition: service_started
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`dimatic.com.au`) && PathPrefix(`/api`)"
+      # Route backend.dimatic.com.au to this service
+      - "traefik.http.routers.backend.rule=Host(`backend.dimatic.com.au`)"
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
       
       # Add these CORS headers
