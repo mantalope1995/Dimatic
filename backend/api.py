@@ -137,13 +137,14 @@ async def log_requests_middleware(request: Request, call_next):
 
 # Define allowed origins based on environment
 allowed_origins = ["https://www.dimatic.com.au", "https://dimatic.com.au"]
+allowed_origins.append("https://backend.dimatic.com.au")
 allow_origin_regex = None
 
 # Add staging-specific origins
 if config.ENV_MODE == EnvMode.LOCAL:
     allowed_origins.append("https://dimatic.com.au")
     allowed_origins.append("http://localhost:3015")
-    allowed_origins.append("http://127.0.0.1:3015")
+    allowed_origins.append("http://18.141.208.211:3015")
 
 # Add staging-specific origins
 if config.ENV_MODE == EnvMode.STAGING:
@@ -155,7 +156,7 @@ if config.ENV_MODE == EnvMode.STAGING:
 # Add localhost for production mode local testing (for master password login)
 if config.ENV_MODE == EnvMode.PRODUCTION:
     allowed_origins.append("http://localhost:3015")
-    allowed_origins.append("http://127.0.0.1:3015")
+    allowed_origins.append("http://18.141.208.211:3015")
     allowed_origins.append("https://dimatic.com.au")
 
 app.add_middleware(
