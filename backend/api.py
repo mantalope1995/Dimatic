@@ -136,7 +136,7 @@ async def log_requests_middleware(request: Request, call_next):
         raise
 
 # Define allowed origins based on environment
-allowed_origins = ["https://www.dimatic.com.au"]
+allowed_origins = ["https://www.dimatic.com.au", "https://dimatic.com.au"]
 allow_origin_regex = None
 
 # Add staging-specific origins
@@ -156,6 +156,7 @@ if config.ENV_MODE == EnvMode.STAGING:
 if config.ENV_MODE == EnvMode.PRODUCTION:
     allowed_origins.append("http://localhost:3015")
     allowed_origins.append("http://127.0.0.1:3015")
+    allowed_origins.append("https://dimatic.com.au")
 
 app.add_middleware(
     CORSMiddleware,
