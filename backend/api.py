@@ -136,28 +136,30 @@ async def log_requests_middleware(request: Request, call_next):
         raise
 
 # Define allowed origins based on environment
-allowed_origins = ["https://www.dimatic.com.au", "https://dimatic.com.au"]
-allowed_origins.append("https://backend.dimatic.com.au")
+allowed_origins = [
+    "https://www.dimatic.com.au",
+    "https://dimatic.com.au",
+    "https://backend.dimatic.com.au"
+]
 allow_origin_regex = None
 
-# Add staging-specific origins
+# Add environment-specific origins
 if config.ENV_MODE == EnvMode.LOCAL:
-    allowed_origins.append("https://dimatic.com.au")
-    allowed_origins.append("http://localhost:3015")
-    allowed_origins.append("http://18.141.208.211:3015")
+    allowed_origins.extend([
+        "http://localhost:3015",
+        "http://18.141.208.211:3015"
+    ])
 
-# Add staging-specific origins
 if config.ENV_MODE == EnvMode.STAGING:
-    allowed_origins.append("https://dimatic.com.au")
     allowed_origins.append("http://localhost:3015")
-    # Allow Vercel preview deployments for both legacy and new project names
+    # Allow Vercel preview deployments
     allow_origin_regex = r"https://dimatic-.*-prjcts\.vercel\.app"
 
-# Add localhost for production mode local testing (for master password login)
 if config.ENV_MODE == EnvMode.PRODUCTION:
-    allowed_origins.append("http://localhost:3015")
-    allowed_origins.append("http://18.141.208.211:3015")
-    allowed_origins.append("https://dimatic.com.au")
+    allowed_origins.extend([
+        "http://localhost:3015",
+        "http://18.141.208.211:3015"
+    ])
 
 app.add_middleware(
     CORSMiddleware,
