@@ -30,15 +30,15 @@ export default function Home() {
           <div className="w-full divide-y divide-border">
             <HeroSection />
             <CapabilitiesSection />
-            {/* <DeliverablesSection />             */}
+            <DeliverablesSection />
             <BentoSection />
             
-            * <AgentShowcaseSection /> */
+            {/* <AgentShowcaseSection /> */}
             {/* <OpenSourceSection /> */}
             {/* <PricingSection /> */}
             {/* <TestimonialSection /> */}
-            {/* <FAQSection /> */}
-            <CTASection />
+            <FAQSection />
+            {/* <CTASection /> */}
             <FooterSection />
           </div>
         </main>
