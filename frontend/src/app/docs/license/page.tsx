@@ -151,30 +151,30 @@ export default function LicensePage() {
         
         <div className="space-y-6">
           <div className="border-l-4 border-primary pl-6">
-            <h3 className="font-semibold mb-2">Can I use Suna in my commercial product?</h3>
+            <h3 className="font-semibold mb-2">Do I need technical skills to use Dimatic?</h3>
             <p className="text-muted-foreground">
-              Yes! The Apache 2.0 license allows commercial use without any fees or restrictions.
+              Not at all. If you can use Excel or Google Sheets, you can use Dimatic. We designed it specifically for business owners who don't have IT teams or developers. No coding, no complicated setup. Just connect your data and start getting insights.
             </p>
           </div>
           
           <div className="border-l-4 border-primary pl-6">
-            <h3 className="font-semibold mb-2">Do I need to open source my modifications?</h3>
+            <h3 className="font-semibold mb-2">Will this work with my existing spreadsheets?</h3>
             <p className="text-muted-foreground">
-              No, you're not required to open source your modifications. However, you must indicate what changes you've made if you distribute the modified version.
+              Yes. Dimatic is built to work with your current Google Sheets and Excel files, not replace them. We know your spreadsheets are your single source of truth, so we integrate with what you already have rather than forcing you to migrate everything to a new system.
             </p>
           </div>
           
           <div className="border-l-4 border-primary pl-6">
-            <h3 className="font-semibold mb-2">Can I change the license for my derivative work?</h3>
+            <h3 className="font-semibold mb-2">How long does it take to set up?</h3>
             <p className="text-muted-foreground">
-              You can apply different license terms to your modifications, but the original Suna code remains under Apache 2.0.
+              Most businesses are up and running in under an hour. Simply connect your spreadsheets or sales data, and Dimatic starts analysing immediately. No months-long implementation, no expensive consultants, no disruption to your daily operations.
             </p>
           </div>
           
           <div className="border-l-4 border-primary pl-6">
-            <h3 className="font-semibold mb-2">What about patent protection?</h3>
+            <h3 className="font-semibold mb-2">What if I have multiple sales channels?</h3>
             <p className="text-muted-foreground">
-              The Apache 2.0 license includes an express grant of patent rights from contributors to users, protecting you from patent litigation.
+              That's exactly what Dimatic is built for. Whether you sell through a physical store, e-commerce site, online marketplace, or all three, Dimatic can consolidate your data and give you a single, accurate view of your inventory across all channels.
             </p>
           </div>
         </div>

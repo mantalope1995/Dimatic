@@ -30,7 +30,7 @@ export default function Home() {
           <div className="w-full divide-y divide-border">
             <HeroSection />
             <CapabilitiesSection />
-            <DeliverablesSection />
+             {/* <DeliverablesSection />             */}
             <BentoSection />
             
             {/* <AgentShowcaseSection /> */}

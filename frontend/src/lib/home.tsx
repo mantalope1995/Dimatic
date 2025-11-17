@@ -111,7 +111,7 @@ export const siteConfig = {
     githubUrl: 'https://github.com/kortix-ai/suna',
     title: 'Dimatic – Build, manage and train your digital assistants.',
     description:
-      'Dimatic – AI made easy.',
+      'Dimatic – Stop guessing, start knowing.',
     inputPlaceholder: 'Ask Suna to...',
   },
   cloudPricingItems: [
@@ -1179,43 +1179,43 @@ export const siteConfig = {
   faqSection: {
     title: 'Frequently Asked Questions',
     description:
-      "Answers to common questions about Suna and its capabilities. If you have any other questions, please don't hesitate to contact us.",
+      "Answers to common questions about Dimatic and its capabilities. If you have any other questions, please don't hesitate to contact us.",
     faQitems: [
       {
         id: 1,
-        question: 'What is an AI Worker?',
+        question: 'Do I need technical skills to use Dimatic?',
         answer:
-          'An AI Worker is an intelligent software program that can perform tasks autonomously, learn from interactions, and make decisions to help achieve specific goals. It combines artificial intelligence and machine learning to provide personalized assistance and automation.',
+          'Not at all. If you can use Excel or Google Sheets, you can use Dimatic. We designed it specifically for business owners who don\'t have IT teams or developers. No coding, no complicated setup—just connect your data and start getting insights.',
       },
       {
         id: 2,
-        question: 'How does Suna work?',
+        question: 'Will this work with my existing spreadsheets?',
         answer:
-          'Suna works by analyzing your requirements, leveraging advanced AI algorithms to understand context, and executing tasks based on your instructions. It can integrate with your workflow, learn from feedback, and continuously improve its performance.',
+          'Yes. Dimatic is built to work with your current Google Sheets and Excel files—not replace them. We know your spreadsheets are your single source of truth, so we integrate with what you already have rather than forcing you to migrate everything to a new system.',
       },
       {
         id: 3,
-        question: 'Is Suna really free?',
+        question: 'How long does it take to set up?',
         answer:
-          'Yes, Suna is completely free and open source. We believe in democratizing AI technology and making it accessible to everyone. You can use it, modify it, and contribute to its development without any cost.',
+          'Most businesses are up and running in under an hour. Simply connect your spreadsheets or sales data, and Dimatic starts analysing immediately. No months-long implementation, no expensive consultants, no disruption to your daily operations.',
       },
       {
         id: 4,
-        question: 'Can I integrate Suna with my existing tools?',
+        question: 'What if I have multiple sales channels?',
         answer:
-          'Yes, Suna is designed to be highly compatible with popular tools and platforms. We offer APIs and pre-built integrations for seamless connection with your existing workflow tools and systems.',
+          'That is exactly what Dimatic is built for. Whether you sell through a physical store, e-commerce site, online marketplace, or all three, Dimatic can consolidate your data and give you a single, accurate view of your inventory across all channels.',
       },
       {
         id: 5,
-        question: 'How can I contribute to Suna?',
+        question: 'Will this replace my current inventory system?',
         answer:
-          'You can contribute to Suna by submitting pull requests on GitHub, reporting bugs, suggesting new features, or helping with documentation. Join our Discord community to connect with other contributors and Hire Suna.',
+          'Dimatic is not here to replace what you are doing. We enhance your existing spreadsheets and processes by adding the automation, alerts, and insights you are currently doing manually or not doing at all.',
       },
       {
         id: 6,
-        question: 'How does Suna save me time?',
+        question: 'What if my inventory data is a mess right now?',
         answer:
-          'Suna automates repetitive tasks, streamlines workflows, and provides quick solutions to common challenges. This automation and efficiency can save hours of manual work, allowing you to focus on more strategic activities.',
+          'That is exactly who we built this for. Dimatic does not need perfect data to get started, it actually helps you clean it up. Identify duplicates, flag inconsistencies, and show you where your data gaps are costing you money.',
       },
     ],
   },

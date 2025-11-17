@@ -365,7 +365,7 @@ export function HeroSection() {
             <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-medium tracking-tighter text-balance text-center px-2">
               <span className="text-primary block">Dimatic for</span>
               <RotatingText 
-                texts={['Research', 'Presentations', 'Docs', 'Spreadsheets', 'Design', 'Data Analysis', 'Email Management', 'Social Media', 'SEO', 'Lead Generation', 'Customer Support', 'Content Creation', 'Project Management', 'Sales', 'Marketing', 'Analytics']}
+                texts={['Inventory Control', 'Stock Analysis', 'Sales Tracking', 'Cash Flow Insights', 'Demand Forecasting', 'Dead Stock Reports', 'Reorder Alerts', 'Profit Analysis', 'SKU Performance', 'Stock Reconciliation', 'Price Optimisation', 'Supplier Management', 'Stockout Prevention', 'Working Capital Recovery']}
                 className="text-secondary block mt-2"
               />
             </h1>

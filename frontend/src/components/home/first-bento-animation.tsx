@@ -11,7 +11,7 @@ import { AnimatePresence, motion, useInView } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 
 export function ReasoningBasic() {
-  const reasoningText = `Perfect! I'll create a digital assistant that monitors your email, automatically categorises messages, and sends you daily summaries. The agent will also draft responses for common inquiries and flag urgent messages for immediate attention.`;
+  const reasoningText = `Absolutely! I'll analyse your inventory data to identify dead stock and slow movers. You'll get a clear report showing which items are tying up your cash, how long they've been sitting, and recommendations on what to discount, bundle, or discontinue to free up working capital.`;
 
   return (
     <Reasoning>
@@ -70,8 +70,7 @@ export function FirstBentoAnimation() {
             }}
           >
             <p className="text-sm">
-              I need a digital assistant to help manage my email inbox. Can you create 
-              one that categorises messages and drafts responses automatically?
+              I need help identifying which stock items are just sitting there costing me money. Can you analyse my inventory and show me what's not moving?
             </p>
           </motion.div>
           <div className="flex items-center bg-background rounded-full w-fit border border-border flex-shrink-0">
