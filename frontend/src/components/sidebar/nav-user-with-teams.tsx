@@ -320,16 +320,20 @@ export function NavUserWithTeams({
                   </DropdownMenuSub>
                 )}
                 
+                {/* Comment out this section
                 <DropdownMenuItem onClick={() => setShowBillingModal(true)}>
                   <Zap className="h-4 w-4" />
                   Upgrade
                 </DropdownMenuItem>
+                */}
+                {/* Comment out this section
                 <DropdownMenuItem asChild>
                   <Link href="/settings/billing">
                     <CreditCard className="h-4 w-4" />
                     Billing
                   </Link>
                 </DropdownMenuItem>
+                */}
                 {(
                   <DropdownMenuItem asChild>
                     <Link href="/settings/credentials">
@@ -338,6 +342,7 @@ export function NavUserWithTeams({
                     </Link>
                   </DropdownMenuItem>
                 )}
+                {/* Comment out this section
                 {(
                   <DropdownMenuItem asChild>
                     <Link href="/settings/api-keys">
@@ -346,12 +351,15 @@ export function NavUserWithTeams({
                     </Link>
                   </DropdownMenuItem>
                 )}
+                */}
+                {/* Comment out this section
                 {isLocalMode() && <DropdownMenuItem asChild>
                   <Link href="/settings/env-manager">
                     <KeyRound className="h-4 w-4" />
                     Local .Env Manager
                   </Link>
                 </DropdownMenuItem>}
+                */}
                 {/* <DropdownMenuItem asChild>
                   <Link href="/settings">
                     <Settings className="mr-2 h-4 w-4" />
