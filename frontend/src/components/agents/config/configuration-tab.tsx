@@ -142,7 +142,8 @@ export function ConfigurationTab({
           <div className="space-y-3">
             {!isSunaAgent && (
               <>
-                <div className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:border-primary/10" data-tour="model-section">
+                {/* Model Configuration section - Hidden from frontend */}
+                {/* <div className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:border-primary/10" data-tour="model-section">
                   <button
                     className="w-full p-4 text-left group-hover:bg-muted/30 transition-all duration-300"
                     onClick={() => setOpenAccordion(openAccordion === 'model' ? '' : 'model')}
@@ -178,7 +179,7 @@ export function ConfigurationTab({
                       </div>
                     </div>
                   )}
-                </div>
+                </div> */}
                 <div className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:border-primary/10" data-tour="system-prompt">
                   <button
                     className="w-full p-4 text-left group-hover:bg-muted/30 transition-all duration-300"

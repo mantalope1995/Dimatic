@@ -238,8 +238,8 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = ({
 
                     {onAgentSelect && <DropdownMenuSeparator className="!mt-0" />}
 
-                    {/* Models */}
-                    <div className="px-1.5">
+                    {/* Models - Hidden from frontend */}
+                    {/* <div className="px-1.5">
                         <div className="px-3 py-1 text-[11px] font-medium text-muted-foreground">Models</div>
                         <AgentModelSelector
                             value={selectedModel}
@@ -247,7 +247,7 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = ({
                             disabled={false}
                             variant="menu-item"
                         />
-                    </div>
+                    </div> */}
 
                     <DropdownMenuSeparator />
 
