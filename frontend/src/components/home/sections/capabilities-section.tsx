@@ -77,7 +77,7 @@ export function CapabilitiesSection() {
               What Can Dimatic Do For You?
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              From stock reconciliation to profitability analysis, Dimatic automates the manual inventory work that's stealing your time—so you can focus on growing your business.
+              From stock reconciliation to profitability analysis, Dimatic automates the manual inventory work that's stealing your time, so you can focus on growing your business.
             </p>
           </SectionHeader>
 

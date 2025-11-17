@@ -370,7 +370,7 @@ export function HeroSection() {
               />
             </h1>
             <p className="text-base md:text-lg text-center text-muted-foreground font-medium text-balance leading-relaxed tracking-tight max-w-2xl px-2">
-            Deploy digital assistants to help run your business.
+            Recover hours, slash dead stock, and unlock your trapped cash flow.
             </p>
           </div>
 

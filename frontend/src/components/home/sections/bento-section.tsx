@@ -9,23 +9,23 @@ export function BentoSection() {
     {
       id: 1,
       content: <FirstBentoAnimation />,
-      title: 'Describe your needs',
+      title: 'Say What You Need',
       description:
-        'Tell Suna what you need and customize your digital assistant for your use cases.',
+        'Need daily low-stock alerts? A report on dead stock that is trapping your cash? Or to automatically reconcile sales logs? Just ask your digital assistant in plain English.',
     },
     {
       id: 2,
       content: <SecondBentoAnimation />,
-      title: 'Connect 100s of tools',
+      title: 'Connect Your Existing Sheets',
       description:
-        'Connect to your favorite tools and services with our extensive library of integrations.',
+        'This is not a disruptive, complex system. Securely connect the Google Sheets or Excel files you already use to run your business. Dimatic works with your spreadsheets and can link to your other tools for a complete, accurate picture.',
     },
     {
       id: 3,
       content: <ThirdBentoAnimation />,
-      title: 'Deploy and personalize',
+      title: 'Reclaim Your Time',
       description:
-        'Watch your digital assistant handle complex tasks.',
+        'Watch your assistant handle the repetitive, manual data entry. Stop wasting weekends on reconciliation and start making decisions based on real-time data, not "gut feel"',
     },
   ];
 
@@ -38,10 +38,10 @@ export function BentoSection() {
         <div className="max-w-6xl mx-auto border-l border-r border-border">
           <SectionHeader>
             <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance pb-1">
-              Create a digital assistant in 3 Simple Steps
+              Stop Fighting Spreadsheets. Get Your Time Back.
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              Customise powerful digital assistants to work on your tailored use cases.
+              Stop guessing and start knowing. Turn your existing spreadsheets into a smart assistant that does the repetitive administrative work for you.
             </p>
           </SectionHeader>
 
