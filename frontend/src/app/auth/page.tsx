@@ -290,7 +290,7 @@ function LoginContent() {
                   {isSignUp ? 'Create your account' : 'Log into your account'}
                 </h1>
               </div>
-            <div className="space-y-3 mb-4">
+            {/* <div className="space-y-3 mb-4">
               <GoogleSignIn returnUrl={returnUrl || undefined} />
               <GitHubSignIn returnUrl={returnUrl || undefined} />
             </div>
@@ -303,7 +303,7 @@ function LoginContent() {
                   or email
                 </span>
               </div>
-            </div>
+            </div> */}
             <form className="space-y-3">
               <Input
                 id="email"
@@ -360,20 +360,20 @@ function LoginContent() {
                 </button>
               )}
               
-              <div>
+              {/* <div>
                 <Link
-                  href={isSignUp 
+                  href={isSignUp
                     ? `/auth${returnUrl ? `?returnUrl=${returnUrl}` : ''}`
                     : `/auth?mode=signup${returnUrl ? `&returnUrl=${returnUrl}` : ''}`
                   }
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {isSignUp 
-                    ? 'Already have an account? Sign in' 
+                  {isSignUp
+                    ? 'Already have an account? Sign in'
                     : "Don't have an account? Sign up"
                   }
                 </Link>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
