@@ -1,8 +1,8 @@
 from typing import Dict, List, Optional, Set
 from .ai_models import Model, ModelProvider, ModelCapability, ModelPricing
 
-DEFAULT_FREE_MODEL = "GLM-4.6"
-DEFAULT_PREMIUM_MODEL = "GLM-4.6"
+DEFAULT_FREE_MODEL = "Minimax"
+DEFAULT_PREMIUM_MODEL = "Minimax"
 
 class ModelRegistry:
     def __init__(self):
@@ -12,10 +12,10 @@ class ModelRegistry:
     
     def _initialize_models(self):
         self.register(Model(
-            id="anthropic/claude-sonnet-4-20250514",
-            name="Claude Sonnet 4",
+            id="anthropic/Minimax",
+            name="Minimax",
             provider=ModelProvider.ANTHROPIC,
-            aliases=["claude-sonnet-4", "anthropic/claude-sonnet-4", "Claude Sonnet 4", "claude-sonnet-4-20250514"],
+            aliases=["Minimax", "anthropic/Minimax", "Minimax", "Minimax"],
             context_window=200_000,
             capabilities=[
                 ModelCapability.CHAT,
@@ -174,10 +174,10 @@ class ModelRegistry:
         ))
         
         self.register(Model(
-            id="openai-compatible/glm-4.6",
-            name="GLM-4.6",
+            id="openai-compatible/Minimax",
+            name="Minimax",
             provider=ModelProvider.Z_AI,
-            aliases=["glm-4.6", "GLM-4.6", "z-ai/glm-4.6", "openai-compatible/glm-4.6"],
+            aliases=["Minimax", "Minimax", "z-ai/Minimax", "openai-compatible/Minimax"],
             context_window=128_000,
             max_output_tokens=96_000,
             capabilities=[

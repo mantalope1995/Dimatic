@@ -819,7 +819,7 @@ async def run_agent(
     trace: Optional[StatefulTraceClient] = None
 ):
     effective_model = model_name
-    is_tier_default = model_name in ["Kimi K2", "Claude Sonnet 4", "openai/gpt-5-mini"]
+    is_tier_default = model_name in ["Kimi K2", "Minimax", "openai/gpt-5-mini"]
     
     if is_tier_default and agent_config and agent_config.get('model'):
         effective_model = agent_config['model']

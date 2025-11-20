@@ -545,7 +545,7 @@ export const startAgent = async (
     console.log(`[API] Starting agent for thread ${threadId}`);
 
     const defaultOptions = {
-      model_name: 'glm-4.6',
+      model_name: 'Minimax',
       enable_thinking: true
       reasoning_effort: 'low',
       stream: true,

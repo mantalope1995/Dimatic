@@ -268,7 +268,7 @@ class Configuration:
     
     # Z AI API credentials
     Z_AI_API_KEY: Optional[str] = None
-    Z_AI_API_BASE: str = "https://api.z.ai/api/coding/paas/v4"
+    Z_AI_API_BASE: str = "https://api.minimax.io/anthropic"
     OR_SITE_URL: Optional[str] = "https://kortix.ai"
     OR_APP_NAME: Optional[str] = "Kortix AI"    
     

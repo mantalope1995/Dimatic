@@ -7,8 +7,8 @@ import { useAvailableModels } from '@/hooks/react-query/subscriptions/use-model'
 
 export const STORAGE_KEY_MODEL = 'suna-preferred-model-v3';
 export const STORAGE_KEY_CUSTOM_MODELS = 'customModels';
-export const DEFAULT_PREMIUM_MODEL_ID = 'glm-4.6';
-export const DEFAULT_FREE_MODEL_ID = 'glm-4.6';
+export const DEFAULT_PREMIUM_MODEL_ID = 'Minimax';
+export const DEFAULT_FREE_MODEL_ID = 'Minimax';
 
 export const testLocalStorage = (): boolean => {
   if (typeof window === 'undefined') return false;
@@ -43,7 +43,7 @@ export interface CustomModel {
 }
 
 export const MODELS = {
-  'claude-sonnet-4': { 
+  'Minimax': { 
     tier: 'none',
     priority: 100, 
     recommended: true,
@@ -86,13 +86,13 @@ export const MODELS = {
     recommended: true,
     lowQuality: false
   },
-  'glm-4.6': { 
+  'Minimax': { 
     tier: 'none', 
     priority: 98,
     recommended: true,
     lowQuality: false
   },
-  'openai-compatible/glm-4.6': { 
+  'openai-compatible/Minimax': { 
     tier: 'none', 
     priority: 97,
     recommended: false,
@@ -217,7 +217,7 @@ export const useModelSelectionOld = () => {
         },
         { 
           id: DEFAULT_PREMIUM_MODEL_ID, 
-          label: 'Claude Sonnet 4', 
+          label: 'Minimax', 
           requiresSubscription: true, 
           priority: 100,
           recommended: true
@@ -350,7 +350,7 @@ export const useModelSelectionOld = () => {
       // Fallback to default model
       const defaultModel = subscriptionStatus === 'active' ? DEFAULT_PREMIUM_MODEL_ID : DEFAULT_FREE_MODEL_ID;
       console.log('🔧 useModelSelection: Using default model:', defaultModel);
-      console.log('🔧 useModelSelection: Subscription status:', subscriptionStatus, '-> Default:', subscriptionStatus === 'active' ? 'PREMIUM (Claude Sonnet 4)' : 'FREE (KIMi K2)');
+      console.log('🔧 useModelSelection: Subscription status:', subscriptionStatus, '-> Default:', subscriptionStatus === 'active' ? 'PREMIUM (Minimax)' : 'FREE (KIMi K2)');
       setSelectedModel(defaultModel);
       saveModelPreference(defaultModel);
       setHasInitialized(true);
@@ -359,7 +359,7 @@ export const useModelSelectionOld = () => {
       console.warn('❌ useModelSelection: Failed to load preferences from localStorage:', error);
       const defaultModel = subscriptionStatus === 'active' ? DEFAULT_PREMIUM_MODEL_ID : DEFAULT_FREE_MODEL_ID;
       console.log('🔧 useModelSelection: Using fallback default model:', defaultModel);
-      console.log('🔧 useModelSelection: Subscription status:', subscriptionStatus, '-> Fallback:', subscriptionStatus === 'active' ? 'PREMIUM (Claude Sonnet 4)' : 'FREE (KIMi K2)');
+      console.log('🔧 useModelSelection: Subscription status:', subscriptionStatus, '-> Fallback:', subscriptionStatus === 'active' ? 'PREMIUM (Minimax)' : 'FREE (KIMi K2)');
       setSelectedModel(defaultModel);
       saveModelPreference(defaultModel);
       setHasInitialized(true);
@@ -417,7 +417,7 @@ export const useModelSelectionOld = () => {
       if (!isAccessible) {
         console.warn('⚠️ useModelSelection: Current model no longer accessible, switching to default');
         const defaultModel = subscriptionStatus === 'active' ? DEFAULT_PREMIUM_MODEL_ID : DEFAULT_FREE_MODEL_ID;
-        console.log('🔧 useModelSelection: Subscription-based default switch:', subscriptionStatus === 'active' ? 'PREMIUM (Claude Sonnet 4)' : 'FREE (KIMi K2)');
+        console.log('🔧 useModelSelection: Subscription-based default switch:', subscriptionStatus === 'active' ? 'PREMIUM (Minimax)' : 'FREE (KIMi K2)');
         setSelectedModel(defaultModel);
         saveModelPreference(defaultModel);
       } else {
@@ -504,7 +504,7 @@ export const useModelSelectionOld = () => {
       console.log('  isLoadingModels:', isLoadingModels);
       console.log('  localStorage value:', localStorage.getItem(STORAGE_KEY_MODEL));
       console.log('  localStorage test passes:', testLocalStorage());
-      console.log('  defaultModel would be:', subscriptionStatus === 'active' ? `${DEFAULT_PREMIUM_MODEL_ID} (Claude Sonnet 4)` : `${DEFAULT_FREE_MODEL_ID} (KIMi K2)`);
+      console.log('  defaultModel would be:', subscriptionStatus === 'active' ? `${DEFAULT_PREMIUM_MODEL_ID} (Minimax)` : `${DEFAULT_FREE_MODEL_ID} (KIMi K2)`);
       console.log('  availableModels:', availableModels.map(m => ({ id: m.id, requiresSubscription: m.requiresSubscription })));
     }
   };

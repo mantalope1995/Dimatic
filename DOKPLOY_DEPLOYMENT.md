@@ -98,9 +98,9 @@ OPENROUTER_API_KEY=your-openrouter-key
 # X.AI
 XAI_API_KEY=your-xai-key
 
-# Z AI (for GLM-4.6)
+# Z AI (for Minimax)
 Z_AI_API_KEY=your-z-ai-key
-Z_AI_API_BASE=https://api.z.ai/api/coding/paas/v4
+Z_AI_API_BASE=https://api.minimax.io/anthropic
 ```
 
 #### Optional Variables

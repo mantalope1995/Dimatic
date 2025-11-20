@@ -39,8 +39,8 @@ interface ModelStore {
   resetToDefault: (subscriptionStatus: SubscriptionStatus) => void;
 }
 
-const DEFAULT_FREE_MODEL_ID = 'glm-4.6';
-const DEFAULT_PREMIUM_MODEL_ID = 'glm-4.6';
+const DEFAULT_FREE_MODEL_ID = 'Minimax';
+const DEFAULT_PREMIUM_MODEL_ID = 'Minimax';
 
 export const useModelStore = create<ModelStore>()(
   persist(

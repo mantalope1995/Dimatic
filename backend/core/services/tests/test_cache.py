@@ -176,9 +176,9 @@ class TestLLMCaching:
     @pytest.mark.unit
     def test_model_name_resolution(self):
         test_cases = [
-            ("Claude Sonnet 4", "anthropic/claude-sonnet-4-20250514"),
-            ("claude-sonnet-4", "anthropic/claude-sonnet-4-20250514"),
-            ("anthropic/claude-sonnet-4-20250514", "anthropic/claude-sonnet-4-20250514"),
+            ("Minimax", "anthropic/Minimax"),
+            ("Minimax", "anthropic/Minimax"),
+            ("anthropic/Minimax", "anthropic/Minimax"),
             ("gpt-4", "gpt-4"),
             ("unknown-model", "unknown-model"),
         ]
@@ -194,7 +194,7 @@ class TestLLMCaching:
     def test_cache_control_with_model_aliases(self, long_context):
         test_message = {"role": "system", "content": long_context}
         
-        aliases = ["Claude Sonnet 4", "claude-sonnet-4", "anthropic/claude-sonnet-4-20250514"]
+        aliases = ["Minimax", "Minimax", "anthropic/Minimax"]
         
         for alias in aliases:
             formatted = format_message_with_cache(test_message, alias)
