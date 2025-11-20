@@ -8,7 +8,7 @@ import { PricingTierCard } from './PricingTierCard';
 import { CreditPurchaseModal } from './CreditPurchaseModal';
 import { PRICING_TIERS, getDisplayPrice, type PricingTier, type BillingPeriod } from '@/lib/billing';
 import { useSubscription, useSubscriptionCommitment, billingKeys } from '@/lib/billing';
-import { billingApi, type CreateCheckoutSessionRequest } from '@/lib/billing/api';
+import { startUnifiedPlanCheckout } from '@/lib/billing/unified-checkout';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthContext } from '@/contexts';
 import { useLanguage } from '@/contexts';
@@ -25,6 +25,7 @@ import BasicSvg from '@/assets/brand/tiers/basic.svg';
 import PlusSvg from '@/assets/brand/tiers/plus.svg';
 import ProSvg from '@/assets/brand/tiers/pro.svg';
 import UltraSvg from '@/assets/brand/tiers/ultra.svg';
+import { colorScheme, useColorScheme } from 'nativewind';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const AnimatedView = Animated.createAnimatedComponent(View);
@@ -152,7 +153,6 @@ export function PricingSection({
 
   const handleSubscribe = async (tierKey: string, isDowngrade = false) => {
     if (!isAuthenticated) {
-      // Mobile: Navigate to auth
       return;
     }
 
@@ -164,30 +164,17 @@ export function PricingSection({
       handlePlanSelect(tierKey);
       const commitmentType = billingPeriod === 'yearly_commitment' ? 'yearly_commitment' : 'monthly';
 
-      const request: CreateCheckoutSessionRequest = {
-        tier_key: tierKey,
-        success_url: returnUrl || 'https://kortix.com',
-        cancel_url: returnUrl || 'https://kortix.com',
-        commitment_type: commitmentType,
-      };
-
-      const response = await billingApi.createCheckoutSession(request);
-
-      // Handle response status (matching frontend logic)
-      if (response.checkout_url || response.url || response.fe_checkout_url) {
-        const checkoutUrl = response.checkout_url || response.url || response.fe_checkout_url;
-        if (checkoutUrl) {
-          await Linking.openURL(checkoutUrl);
+      await startUnifiedPlanCheckout(
+        tierKey,
+        commitmentType,
+        () => {
+          handleSubscriptionUpdate();
+          setPlanLoadingStates((prev) => ({ ...prev, [tierKey]: false }));
+        },
+        () => {
+          setPlanLoadingStates((prev) => ({ ...prev, [tierKey]: false }));
         }
-      } else if (response.status === 'upgraded' || response.status === 'updated') {
-        // Immediate upgrade
-        handleSubscriptionUpdate();
-      } else if (response.status === 'downgrade_scheduled' || response.status === 'scheduled') {
-        // Downgrade scheduled
-        handleSubscriptionUpdate();
-      }
-
-      setPlanLoadingStates((prev) => ({ ...prev, [tierKey]: false }));
+      );
     } catch (error) {
       console.error('❌ Error processing subscription:', error);
       setPlanLoadingStates((prev) => ({ ...prev, [tierKey]: false }));
@@ -250,32 +237,35 @@ export function PricingSection({
   const isCurrentPlan = selectedTierId === currentSubscription?.tier_key && 
     currentSubscription?.subscription?.status === 'active';
 
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
   const isSameTierDifferentPeriod = currentSubscription?.tier_key === selectedTierId && 
     currentBillingPeriod !== billingPeriod && 
     currentBillingPeriod !== null;
 
   const getMainButtonText = (): string => {
     if (!isAuthenticated) {
-      return 'Get Started';
+      return t('billing.getStarted');
     }
     
     if (isCurrentPlan && !isSameTierDifferentPeriod) {
-      return 'Current Plan';
+      return t('billing.currentPlan');
     }
     
     if (isSameTierDifferentPeriod) {
-      return billingPeriod === 'yearly_commitment' ? 'Upgrade' : 'Switch Plan';
+      return billingPeriod === 'yearly_commitment' ? t('billing.upgrade') : t('billing.switchPlan');
     }
     
     if (isUpgrade) {
-      return 'Upgrade Now';
+      return t('billing.upgradeNow');
     }
     
     if (isDowngrade) {
-      return 'Downgrade';
+      return t('billing.downgrade');
     }
     
-    return 'Select Plan';
+    return t('billing.selectPlan');
   };
 
   const handleMainButtonPress = async () => {
@@ -315,7 +305,7 @@ export function PricingSection({
           style={{ paddingTop: insets.top + 16 }}
         >
           <View>
-            <KortixLogo variant="logomark" size={72} />
+            <KortixLogo variant="logomark" size={72} color={isDark ? 'dark' : 'light'} />
           </View>
           <AnimatedPressable
             onPress={() => {
@@ -349,7 +339,7 @@ export function PricingSection({
           className="px-6 mb-4 flex flex-col items-center"
         >
           <Text className="text-2xl font-roobert-semibold text-foreground mb-4">
-            Pick a plan that works for you
+            {customTitle || t('billing.choosePlan')}
           </Text>
           <View className="flex-row items-center gap-1.5">
             <AnimatedPressable
@@ -370,7 +360,7 @@ export function PricingSection({
                     : 'text-muted-foreground'
                 }`}
               >
-                Monthly
+                {t('billing.monthly')}
               </Text>
             </AnimatedPressable>
             
@@ -392,11 +382,11 @@ export function PricingSection({
                     : 'text-muted-foreground'
                 }`}
               >
-                Yearly
+                {t('billing.yearlyCommitment')}
               </Text>
               <View className="bg-primary/20 px-1.5 py-0.5 rounded-full">
                 <Text className="text-[10px] font-roobert-semibold text-primary">
-                  15%
+                  {t('billing.save15Percent')}
                 </Text>
               </View>
             </AnimatedPressable>
@@ -427,7 +417,7 @@ export function PricingSection({
               </View>
               <View className="flex-1">
                 <Text className="text-[15px] text-muted-foreground font-roobert leading-snug">
-                  Select a plan to see features
+                  {t('billing.selectPlan')}
                 </Text>
               </View>
             </View>
@@ -474,12 +464,12 @@ export function PricingSection({
                 <View className="flex-1">
                   <View className="flex-row items-center gap-2 mb-1">
                     <Text className="text-base font-roobert-semibold text-foreground">
-                      {tier.displayName}
+                      {tier?.displayName || tier?.name || 'Plan'}
                     </Text>
                     {tier.isPopular && (
                       <View className="bg-primary rounded-full px-2 py-0.5">
                         <Text className="text-[10px] font-roobert-semibold text-primary-foreground uppercase tracking-wide">
-                          Popular
+                          {t('billing.mostPopular')}
                         </Text>
                       </View>
                     )}
@@ -487,7 +477,7 @@ export function PricingSection({
                 </View>
 
                 <Text className="text-lg font-roobert-semibold text-foreground">
-                  {displayPrice}/mo
+                  {displayPrice}{t('billing.perMonth')}
                 </Text>
               </AnimatedPressable>
             );
@@ -515,7 +505,7 @@ export function PricingSection({
               >
                 <Icon as={ShoppingCart} size={20} className="text-foreground" strokeWidth={2.5} />
                 <Text className="text-base font-roobert-medium text-foreground">
-                  Get Additional Credits
+                  {t('billing.addCredits')}
                 </Text>
               </AnimatedPressable>
             </AnimatedView>

@@ -29,13 +29,13 @@ export const HomePage = React.forwardRef<HomePageRef, HomePageProps>(({
   onOpenAuthDrawer,
 }, ref) => {
   const { agentManager, audioRecorder, audioHandlers, isTranscribing } = useChatCommons(chat);
-  
+
   const { isOpen: isPricingModalOpen, alertTitle, creditsExhausted, closePricingModal } = usePricingModalStore();
   const [isUsageDrawerOpen, setIsUsageDrawerOpen] = React.useState(false);
   const [isCreditsPurchaseOpen, setIsCreditsPurchaseOpen] = React.useState(false);
-  
+
   const chatInputRef = React.useRef<ChatInputSectionRef>(null);
-  
+
   React.useImperativeHandle(ref, () => ({
     focusChatInput: () => {
       console.log('🎯 Focusing chat input from HomePage');
@@ -83,42 +83,25 @@ export const HomePage = React.forwardRef<HomePageRef, HomePageProps>(({
 
   return (
     <View className="flex-1 bg-background">
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
         keyboardVerticalOffset={0}
         enabled={false}
       >
-        <Pressable 
-          className="flex-1" 
+        <Pressable
+          className="flex-1"
           onPress={Keyboard.dismiss}
           accessible={false}
         >
           <View className="flex-1 relative">
-            <TopNav 
-              onMenuPress={onMenuPress} 
+            <TopNav
+              onMenuPress={onMenuPress}
               onUpgradePress={handleUpgradePress}
               onCreditsPress={handleCreditsPress}
             />
             <View className="absolute inset-0" pointerEvents="none">
               <BackgroundLogo />
-            </View>
-            <View className="absolute bottom-40 left-0 right-0 pb-2 z-10" pointerEvents="box-none">
-              <QuickActionBar 
-                onActionPress={chat.handleQuickAction}
-                selectedActionId={chat.selectedQuickAction}
-                selectedOptionId={chat.selectedQuickActionOption}
-                onSelectOption={(optionId) => {
-                  console.log('🎯 Option selected:', optionId);
-                  chat.setSelectedQuickActionOption(optionId);
-                }}
-                onSelectPrompt={(prompt) => {
-                  console.log('📝 Loading prompt into input:', prompt);
-                  chat.setInputValue(prompt);
-                  // Also focus the input so the user can immediately edit or send
-                  chatInputRef.current?.focusInput();
-                }}
-              />
             </View>
             <ChatInputSection
               ref={chatInputRef}
@@ -144,6 +127,16 @@ export const HomePage = React.forwardRef<HomePageRef, HomePageProps>(({
               selectedQuickAction={chat.selectedQuickAction}
               selectedQuickActionOption={chat.selectedQuickActionOption}
               onClearQuickAction={chat.clearQuickAction}
+              onQuickActionPress={chat.handleQuickAction}
+              onQuickActionSelectOption={(optionId) => {
+                console.log('🎯 Option selected:', optionId);
+                chat.setSelectedQuickActionOption(optionId);
+              }}
+              onQuickActionSelectPrompt={(prompt) => {
+                console.log('📝 Loading prompt into input:', prompt);
+                chat.setInputValue(prompt);
+                chatInputRef.current?.focusInput();
+              }}
               isAuthenticated={isAuthenticated}
               onOpenAuthDrawer={onOpenAuthDrawer}
               isAgentRunning={chat.isAgentRunning}

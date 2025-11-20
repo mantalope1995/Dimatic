@@ -37,25 +37,23 @@ export function QuickActionBar({
 
   if (selectedActionId && selectedAction) {
     return (
-      <View className="mb-2 py-2">
-        <QuickActionExpandedView
-          actionId={selectedActionId}
-          actionLabel={selectedAction.label}
-          onBack={() => onActionPress?.(selectedActionId)}
-          onSelectOption={(optionId) => onSelectOption?.(optionId)}
-          selectedOptionId={selectedOptionId}
-          onSelectPrompt={onSelectPrompt}
-        />
-      </View>
+      <QuickActionExpandedView
+        actionId={selectedActionId}
+        actionLabel={selectedAction.label}
+        onBack={() => onActionPress?.(selectedActionId)}
+        onSelectOption={(optionId) => onSelectOption?.(optionId)}
+        selectedOptionId={selectedOptionId}
+        onSelectPrompt={onSelectPrompt}
+      />
     );
   }
 
   return (
-    <View className="mb-4 py-2">
+    <View className="">
       <ScrollView 
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+        contentContainerStyle={{ paddingHorizontal: 12, gap: 8 }}
         className="flex-row"
       >
         {enhancedActions.map((action) => (

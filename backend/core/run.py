@@ -63,6 +63,9 @@ class ToolManager:
         """
         disabled_tools = disabled_tools or []
         
+        # Migrate tool config ONCE at the start to avoid repeated expensive operations
+        self.migrated_tools = self._get_migrated_tools_config()
+        
         # Core tools - always enabled
         self._register_core_tools()
         
@@ -249,21 +252,28 @@ class ToolManager:
             if enabled_methods:
                 logger.debug(f"✅ Registered browser_tool with methods: {enabled_methods}")
     
-    def _get_enabled_methods_for_tool(self, tool_name: str) -> Optional[List[str]]:
+    def _get_migrated_tools_config(self) -> dict:
+        """Migrate tool config once and cache it. This is expensive so we only do it once."""
         if not self.agent_config or 'agentpress_tools' not in self.agent_config:
-            return None
+            return {}
         
-        from core.utils.tool_discovery import get_enabled_methods_for_tool
         from core.utils.tool_migration import migrate_legacy_tool_config
         
         raw_tools = self.agent_config['agentpress_tools']
         
         if not isinstance(raw_tools, dict):
+            return {}
+        
+        return migrate_legacy_tool_config(raw_tools)
+    
+    def _get_enabled_methods_for_tool(self, tool_name: str) -> Optional[List[str]]:
+        """Get enabled methods for a tool using the pre-migrated config."""
+        if not hasattr(self, 'migrated_tools') or not self.migrated_tools:
             return None
         
-        migrated_tools = migrate_legacy_tool_config(raw_tools)
+        from core.utils.tool_discovery import get_enabled_methods_for_tool
         
-        return get_enabled_methods_for_tool(tool_name, migrated_tools)
+        return get_enabled_methods_for_tool(tool_name, self.migrated_tools)
 
 class MCPManager:
     def __init__(self, thread_manager: ThreadManager, account_id: str):
@@ -337,7 +347,8 @@ class PromptManager:
                                   mcp_wrapper_instance: Optional[MCPToolWrapper],
                                   client=None,
                                   tool_registry=None,
-                                  xml_tool_calling: bool = True) -> dict:
+                                  xml_tool_calling: bool = True,
+                                  user_id: Optional[str] = None) -> dict:
         
         default_system_content = get_system_prompt()
         
@@ -494,6 +505,17 @@ When using the tools:
         
         system_content += datetime_info
 
+        # Add user locale context if user_id is provided
+        if user_id and client:
+            try:
+                from core.utils.user_locale import get_user_locale, get_locale_context_prompt
+                locale = await get_user_locale(user_id, client)
+                locale_prompt = get_locale_context_prompt(locale)
+                system_content += f"\n\n{locale_prompt}\n"
+                logger.debug(f"Added locale context ({locale}) to system prompt for user {user_id}")
+            except Exception as e:
+                logger.warning(f"Failed to add locale context to system prompt: {e}")
+
         system_message = {"role": "system", "content": system_content}
         return system_message
 
@@ -542,6 +564,9 @@ class AgentRunner:
         
         disabled_tools = self._get_disabled_tools_from_config()
         
+        # Cache migrated tools config once for use in AgentRun methods
+        self.migrated_tools = self._get_migrated_tools_config()
+        
         tool_manager.register_all_tools(agent_id=agent_id, disabled_tools=disabled_tools)
         
         is_suna_agent = (self.config.agent_config and self.config.agent_config.get('is_suna_default', False)) or (self.config.agent_config is None)
@@ -553,21 +578,28 @@ class AgentRunner:
         else:
             logger.debug("Not a Suna agent, skipping Suna-specific tool registration")
     
-    def _get_enabled_methods_for_tool(self, tool_name: str) -> Optional[List[str]]:
+    def _get_migrated_tools_config(self) -> dict:
+        """Migrate tool config once and cache it. This is expensive so we only do it once."""
         if not self.config.agent_config or 'agentpress_tools' not in self.config.agent_config:
-            return None
+            return {}
         
-        from core.utils.tool_discovery import get_enabled_methods_for_tool
         from core.utils.tool_migration import migrate_legacy_tool_config
         
         raw_tools = self.config.agent_config['agentpress_tools']
         
         if not isinstance(raw_tools, dict):
+            return {}
+        
+        return migrate_legacy_tool_config(raw_tools)
+    
+    def _get_enabled_methods_for_tool(self, tool_name: str) -> Optional[List[str]]:
+        """Get enabled methods for a tool using the pre-migrated config."""
+        if not hasattr(self, 'migrated_tools') or not self.migrated_tools:
             return None
         
-        migrated_tools = migrate_legacy_tool_config(raw_tools)
+        from core.utils.tool_discovery import get_enabled_methods_for_tool
         
-        return get_enabled_methods_for_tool(tool_name, migrated_tools)
+        return get_enabled_methods_for_tool(tool_name, self.migrated_tools)
     
     def _register_suna_specific_tools(self, disabled_tools: List[str]):
         if 'agent_creation_tool' not in disabled_tools:
@@ -650,7 +682,8 @@ class AgentRunner:
             self.config.thread_id, 
             mcp_wrapper_instance, self.client,
             tool_registry=self.thread_manager.tool_registry,
-            xml_tool_calling=True
+            xml_tool_calling=True,
+            user_id=self.account_id
         )
         logger.info(f"📝 System message built once: {len(str(system_message.get('content', '')))} chars")
         logger.debug(f"model_name received: {self.config.model_name}")
@@ -806,7 +839,7 @@ class AgentRunner:
                             generation.end(status_message="error_detected", level="ERROR")
                         break
                         
-                    if agent_should_terminate or last_tool_call in ['ask', 'complete', 'present_presentation']:
+                    if agent_should_terminate or last_tool_call in ['ask', 'complete']:
                         if generation:
                             generation.end(status_message="agent_stopped")
                         continue_execution = False

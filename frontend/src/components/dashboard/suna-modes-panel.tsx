@@ -26,6 +26,8 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getPdfUrl } from '@/components/thread/tool-views/utils/presentation-utils';
+import { useTranslations } from 'next-intl';
+import { PromptExamples } from '@/components/shared/prompt-examples';
 
 interface SunaModesPanelProps {
   selectedMode: string | null;
@@ -1105,8 +1107,37 @@ export function SunaModesPanel({
   selectedTemplate: controlledSelectedTemplate,
   onTemplateChange
 }: SunaModesPanelProps) {
+  const t = useTranslations('suna');
   const currentMode = selectedMode ? modes.find((m) => m.id === selectedMode) : null;
   const promptCount = isMobile ? 2 : 4;
+  
+  // Get translated prompts for a mode
+  const getTranslatedPrompts = (modeId: string): string[] => {
+    const prompts: string[] = [];
+    let index = 0;
+    const maxPrompts = 20; // Safety limit
+    
+    while (index < maxPrompts) {
+      try {
+        const key = `prompts.${modeId}.${index}`;
+        const prompt = t(key);
+        // Check if translation exists (next-intl returns the key if missing)
+        if (!prompt || prompt === `suna.${key}` || prompt.startsWith('suna.prompts.')) {
+          break;
+        }
+        prompts.push(prompt);
+        index++;
+      } catch {
+        break;
+      }
+    }
+    
+    // Fallback to hardcoded prompts if no translations found
+    if (prompts.length === 0 && currentMode) {
+      return currentMode.samplePrompts;
+    }
+    return prompts;
+  };
   
   // State to track current random selection of prompts
   const [randomizedPrompts, setRandomizedPrompts] = useState<string[]>([]);
@@ -1135,10 +1166,11 @@ export function SunaModesPanel({
 
   // Randomize prompts when mode changes or on mount
   useEffect(() => {
-    if (currentMode) {
-      setRandomizedPrompts(getRandomPrompts(currentMode.samplePrompts, promptCount));
+    if (selectedMode) {
+      const translatedPrompts = getTranslatedPrompts(selectedMode);
+      setRandomizedPrompts(getRandomPrompts(translatedPrompts, promptCount));
     }
-  }, [selectedMode, currentMode, promptCount]);
+  }, [selectedMode, promptCount, t]);
   
   // Reset selections when mode changes
   useEffect(() => {
@@ -1149,9 +1181,10 @@ export function SunaModesPanel({
 
   // Handler for refresh button
   const handleRefreshPrompts = () => {
-    if (currentMode) {
+    if (selectedMode) {
       setIsRefreshing(true);
-      setRandomizedPrompts(getRandomPrompts(currentMode.samplePrompts, promptCount));
+      const translatedPrompts = getTranslatedPrompts(selectedMode);
+      setRandomizedPrompts(getRandomPrompts(translatedPrompts, promptCount));
       setTimeout(() => setIsRefreshing(false), 300);
     }
   };
@@ -1229,9 +1262,9 @@ export function SunaModesPanel({
 
       {/* Sample Prompts - Google List Style (for research, people) */}
       {selectedMode && displayedPrompts && ['research', 'people'].includes(selectedMode) && (
-        <div className="space-y-2 animate-in fade-in-0 zoom-in-95 duration-300">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sample prompts</h3>
+        <div className="animate-in fade-in-0 zoom-in-95 duration-300">
+          <div className="flex items-center justify-between px-1 mb-2">
+            <span></span>
             <Button
               variant="ghost"
               size="sm"
@@ -1246,37 +1279,21 @@ export function SunaModesPanel({
               </motion.div>
             </Button>
           </div>
-          <div className="space-y-1">
-            {displayedPrompts.map((prompt, index) => (
-              <motion.div
-                key={`${prompt}-${index}`}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{
-                  duration: 0.2,
-                  delay: index * 0.03,
-                  ease: "easeOut"
-                }}
-                className="group cursor-pointer rounded-lg hover:bg-accent/50 transition-colors duration-150"
-                onClick={() => handlePromptSelect(prompt)}
-              >
-                <div className="flex items-center justify-between gap-3 px-3 py-2.5">
-                  <p className="text-sm text-foreground/70 group-hover:text-foreground transition-colors leading-relaxed flex-1">
-                    {prompt}
-                  </p>
-                  <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-foreground/60 shrink-0 transition-all duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <PromptExamples
+            prompts={displayedPrompts.map(p => ({ text: p }))}
+            onPromptClick={handlePromptSelect}
+            title={t('samplePrompts')}
+            variant="text"
+            showTitle={true}
+          />
         </div>
       )}
 
       {/* Sample Prompts - Card Grid Style (for image, slides, data, docs) */}
       {selectedMode && displayedPrompts && !['research', 'people'].includes(selectedMode) && (
-        <div className="space-y-3 animate-in fade-in-0 zoom-in-95 duration-300">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-muted-foreground">Sample prompts</h3>
+        <div className="animate-in fade-in-0 zoom-in-95 duration-300">
+          <div className="flex items-center justify-between mb-3">
+            <span></span>
             <Button
               variant="ghost"
               size="sm"
@@ -1291,30 +1308,14 @@ export function SunaModesPanel({
               </motion.div>
             </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {displayedPrompts.map((prompt, index) => (
-              <motion.div
-                key={`${prompt}-${index}`}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{
-                  duration: 0.3,
-                  delay: index * 0.05,
-                  ease: "easeOut"
-                }}
-              >
-                <Card
-                  className="p-4 cursor-pointer hover:bg-primary/5 transition-all duration-200 group border border-border rounded-xl"
-                  onClick={() => handlePromptSelect(prompt)}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm text-foreground/80 leading-relaxed">{prompt}</p>
-                    <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0 transition-colors duration-200" />
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+          <PromptExamples
+            prompts={displayedPrompts.map(p => ({ text: p }))}
+            onPromptClick={handlePromptSelect}
+            title={t('samplePrompts')}
+            variant="card"
+            columns={2}
+            showTitle={true}
+          />
         </div>
       )}
 
@@ -1322,7 +1323,10 @@ export function SunaModesPanel({
       {selectedMode && currentMode?.options && (
         <div className="space-y-3 animate-in fade-in-0 zoom-in-95 duration-300 delay-75">
           <h3 className="text-sm font-medium text-muted-foreground">
-            {currentMode.options.title}
+            {currentMode.options.title === 'Choose a style' ? t('chooseStyle') :
+             currentMode.options.title === 'Choose a template' ? t('chooseTemplate') :
+             currentMode.options.title === 'Choose output format' ? t('chooseOutputFormat') :
+             currentMode.options.title}
           </h3>
           
           {selectedMode === 'image' && (
@@ -1349,7 +1353,7 @@ export function SunaModesPanel({
                       )}
                     </div>
                     <span className="text-xs text-center text-foreground/70 group-hover:text-foreground transition-colors duration-200 font-medium">
-                      {item.name}
+                      {t(`styles.${item.id}`) || item.name}
                     </span>
                   </Card>
                 ))}
@@ -1404,11 +1408,11 @@ export function SunaModesPanel({
                     </div>
                     <div className="space-y-0.5">
                       <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors duration-200">
-                        {item.name}
+                        {t(`templates.${item.id}.name`) || item.name}
                       </p>
                       {item.description && (
                         <p className="text-xs text-muted-foreground line-clamp-1">
-                          {item.description}
+                          {t(`templates.${item.id}.description`) || item.description}
                         </p>
                       )}
                     </div>
@@ -1440,11 +1444,11 @@ export function SunaModesPanel({
                     </div>
                     <div className="space-y-0.5">
                       <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors duration-200">
-                        {item.name}
+                        {t(`templates.${item.id}.name`) || item.name}
                       </p>
                       {item.description && (
                         <p className="text-xs text-muted-foreground line-clamp-1">
-                          {item.description}
+                          {t(`templates.${item.id}.description`) || item.description}
                         </p>
                       )}
                     </div>
@@ -1507,11 +1511,11 @@ export function SunaModesPanel({
                             ? "text-primary" 
                             : "text-foreground/80 group-hover:text-primary"
                         )}>
-                          {item.name}
+                          {t(`outputFormats.${item.id}.name`) || item.name}
                         </p>
                         {item.description && (
                           <p className="text-xs text-muted-foreground">
-                            {item.description}
+                            {t(`outputFormats.${item.id}.description`) || item.description}
                           </p>
                         )}
                       </div>
@@ -1528,7 +1532,7 @@ export function SunaModesPanel({
       {selectedMode === 'data' && currentMode?.chartTypes && (
         <div className="space-y-3 animate-in fade-in-0 zoom-in-95 duration-300 delay-150">
           <h3 className="text-sm font-medium text-muted-foreground">
-            {currentMode.chartTypes.title}
+            {t('preferredCharts')}
           </h3>
           <ScrollArea className="w-full">
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 pb-2">
@@ -1584,7 +1588,7 @@ export function SunaModesPanel({
                           ? "text-primary" 
                           : "text-foreground/70 group-hover:text-foreground"
                       )}>
-                        {chart.name}
+                        {t(`charts.${chart.id}`) || chart.name}
                       </span>
                     </Card>
                   </motion.div>
