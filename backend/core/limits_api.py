@@ -61,5 +61,5 @@ async def get_limits(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching limits: {e}", exc_info=True)
+        logger.error("Error fetching limits", error_message=str(e))
         raise HTTPException(status_code=500, detail="Failed to fetch limits")
