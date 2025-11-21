@@ -681,7 +681,7 @@ class AgentCreationTool(Tool):
             })
             
         except Exception as e:
-            logger.error(f"Failed to configure agent integration: {e}", exc_info=True)
+            logger.error(f"Failed to configure agent integration: {e}", exc_info=False)
             return self.fail_response("Failed to configure integration")
 
     @openapi_schema({
@@ -785,7 +785,7 @@ class AgentCreationTool(Tool):
                 return self.fail_response("Failed to create trigger")
                 
         except Exception as e:
-            logger.error(f"Failed to create scheduled trigger: {e}", exc_info=True)
+            logger.error(f"Failed to create scheduled trigger: {e}", exc_info=False)
             return self.fail_response("Failed to create scheduled trigger")
     
     @openapi_schema({
@@ -855,7 +855,7 @@ class AgentCreationTool(Tool):
             })
                 
         except Exception as e:
-            logger.error(f"Failed to list scheduled triggers: {e}", exc_info=True)
+            logger.error(f"Failed to list scheduled triggers: {e}", exc_info=False)
             return self.fail_response("Failed to list scheduled triggers")
     
     @openapi_schema({
@@ -939,7 +939,7 @@ class AgentCreationTool(Tool):
                 return self.fail_response("Failed to update trigger")
                 
         except Exception as e:
-            logger.error(f"Failed to toggle scheduled trigger: {e}", exc_info=True)
+            logger.error(f"Failed to toggle scheduled trigger: {e}", exc_info=False)
             return self.fail_response("Failed to toggle scheduled trigger")
 
     @openapi_schema({
@@ -1002,7 +1002,7 @@ class AgentCreationTool(Tool):
                 return self.fail_response("Failed to delete trigger")
                 
         except Exception as e:
-            logger.error(f"Failed to delete scheduled trigger: {e}", exc_info=True)
+            logger.error(f"Failed to delete scheduled trigger: {e}", exc_info=False)
             return self.fail_response("Failed to delete scheduled trigger")
     
     @openapi_schema({
@@ -1214,7 +1214,7 @@ class AgentCreationTool(Tool):
             })
                 
         except Exception as e:
-            logger.error(f"Failed to update agent: {e}", exc_info=True)
+            logger.error(f"Failed to update agent: {e}", exc_info=False)
             return self.fail_response("Failed to update agent configuration")
     
     async def _sync_triggers_to_version_config(self, agent_id: str) -> None:

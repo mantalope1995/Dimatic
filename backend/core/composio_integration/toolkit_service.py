@@ -102,7 +102,7 @@ class ToolkitService:
             return categories
             
         except Exception as e:
-            logger.error(f"Failed to list categories: {e}", exc_info=True)
+            logger.error(f"Failed to list categories: {e}", exc_info=False)
             raise
     
     async def list_toolkits(self, limit: int = 500, cursor: Optional[str] = None, category: Optional[str] = None) -> Dict[str, Any]:
@@ -200,7 +200,7 @@ class ToolkitService:
             return result
             
         except Exception as e:
-            logger.error(f"Failed to list toolkits: {e}", exc_info=True)
+            logger.error(f"Failed to list toolkits: {e}", exc_info=False)
             raise
     
     async def get_toolkit_by_slug(self, slug: str) -> Optional[ToolkitInfo]:
@@ -212,7 +212,7 @@ class ToolkitService:
                     return toolkit
             return None
         except Exception as e:
-            logger.error(f"Failed to get toolkit {slug}: {e}", exc_info=True)
+            logger.error(f"Failed to get toolkit {slug}: {e}", exc_info=False)
             raise
     
     async def search_toolkits(self, query: str, category: Optional[str] = None, limit: int = 100, cursor: Optional[str] = None) -> Dict[str, Any]:
@@ -242,7 +242,7 @@ class ToolkitService:
             return result
             
         except Exception as e:
-            logger.error(f"Failed to search toolkits: {e}", exc_info=True)
+            logger.error(f"Failed to search toolkits: {e}", exc_info=False)
             raise
     
     async def get_toolkit_icon(self, toolkit_slug: str) -> Optional[str]:
@@ -412,7 +412,7 @@ class ToolkitService:
             return detailed_toolkit
             
         except Exception as e:
-            logger.error(f"Failed to get detailed toolkit info for {toolkit_slug}: {e}", exc_info=True)
+            logger.error(f"Failed to get detailed toolkit info for {toolkit_slug}: {e}", exc_info=False)
             return None
 
     async def get_toolkit_tools(self, toolkit_slug: str, limit: int = 50, cursor: Optional[str] = None) -> ToolsListResponse:
@@ -483,7 +483,7 @@ class ToolkitService:
             return result
             
         except Exception as e:
-            logger.error(f"Failed to get tools for toolkit {toolkit_slug}: {e}", exc_info=True)
+            logger.error(f"Failed to get tools for toolkit {toolkit_slug}: {e}", exc_info=False)
             return ToolsListResponse(
                 items=[],
                 total_items=0,

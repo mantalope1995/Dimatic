@@ -120,7 +120,7 @@ async def check_agent_count_limit(client, account_id: str) -> Dict[str, Any]:
         return result
         
     except Exception as e:
-        logger.error(f"Error checking agent count limit for account {account_id}: {str(e)}", exc_info=True)
+        logger.error(f"Error checking agent count limit for account {account_id}: {str(e)}", exc_info=False)
         return {
             'can_create': True,
             'current_count': 0,
@@ -186,7 +186,7 @@ async def check_project_count_limit(client, account_id: str) -> Dict[str, Any]:
         return result
         
     except Exception as e:
-        logger.error(f"Error checking project count limit for account {account_id}: {str(e)}", exc_info=True)
+        logger.error(f"Error checking project count limit for account {account_id}: {str(e)}", exc_info=False)
         from core.billing.config import get_project_limit
         return {
             'can_create': True,
@@ -320,7 +320,7 @@ async def check_trigger_limit(client, account_id: str, agent_id: str = None, tri
         return result
         
     except Exception as e:
-        logger.error(f"Error checking trigger limit for account {account_id}: {str(e)}", exc_info=True)
+        logger.error(f"Error checking trigger limit for account {account_id}: {str(e)}", exc_info=False)
         return {
             'can_create': True,
             'current_count': 0,
@@ -385,7 +385,7 @@ async def check_custom_worker_limit(client, account_id: str) -> Dict[str, Any]:
         return result
         
     except Exception as e:
-        logger.error(f"Error checking custom worker limit for account {account_id}: {str(e)}", exc_info=True)
+        logger.error(f"Error checking custom worker limit for account {account_id}: {str(e)}", exc_info=False)
         return {
             'can_create': True,
             'current_count': 0,
@@ -429,7 +429,7 @@ async def check_thread_limit(client, account_id: str) -> Dict[str, Any]:
         return result
         
     except Exception as e:
-        logger.error(f"Error checking thread limit for account {account_id}: {str(e)}", exc_info=True)
+        logger.error(f"Error checking thread limit for account {account_id}: {str(e)}", exc_info=False)
         return {
             'can_create': True,
             'current_count': 0,

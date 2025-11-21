@@ -146,7 +146,7 @@ class ComposioIntegrationService:
             return result
             
         except Exception as e:
-            logger.error(f"Failed to integrate toolkit {toolkit_slug}: {e}", exc_info=True)
+            logger.error(f"Failed to integrate toolkit {toolkit_slug}: {e}", exc_info=False)
             raise
     
     async def list_available_toolkits(self, limit: int = 100, cursor: Optional[str] = None, category: Optional[str] = None) -> Dict[str, Any]:

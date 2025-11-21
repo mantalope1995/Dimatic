@@ -104,7 +104,7 @@ class RevenueCatService:
             )
             logger.info(f"[REVENUECAT INITIAL_PURCHASE] ✅ Successfully processed purchase for {app_user_id}")
         except Exception as e:
-            logger.error(f"[REVENUECAT INITIAL_PURCHASE] ❌ Failed to process: {e}", exc_info=True)
+            logger.error(f"[REVENUECAT INITIAL_PURCHASE] ❌ Failed to process: {e}", exc_info=False)
             raise
     
     async def _handle_renewal(self, webhook_data: Dict) -> None:
@@ -426,7 +426,7 @@ class RevenueCatService:
                 )
                 logger.info(f"[REVENUECAT] Credit add result: {credit_result}")
         except Exception as e:
-            logger.error(f"[REVENUECAT] ❌ Failed to update credits: {e}", exc_info=True)
+            logger.error(f"[REVENUECAT] ❌ Failed to update credits: {e}", exc_info=False)
             raise
         
         logger.info(
@@ -468,7 +468,7 @@ class RevenueCatService:
             
             logger.info(f"[REVENUECAT] ✅ _apply_subscription_change COMPLETED for {app_user_id}")
         except Exception as e:
-            logger.error(f"[REVENUECAT] ❌ Failed to update tier: {e}", exc_info=True)
+            logger.error(f"[REVENUECAT] ❌ Failed to update tier: {e}", exc_info=False)
             raise
     
     async def _process_renewal(
@@ -875,7 +875,7 @@ class RevenueCatService:
                         logger.info(f"[REVENUECAT] ✅ Retry successful, tier is now: {retry_update.data[0].get('tier')}")
             
         except Exception as e:
-            logger.error(f"[REVENUECAT] ❌ Exception during update: {e}", exc_info=True)
+            logger.error(f"[REVENUECAT] ❌ Exception during update: {e}", exc_info=False)
             raise
     
     # ============================================================================

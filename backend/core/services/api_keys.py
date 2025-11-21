@@ -237,7 +237,7 @@ class APIKeyService:
             )
 
         except Exception as e:
-            logger.error(f"Error creating API key: {e}", exc_info=True)
+            logger.error(f"Error creating API key: {e}", exc_info=False)
             raise HTTPException(status_code=500, detail="Failed to create API key")
 
     async def list_api_keys(self, account_id: UUID) -> List[APIKeyResponse]:
@@ -288,7 +288,7 @@ class APIKeyService:
             return api_keys
 
         except Exception as e:
-            logger.error(f"Error listing API keys: {e}", exc_info=True)
+            logger.error(f"Error listing API keys: {e}", exc_info=False)
             raise HTTPException(status_code=500, detail="Failed to list API keys")
 
     async def revoke_api_key(self, account_id: UUID, key_id: UUID) -> bool:
@@ -326,7 +326,7 @@ class APIKeyService:
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error revoking API key: {e}", exc_info=True)
+            logger.error(f"Error revoking API key: {e}", exc_info=False)
             raise HTTPException(status_code=500, detail="Failed to revoke API key")
 
     async def validate_api_key(
@@ -448,7 +448,7 @@ class APIKeyService:
             return validation_result
 
         except Exception as e:
-            logger.error(f"Error validating API key: {e}", exc_info=True)
+            logger.error(f"Error validating API key: {e}", exc_info=False)
             return APIKeyValidationResult(
                 is_valid=False, error_message="Internal server error"
             )
@@ -575,5 +575,5 @@ class APIKeyService:
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error deleting API key: {e}", exc_info=True)
+            logger.error(f"Error deleting API key: {e}", exc_info=False)
             raise HTTPException(status_code=500, detail="Failed to delete API key")

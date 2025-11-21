@@ -1042,7 +1042,7 @@ class ResponseProcessor:
                     logger.info(f"✅ BILLING SUCCESS: Saved llm_response_end in finally for call #{auto_continue_count + 1} ({'estimated' if is_estimated else 'exact'} usage)")
                     
                 except Exception as billing_e:
-                    logger.error(f"❌ CRITICAL BILLING FAILURE: Could not save llm_response_end: {str(billing_e)}", exc_info=True)
+                    logger.error(f"❌ CRITICAL BILLING FAILURE: Could not save llm_response_end: {str(billing_e)}", exc_info=False)
                     self.trace.event(
                         name="critical_billing_failure_in_finally", 
                         level="ERROR", 
@@ -1067,7 +1067,7 @@ class ResponseProcessor:
                         generation.end(output=accumulated_content)
                         logger.debug(f"Set generation output: {len(accumulated_content)} chars with usage metrics")
                     except Exception as gen_e:
-                        logger.error(f"Error setting generation output: {str(gen_e)}", exc_info=True)
+                        logger.error(f"Error setting generation output: {str(gen_e)}", exc_info=False)
                 
                 # Save and Yield the final thread_run_end status (only if not auto-continuing and finish_reason is not 'length')
                 try:
@@ -1093,7 +1093,7 @@ class ResponseProcessor:
                     # Don't yield in finally block - stream may be closed (GeneratorExit)
                     logger.debug("Saved thread_run_end in finally (not yielding to avoid GeneratorExit)")
                 except Exception as final_e:
-                    logger.error(f"Error in finally block: {str(final_e)}", exc_info=True)
+                    logger.error(f"Error in finally block: {str(final_e)}", exc_info=False)
                     self.trace.event(name="error_in_finally_block", level="ERROR", status_message=(f"Error in finally block: {str(final_e)}"))
 
     async def process_non_streaming_response(
@@ -1312,7 +1312,7 @@ class ResponseProcessor:
                     generation.end(output=content)
                     logger.debug(f"Set non-streaming generation output: {len(content)} chars with usage metrics")
                 except Exception as gen_e:
-                    logger.error(f"Error setting non-streaming generation output: {str(gen_e)}", exc_info=True)
+                    logger.error(f"Error setting non-streaming generation output: {str(gen_e)}", exc_info=False)
             
             # Save and Yield the final thread_run_end status
             usage = llm_response.usage if hasattr(llm_response, 'usage') else None
@@ -1488,7 +1488,7 @@ class ResponseProcessor:
                     })
                     
         except Exception as e:
-            logger.error(f"Error parsing XML tool calls: {e}", exc_info=True)
+            logger.error(f"Error parsing XML tool calls: {e}", exc_info=False)
             self.trace.event(name="error_parsing_xml_tool_calls", level="ERROR", status_message=(f"Error parsing XML tool calls: {e}"), metadata={"content": content})
         
         return parsed_data
@@ -1577,7 +1577,7 @@ class ResponseProcessor:
             logger.error(f"❌ CRITICAL ERROR executing tool {function_name}: {str(e)}")
             logger.error(f"❌ Error type: {type(e).__name__}")
             logger.error(f"❌ Tool call data: {tool_call}")
-            logger.error(f"❌ Full traceback:", exc_info=True)
+            logger.error(f"❌ Full traceback:", exc_info=False)
             span.end(status_message="critical_error", output=str(e), level="ERROR")
             return ToolResult(success=False, output=f"Critical error executing tool: {str(e)}")
 
@@ -1706,7 +1706,7 @@ class ResponseProcessor:
             logger.error(f"❌ CRITICAL ERROR in sequential tool execution: {str(e)}")
             logger.error(f"❌ Error type: {type(e).__name__}")
             logger.error(f"❌ Tool calls data: {tool_calls}")
-            logger.error(f"❌ Full traceback:", exc_info=True)
+            logger.error(f"❌ Full traceback:", exc_info=False)
 
             # Return partial results plus error results for remaining tools
             completed_results = results if 'results' in locals() else []
@@ -1805,7 +1805,7 @@ class ResponseProcessor:
             logger.error(f"❌ CRITICAL ERROR in parallel tool execution: {str(e)}")
             logger.error(f"❌ Error type: {type(e).__name__}")
             logger.error(f"❌ Tool calls data: {tool_calls}")
-            logger.error(f"❌ Full traceback:", exc_info=True)
+            logger.error(f"❌ Full traceback:", exc_info=False)
             self.trace.event(name="error_in_parallel_tool_execution", level="ERROR", status_message=(f"Error in parallel tool execution: {str(e)}"))
 
             # Return error results for all tools if the gather itself fails
@@ -1950,7 +1950,7 @@ class ResponseProcessor:
 
             return message_obj # Return the modified message object
         except Exception as e:
-            logger.error(f"Error adding tool result: {str(e)}", exc_info=True)
+            logger.error(f"Error adding tool result: {str(e)}", exc_info=False)
             self.trace.event(name="error_adding_tool_result", level="ERROR", status_message=(f"Error adding tool result: {str(e)}"), metadata={"tool_call": tool_call, "result": result, "strategy": strategy, "assistant_message_id": assistant_message_id, "parsing_details": parsing_details})
             # Fallback to a simple message
             try:
@@ -1967,7 +1967,7 @@ class ResponseProcessor:
                 )
                 return message_obj # Return the full message object
             except Exception as e2:
-                logger.error(f"Failed even with fallback message: {str(e2)}", exc_info=True)
+                logger.error(f"Failed even with fallback message: {str(e2)}", exc_info=False)
                 self.trace.event(name="failed_even_with_fallback_message", level="ERROR", status_message=(f"Failed even with fallback message: {str(e2)}"), metadata={"tool_call": tool_call, "result": result, "strategy": strategy, "assistant_message_id": assistant_message_id, "parsing_details": parsing_details})
                 return None # Return None on error
 

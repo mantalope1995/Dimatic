@@ -74,7 +74,7 @@ class SandboxDocumentParserTool(SandboxToolsBase):
             })
             
         except Exception as e:
-            logger.error(f"Error parsing document from URL {url}: {e}", exc_info=True)
+            logger.error(f"Error parsing document from URL {url}: {e}", exc_info=False)
             return self.fail_response(f"Error parsing document from URL: {str(e)}")
     
     def _extract_meaningful_content(self, task, extract_tables: bool, extract_structured_data: bool) -> Dict[str, Any]:
@@ -148,7 +148,7 @@ class SandboxDocumentParserTool(SandboxToolsBase):
             return content
             
         except Exception as e:
-            logger.error(f"Error extracting content from Chunkr response: {e}", exc_info=True)
+            logger.error(f"Error extracting content from Chunkr response: {e}", exc_info=False)
             return {"error": f"Failed to extract content: {str(e)}"}
     
     def _clean_content(self, content: str) -> str:

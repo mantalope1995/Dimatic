@@ -293,5 +293,5 @@ class PeopleSearchTool(Tool):
         except asyncio.TimeoutError:
             return self.fail_response("Search timed out. Please try again with a simpler query.")
         except Exception as e:
-            logger.error(f"People search failed: {repr(e)}", exc_info=True)
+            logger.error(f"People search failed: {repr(e)}", exc_info=False)
             return self.fail_response("An error occurred during the search. Please try again.")

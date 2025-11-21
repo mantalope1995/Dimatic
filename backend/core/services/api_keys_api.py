@@ -98,7 +98,7 @@ async def create_api_key(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error creating API key: {e}", exc_info=True)
+        logger.error(f"Unexpected error creating API key: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail="Failed to create API key")
 
 
@@ -133,7 +133,7 @@ async def list_api_keys(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error listing API keys: {e}", exc_info=True)
+        logger.error(f"Unexpected error listing API keys: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail="Failed to list API keys")
 
 
@@ -177,7 +177,7 @@ async def revoke_api_key(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error revoking API key: {e}", exc_info=True)
+        logger.error(f"Unexpected error revoking API key: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail="Failed to revoke API key")
 
 
@@ -221,5 +221,5 @@ async def delete_api_key(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error deleting API key: {e}", exc_info=True)
+        logger.error(f"Unexpected error deleting API key: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail="Failed to delete API key")

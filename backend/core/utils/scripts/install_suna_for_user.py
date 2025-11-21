@@ -153,7 +153,7 @@ class SunaUserInstaller:
         
         except Exception as e:
             print(f"❌ Error: {str(e)}")
-            logger.error(f"Failed to install for account {account_id}: {e}", exc_info=True)
+            logger.error(f"Failed to install for account {account_id}: {e}", exc_info=False)
 
 
 
@@ -188,7 +188,7 @@ async def main():
         print("\n⚠️  Operation cancelled by user")
     except Exception as e:
         print(f"❌ Error: {str(e)}")
-        logger.error(f"Script error: {str(e)}", exc_info=True)
+        logger.error(f"Script error: {str(e)}", exc_info=False)
         sys.exit(1)
 
 

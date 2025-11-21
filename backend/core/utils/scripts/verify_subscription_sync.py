@@ -252,7 +252,7 @@ async def main():
         await service.run()
     except Exception as e:
         print(f"\n❌ FATAL ERROR: {e}")
-        logger.error(f"Verification failed: {e}", exc_info=True)
+        logger.error(f"Verification failed: {e}", exc_info=False)
         sys.exit(1)
 
 if __name__ == "__main__":

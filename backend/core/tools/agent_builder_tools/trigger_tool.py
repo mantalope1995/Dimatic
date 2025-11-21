@@ -603,5 +603,5 @@ class TriggerTool(AgentBuilderBaseTool):
                 }
             })
         except Exception as e:
-            logger.error(f"Exception in create_event_trigger: {e}", exc_info=True)
+            logger.error(f"Exception in create_event_trigger: {e}", exc_info=False)
             return self.fail_response(f"Error creating event trigger: {str(e)}")

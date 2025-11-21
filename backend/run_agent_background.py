@@ -155,7 +155,7 @@ async def run_agent_background(
         except asyncio.CancelledError:
             logger.debug(f"Stop signal checker cancelled for {agent_run_id} (Instance: {instance_id})")
         except Exception as e:
-            logger.error(f"Error in stop signal checker for {agent_run_id}: {e}", exc_info=True)
+            logger.error(f"Error in stop signal checker for {agent_run_id}: {e}", exc_info=False)
             stop_signal_received = True # Stop the run if the checker fails
 
     trace = langfuse.trace(name="agent_run", id=agent_run_id, session_id=thread_id, metadata={"project_id": project_id, "instance_id": instance_id})
@@ -166,7 +166,7 @@ async def run_agent_background(
         try:
             await retry(lambda: pubsub.subscribe(instance_control_channel, global_control_channel))
         except Exception as e:
-            logger.error(f"Redis failed to subscribe to control channels: {e}", exc_info=True)
+            logger.error(f"Redis failed to subscribe to control channels: {e}", exc_info=False)
             raise e
 
         logger.info(f"Subscribed to control channels: {instance_control_channel}, {global_control_channel}")
@@ -380,10 +380,10 @@ async def update_agent_run_status(
                 if retry < 2:  # Not the last retry yet
                     await asyncio.sleep(0.5 * (2 ** retry))  # Exponential backoff
                 else:
-                    logger.error(f"Failed to update agent run status after all retries: {agent_run_id}", exc_info=True)
+                    logger.error(f"Failed to update agent run status after all retries: {agent_run_id}", exc_info=False)
                     return False
     except Exception as e:
-        logger.error(f"Unexpected error updating agent run status for {agent_run_id}: {str(e)}", exc_info=True)
+        logger.error(f"Unexpected error updating agent run status for {agent_run_id}: {str(e)}", exc_info=False)
         return False
 
     return False

@@ -405,7 +405,7 @@ class SandboxFilesTool(SandboxToolsBase):
                 error_message += f"\n\nAPI Response Body:\n{e.response.text}"
             elif hasattr(e, 'body'): # litellm sometimes puts it in body
                 error_message += f"\n\nAPI Response Body:\n{e.body}"
-            logger.error(f"Error calling Morph/OpenRouter API: {error_message}", exc_info=True)
+            logger.error(f"Error calling Morph/OpenRouter API: {error_message}", exc_info=False)
             return None, error_message
 
     @openapi_schema({
@@ -524,7 +524,7 @@ class SandboxFilesTool(SandboxToolsBase):
             }))
                     
         except Exception as e:
-            logger.error(f"Unhandled error in edit_file: {str(e)}", exc_info=True)
+            logger.error(f"Unhandled error in edit_file: {str(e)}", exc_info=False)
             # Try to get original_content if possible
             original_content_on_error = None
             try:

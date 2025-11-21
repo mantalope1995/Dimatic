@@ -110,7 +110,7 @@ class PaginationService:
             )
             
         except Exception as e:
-            logger.error(f"Pagination error: {e}", exc_info=True)
+            logger.error(f"Pagination error: {e}", exc_info=False)
             raise
 
     @staticmethod

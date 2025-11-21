@@ -286,7 +286,7 @@ After connecting, you'll be able to use {result.toolkit.name} tools in your agen
             })
             
         except Exception as e:
-            logger.error(f"Error configuring profile for agent: {e}", exc_info=True)
+            logger.error(f"Error configuring profile for agent: {e}", exc_info=False)
             return self.fail_response("Error configuring profile for agent")
 
     @openapi_schema({

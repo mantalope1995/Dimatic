@@ -259,7 +259,7 @@ class AgentExecutor:
                 }
             
         except Exception as e:
-            logger.error(f"Failed to get agent config using versioning system for agent {agent_id}: {e}", exc_info=True)
+            logger.error(f"Failed to get agent config using versioning system for agent {agent_id}: {e}", exc_info=False)
             return None
     
     async def _create_initial_message(

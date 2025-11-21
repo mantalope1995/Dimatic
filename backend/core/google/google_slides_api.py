@@ -166,7 +166,7 @@ async def google_oauth_callback(
         return RedirectResponse(url=redirect_url)
         
     except Exception as e:
-        logger.error(f"Failed to exchange authorization code: {e}", exc_info=True)
+        logger.error(f"Failed to exchange authorization code: {e}", exc_info=False)
         return RedirectResponse(url=f"{frontend_url}?google_auth=error&error=auth_failed")
 
 
@@ -303,7 +303,7 @@ async def convert_and_upload_to_google_slides(
             )
         raise
     except Exception as e:
-        logger.error(f"Error in convert_and_upload_to_google_slides: {e}", exc_info=True)
+        logger.error(f"Error in convert_and_upload_to_google_slides: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 

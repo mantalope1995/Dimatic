@@ -65,7 +65,7 @@ class SandboxToolsBase(Tool):
                         token = vnc_link.token if hasattr(vnc_link, 'token') else (str(vnc_link).split("token='")[1].split("'")[0] if "token='" in str(vnc_link) else None)
                     except Exception:
                         # If preview link extraction fails, still proceed but leave fields None
-                        logger.warning(f"Failed to extract preview links for sandbox {sandbox_id}", exc_info=True)
+                        logger.warning(f"Failed to extract preview links for sandbox {sandbox_id}", exc_info=False)
                         vnc_url = None
                         website_url = None
                         token = None
@@ -86,7 +86,7 @@ class SandboxToolsBase(Tool):
                         try:
                             await delete_sandbox(sandbox_id)
                         except Exception:
-                            logger.error(f"Failed to delete sandbox {sandbox_id} after DB update failure", exc_info=True)
+                            logger.error(f"Failed to delete sandbox {sandbox_id} after DB update failure", exc_info=False)
                         raise Exception("Database update failed when storing sandbox metadata")
 
                     # Store local metadata and ensure sandbox is ready

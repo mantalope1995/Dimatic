@@ -100,7 +100,7 @@ async def main():
         await fix_null_trial_status()
     except Exception as e:
         print(f"\n❌ FATAL ERROR: {e}")
-        logger.error(f"Fix failed: {e}", exc_info=True)
+        logger.error(f"Fix failed: {e}", exc_info=False)
         sys.exit(1)
 
 if __name__ == "__main__":

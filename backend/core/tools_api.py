@@ -34,7 +34,7 @@ async def get_all_tools(
         }
         
     except Exception as e:
-        logger.error(f"Error fetching tools metadata: {e}", exc_info=True)
+        logger.error(f"Error fetching tools metadata: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail="Failed to fetch tools metadata")
 
 
@@ -70,6 +70,6 @@ async def get_tool_details(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching tool {tool_name} metadata: {e}", exc_info=True)
+        logger.error(f"Error fetching tool {tool_name} metadata: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail="Failed to fetch tool metadata")
 

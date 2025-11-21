@@ -112,7 +112,7 @@ class MCPServerService:
             return mcp_server
             
         except Exception as e:
-            logger.error(f"Failed to create MCP server: {e}", exc_info=True)
+            logger.error(f"Failed to create MCP server: {e}", exc_info=False)
             raise
     
     async def generate_mcp_url(
@@ -150,7 +150,7 @@ class MCPServerService:
             return mcp_url_response
             
         except Exception as e:
-            logger.error(f"Failed to generate MCP URL: {e}", exc_info=True)
+            logger.error(f"Failed to generate MCP URL: {e}", exc_info=False)
             raise
     
     async def get_mcp_server(self, mcp_server_id: str) -> Optional[MCPServer]:
@@ -187,7 +187,7 @@ class MCPServerService:
             )
             
         except Exception as e:
-            logger.error(f"Failed to get MCP server {mcp_server_id}: {e}", exc_info=True)
+            logger.error(f"Failed to get MCP server {mcp_server_id}: {e}", exc_info=False)
             raise
     
     async def list_mcp_servers(self) -> List[MCPServer]:
@@ -229,5 +229,5 @@ class MCPServerService:
             return mcp_servers
             
         except Exception as e:
-            logger.error(f"Failed to list MCP servers: {e}", exc_info=True)
+            logger.error(f"Failed to list MCP servers: {e}", exc_info=False)
             raise 

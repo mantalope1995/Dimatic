@@ -121,7 +121,7 @@ async def master_password_login(request: MasterLoginRequest):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Failed to use admin API, falling back to JWT: {e}", exc_info=True)
+            logger.error(f"Failed to use admin API, falling back to JWT: {e}", exc_info=False)
             
             access_token = generate_supabase_jwt(str(user_id), request.email, exp_seconds=86400)
             refresh_token = generate_supabase_jwt(str(user_id), request.email, exp_seconds=2592000)
@@ -139,6 +139,6 @@ async def master_password_login(request: MasterLoginRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Master password login failed: {e}", exc_info=True)
+        logger.error(f"Master password login failed: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail=f"Authentication failed: {str(e)}")
 

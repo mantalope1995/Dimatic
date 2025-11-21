@@ -171,7 +171,7 @@ class ComposioProfileService:
             )
             
         except Exception as e:
-            logger.error(f"Failed to create Composio profile: {e}", exc_info=True)
+            logger.error(f"Failed to create Composio profile: {e}", exc_info=False)
             raise
 
     async def get_mcp_config_for_agent(self, profile_id: str) -> Dict[str, Any]:
@@ -203,7 +203,7 @@ class ComposioProfileService:
             }
             
         except Exception as e:
-            logger.error(f"Failed to get MCP config for profile {profile_id}: {e}", exc_info=True)
+            logger.error(f"Failed to get MCP config for profile {profile_id}: {e}", exc_info=False)
             raise
     
     async def get_mcp_url_for_runtime(self, profile_id: str) -> str:
@@ -232,7 +232,7 @@ class ComposioProfileService:
             return mcp_url
             
         except Exception as e:
-            logger.error(f"Failed to get MCP URL for profile {profile_id}: {e}", exc_info=True)
+            logger.error(f"Failed to get MCP URL for profile {profile_id}: {e}", exc_info=False)
             raise
 
     async def get_profile_config(self, profile_id: str) -> Dict[str, Any]:
@@ -249,7 +249,7 @@ class ComposioProfileService:
             return self._decrypt_config(result.data[0]['encrypted_config'])
             
         except Exception as e:
-            logger.error(f"Failed to get config for profile {profile_id}: {e}", exc_info=True)
+            logger.error(f"Failed to get config for profile {profile_id}: {e}", exc_info=False)
             raise
 
     async def get_profiles(self, account_id: str, toolkit_slug: Optional[str] = None) -> List[ComposioProfile]:
@@ -293,5 +293,5 @@ class ComposioProfileService:
             return profiles
             
         except Exception as e:
-            logger.error(f"Failed to get Composio profiles: {e}", exc_info=True)
+            logger.error(f"Failed to get Composio profiles: {e}", exc_info=False)
             raise 

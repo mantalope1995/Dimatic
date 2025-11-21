@@ -71,7 +71,7 @@ class ThreadManager:
             else:
                 raise Exception("Failed to create thread: no thread_id returned")
         except Exception as e:
-            logger.error(f"Failed to create thread: {str(e)}", exc_info=True)
+            logger.error(f"Failed to create thread: {str(e)}", exc_info=False)
             raise Exception(f"Thread creation failed: {str(e)}")
 
     async def add_message(
@@ -115,7 +115,7 @@ class ThreadManager:
                 logger.error(f"Insert operation failed for thread {thread_id}")
                 return None
         except Exception as e:
-            logger.error(f"Failed to add message to thread {thread_id}: {str(e)}", exc_info=True)
+            logger.error(f"Failed to add message to thread {thread_id}: {str(e)}", exc_info=False)
             raise
 
     async def _handle_billing(self, thread_id: str, content: dict, saved_message: dict):
@@ -171,7 +171,7 @@ class ThreadManager:
                 else:
                     logger.error(f"Failed to deduct credits: {deduct_result}")
         except Exception as e:
-            logger.error(f"Error handling billing: {str(e)}", exc_info=True)
+            logger.error(f"Error handling billing: {str(e)}", exc_info=False)
 
     async def get_llm_messages(self, thread_id: str) -> List[Dict[str, Any]]:
         """Get all messages for a thread."""
@@ -235,7 +235,7 @@ class ThreadManager:
             return messages
 
         except Exception as e:
-            logger.error(f"Failed to get messages for thread {thread_id}: {str(e)}", exc_info=True)
+            logger.error(f"Failed to get messages for thread {thread_id}: {str(e)}", exc_info=False)
             return []
     
     async def run_thread(

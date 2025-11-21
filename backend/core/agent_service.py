@@ -49,7 +49,7 @@ class AgentService:
                 return await self._get_only_agents_paginated(user_id, pagination_params, filters)
                 
         except Exception as e:
-            logger.error(f"Error fetching content for user {user_id}: {e}", exc_info=True)
+            logger.error(f"Error fetching content for user {user_id}: {e}", exc_info=False)
             raise
 
     async def _get_only_agents_paginated(
@@ -125,7 +125,7 @@ class AgentService:
             )
                 
         except Exception as e:
-            logger.error(f"Error fetching templates for user {user_id}: {e}", exc_info=True)
+            logger.error(f"Error fetching templates for user {user_id}: {e}", exc_info=False)
             raise
 
     def _build_base_query(self, user_id: str, filters: AgentFilters):

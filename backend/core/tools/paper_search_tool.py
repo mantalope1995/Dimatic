@@ -230,7 +230,7 @@ class PaperSearchTool(Tool):
         except asyncio.TimeoutError:
             return self.fail_response("Paper search timed out. Please try again with a simpler query.")
         except Exception as e:
-            logger.error(f"Paper search failed: {repr(e)}", exc_info=True)
+            logger.error(f"Paper search failed: {repr(e)}", exc_info=False)
             return self.fail_response(f"An error occurred during the paper search: {str(e)}")
     
     @openapi_schema({
@@ -386,7 +386,7 @@ class PaperSearchTool(Tool):
                 return self.success_response(summary)
                 
         except Exception as e:
-            logger.error(f"Get paper details failed: {repr(e)}", exc_info=True)
+            logger.error(f"Get paper details failed: {repr(e)}", exc_info=False)
             return self.fail_response(f"An error occurred while fetching paper details: {str(e)}")
     
     @openapi_schema({
@@ -483,7 +483,7 @@ class PaperSearchTool(Tool):
         except asyncio.TimeoutError:
             return self.fail_response("Author search timed out. Please try again with a simpler query.")
         except Exception as e:
-            logger.error(f"Author search failed: {repr(e)}", exc_info=True)
+            logger.error(f"Author search failed: {repr(e)}", exc_info=False)
             return self.fail_response(f"An error occurred during the author search: {str(e)}")
     
     @openapi_schema({
@@ -586,7 +586,7 @@ class PaperSearchTool(Tool):
                 return self.success_response(summary)
                 
         except Exception as e:
-            logger.error(f"Get author details failed: {repr(e)}", exc_info=True)
+            logger.error(f"Get author details failed: {repr(e)}", exc_info=False)
             return self.fail_response(f"An error occurred while fetching author details: {str(e)}")
     
     @openapi_schema({
@@ -706,6 +706,6 @@ class PaperSearchTool(Tool):
                 return self.success_response(summary)
                 
         except Exception as e:
-            logger.error(f"Get author papers failed: {repr(e)}", exc_info=True)
+            logger.error(f"Get author papers failed: {repr(e)}", exc_info=False)
             return self.fail_response(f"An error occurred while fetching author papers: {str(e)}")
     

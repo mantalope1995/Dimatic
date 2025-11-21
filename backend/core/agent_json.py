@@ -330,7 +330,7 @@ class JsonImportService:
                 logger.error(f"Agent {agent_id} current_version_id was not updated after version creation!")
                 
         except Exception as e:
-            logger.error(f"Failed to create initial version for JSON imported agent {agent_id}: {e}", exc_info=True)
+            logger.error(f"Failed to create initial version for JSON imported agent {agent_id}: {e}", exc_info=False)
             raise  # Re-raise the exception to ensure import fails if version creation fails
 
 @router.get("/agents/{agent_id}/export", summary="Export Agent as JSON", operation_id="export_agent_json")

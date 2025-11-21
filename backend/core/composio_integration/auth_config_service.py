@@ -105,7 +105,7 @@ class AuthConfigService:
             return auth_config
             
         except Exception as e:
-            logger.error(f"Failed to create auth config for {toolkit_slug}: {e}", exc_info=True)
+            logger.error(f"Failed to create auth config for {toolkit_slug}: {e}", exc_info=False)
             raise
     
     async def get_auth_config(self, auth_config_id: str) -> Optional[AuthConfig]:
@@ -126,7 +126,7 @@ class AuthConfigService:
             )
             
         except Exception as e:
-            logger.error(f"Failed to get auth config {auth_config_id}: {e}", exc_info=True)
+            logger.error(f"Failed to get auth config {auth_config_id}: {e}", exc_info=False)
             raise
     
     async def list_auth_configs(self, toolkit_slug: Optional[str] = None) -> List[AuthConfig]:
@@ -155,5 +155,5 @@ class AuthConfigService:
             return auth_configs
             
         except Exception as e:
-            logger.error(f"Failed to list auth configs: {e}", exc_info=True)
+            logger.error(f"Failed to list auth configs: {e}", exc_info=False)
             raise 

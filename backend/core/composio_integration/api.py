@@ -227,7 +227,7 @@ async def list_categories(
         }
         
     except Exception as e:
-        logger.error(f"Failed to fetch categories: {e}", exc_info=True)
+        logger.error(f"Failed to fetch categories: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail=f"Failed to fetch categories: {str(e)}")
 
 
@@ -260,7 +260,7 @@ async def list_toolkits(
         }
         
     except Exception as e:
-        logger.error(f"Failed to fetch toolkits: {e}", exc_info=True)
+        logger.error(f"Failed to fetch toolkits: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail=f"Failed to fetch toolkits: {str(e)}")
 
 
@@ -286,7 +286,7 @@ async def get_toolkit_details(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to fetch toolkit details for {toolkit_slug}: {e}", exc_info=True)
+        logger.error(f"Failed to fetch toolkit details for {toolkit_slug}: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail=f"Failed to fetch toolkit details: {str(e)}")
 
 
@@ -415,7 +415,7 @@ async def check_profile_name_availability(
         }
         
     except Exception as e:
-        logger.error(f"Failed to check profile name availability: {e}", exc_info=True)
+        logger.error(f"Failed to check profile name availability: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -436,7 +436,7 @@ async def get_profiles(
         }
         
     except Exception as e:
-        logger.error(f"Failed to get profiles: {e}", exc_info=True)
+        logger.error(f"Failed to get profiles: {e}", exc_info=False)
         return {
             "success": False,
             "profiles": [],
@@ -460,7 +460,7 @@ async def get_profile_mcp_config(
         }
         
     except Exception as e:
-        logger.error(f"Failed to get MCP config for profile {profile_id}: {e}", exc_info=True)
+        logger.error(f"Failed to get MCP config for profile {profile_id}: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail=f"Failed to get MCP config: {str(e)}")
 
 
@@ -489,7 +489,7 @@ async def get_profile_info(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to get profile info for {profile_id}: {e}", exc_info=True)
+        logger.error(f"Failed to get profile info for {profile_id}: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail=f"Failed to get profile info: {str(e)}")
 
 
@@ -546,7 +546,7 @@ async def discover_composio_tools(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to discover tools for profile {profile_id}: {e}", exc_info=True)
+        logger.error(f"Failed to discover tools for profile {profile_id}: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -610,7 +610,7 @@ async def list_toolkit_tools(
         }
         
     except Exception as e:
-        logger.error(f"Failed to list toolkit tools for {request.toolkit_slug}: {e}", exc_info=True)
+        logger.error(f"Failed to list toolkit tools for {request.toolkit_slug}: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail=f"Failed to get toolkit tools: {str(e)}")
 
 
@@ -657,7 +657,7 @@ async def get_trigger_schema(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to get trigger schema for {trigger_slug}: {e}", exc_info=True)
+        logger.error(f"Failed to get trigger schema for {trigger_slug}: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 

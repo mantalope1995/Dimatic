@@ -161,7 +161,7 @@ class StripeSubscriptionSyncV2:
             logger.info(f"Synced {stripe_customer_id}: {current_tier} → {tier.name}")
             
         except Exception as e:
-            logger.error(f"Error syncing customer {stripe_customer_id}: {e}", exc_info=True)
+            logger.error(f"Error syncing customer {stripe_customer_id}: {e}", exc_info=False)
             self.stats['errors'] += 1
     
     def extract_price_id(self, subscription: Any, customer_id: str) -> Optional[str]:
@@ -265,7 +265,7 @@ async def main():
         await service.run()
     except Exception as e:
         print(f"\n❌ FATAL ERROR: {e}")
-        logger.error(f"Sync failed: {e}", exc_info=True)
+        logger.error(f"Sync failed: {e}", exc_info=False)
         sys.exit(1)
 
 if __name__ == "__main__":

@@ -306,7 +306,7 @@ async def _handle_file_uploads(files: List[UploadFile], sandbox, project_id: str
                     else:
                         raise NotImplementedError("Suitable upload method not found on sandbox object.")
                 except Exception as upload_error:
-                    logger.error(f"Error during sandbox upload call for {safe_filename}: {str(upload_error)}", exc_info=True)
+                    logger.error(f"Error during sandbox upload call for {safe_filename}: {str(upload_error)}", exc_info=False)
 
                 if upload_successful:
                     try:
@@ -320,12 +320,12 @@ async def _handle_file_uploads(files: List[UploadFile], sandbox, project_id: str
                             logger.error(f"Verification failed for {safe_filename}: File not found in {uploads_dir} after upload attempt.")
                             failed_uploads.append(safe_filename)
                     except Exception as verify_error:
-                        logger.error(f"Error verifying file {safe_filename} after upload: {str(verify_error)}", exc_info=True)
+                        logger.error(f"Error verifying file {safe_filename} after upload: {str(verify_error)}", exc_info=False)
                         failed_uploads.append(safe_filename)
                 else:
                     failed_uploads.append(safe_filename)
             except Exception as file_error:
-                logger.error(f"Error processing file {file.filename}: {str(file_error)}", exc_info=True)
+                logger.error(f"Error processing file {file.filename}: {str(file_error)}", exc_info=False)
                 failed_uploads.append(file.filename)
             finally:
                 await file.close()
@@ -1042,13 +1042,13 @@ async def stream_agent_run(
                      terminate_stream = True
                      break
                 except Exception as loop_err:
-                    logger.error(f"Error in stream generator main loop for {agent_run_id}: {loop_err}", exc_info=True)
+                    logger.error(f"Error in stream generator main loop for {agent_run_id}: {loop_err}", exc_info=False)
                     terminate_stream = True
                     yield f"data: {json.dumps({'type': 'status', 'status': 'error', 'message': f'Stream failed: {loop_err}'})}\n\n"
                     break
 
         except Exception as e:
-            logger.error(f"Error setting up stream for agent run {agent_run_id}: {e}", exc_info=True)
+            logger.error(f"Error setting up stream for agent run {agent_run_id}: {e}", exc_info=False)
             # Only yield error if initial yield didn't happen
             if not initial_yield_complete:
                  yield f"data: {json.dumps({'type': 'status', 'status': 'error', 'message': f'Failed to start stream: {e}'})}\n\n"

@@ -128,7 +128,7 @@ class ConnectedAccountService:
             return connected_account
             
         except Exception as e:
-            logger.error(f"Failed to create connected account: {e}", exc_info=True)
+            logger.error(f"Failed to create connected account: {e}", exc_info=False)
             raise
     
     async def get_connected_account(self, connected_account_id: str) -> Optional[ConnectedAccount]:
@@ -172,7 +172,7 @@ class ConnectedAccountService:
             )
             
         except Exception as e:
-            logger.error(f"Failed to get connected account {connected_account_id}: {e}", exc_info=True)
+            logger.error(f"Failed to get connected account {connected_account_id}: {e}", exc_info=False)
             raise
     
     async def get_auth_status(self, connected_account_id: str) -> Dict[str, Any]:
@@ -191,7 +191,7 @@ class ConnectedAccountService:
             }
             
         except Exception as e:
-            logger.error(f"Failed to get auth status: {e}", exc_info=True)
+            logger.error(f"Failed to get auth status: {e}", exc_info=False)
             raise
     
     async def list_connected_accounts(self, auth_config_id: Optional[str] = None) -> List[ConnectedAccount]:
@@ -243,5 +243,5 @@ class ConnectedAccountService:
             return connected_accounts
             
         except Exception as e:
-            logger.error(f"Failed to list connected accounts: {e}", exc_info=True)
+            logger.error(f"Failed to list connected accounts: {e}", exc_info=False)
             raise 

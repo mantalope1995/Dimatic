@@ -193,7 +193,7 @@ async def list_users(
         )
         
     except Exception as e:
-        logger.error(f"Failed to list users: {e}", exc_info=True)
+        logger.error(f"Failed to list users: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail="Failed to retrieve users")
 
 @router.get("/users/{user_id}")
@@ -260,7 +260,7 @@ async def get_user_details(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to get user details: {e}", exc_info=True)
+        logger.error(f"Failed to get user details: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail="Failed to retrieve user details")
 
 @router.get("/users/stats/overview")
@@ -311,7 +311,7 @@ async def get_user_stats_overview(
         }
         
     except Exception as e:
-        logger.error(f"Failed to get user stats: {e}", exc_info=True)
+        logger.error(f"Failed to get user stats: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail="Failed to retrieve user statistics")
 
 @router.get("/users/{user_id}/activity")
@@ -483,7 +483,7 @@ async def get_user_threads_by_email(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to get user threads by email: {e}", exc_info=True)
+        logger.error(f"Failed to get user threads by email: {e}", exc_info=False)
         raise HTTPException(status_code=500, detail="Failed to retrieve user threads")
 
 # ============================================================================
