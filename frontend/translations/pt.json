@@ -29,7 +29,7 @@
     "next": "Próximo",
     "upgrade": "Melhorar",
     "basic": "Básico",
-    "tryFree": "Começar grátis"
+    "tryFree": "Começar"
   },
   "settings": {
     "title": "Configurações",
@@ -38,6 +38,7 @@
       "plan": "Plano",
       "billing": "Cobrança",
       "usage": "Uso",
+      "referrals": "Indicações",
       "knowledgeBase": "Base de Conhecimento",
       "integrations": "Integrações",
       "envManager": "Gerenciador de Ambiente"
@@ -83,6 +84,50 @@
         "cancelDeletionDescription": "Tens certeza que queres cancelar a exclusão da tua conta? Tua conta e todos os dados serão preservados.",
         "cancelDeletion": "Cancelar Exclusão"
       }
+    },
+    "referrals": {
+      "title": "Programa de Indicações",
+      "description": "Compartilhe seu link de indicação com amigos. Quando eles se cadastrarem e criarem uma conta, você ganhará",
+      "creditsPerReferral": "100 créditos permanentes",
+      "youEarn": "Você ganha",
+      "friendGets": "Seu amigo ganha",
+      "maxEarnable": "Máximo que pode ganhar através de indicações:",
+      "maxCredits": "$100 em créditos",
+      "yourReferralCode": "Seu Código de Indicação",
+      "referralLink": "Link de Indicação",
+      "shareYourLink": "Compartilhe seu link de indicação",
+      "yourStats": "Suas estatísticas",
+      "enterCodeDescription": "Digite um código de indicação para ganhar créditos",
+      "enterCode": "Digitar código",
+      "refresh": "Atualizar",
+      "copyCode": "Copiar código",
+      "copyLink": "Copiar link",
+      "share": "Compartilhar",
+      "stats": {
+        "totalReferrals": "Total de Indicações",
+        "successful": "Bem-sucedidas",
+        "creditsEarned": "Créditos Ganhos"
+      },
+      "recentReferrals": "Indicações Recentes",
+      "signupComplete": "Cadastro Completo",
+      "pending": "Pendente",
+      "noReferrals": "Nenhuma indicação ainda. Compartilhe seu link de indicação para começar!",
+      "copied": "Copiado!",
+      "codeCopied": "Código de indicação copiado para a área de transferência",
+      "linkCopied": "Link de indicação copiado para a área de transferência",
+      "codeRefreshed": "Código de indicação atualizado com sucesso",
+      "refreshFailed": "Falha ao atualizar o código de indicação",
+      "inviteByEmail": "Convidar por Email",
+      "inviteByEmailDescription": "Adiciona até 3 endereços de email (pressiona Enter, Espaço ou Vírgula)",
+      "emailAddress": "Endereço de email",
+      "emailPlaceholder": "Digite endereços de email (pressiona Enter, Espaço ou Vírgula)",
+      "emailsAdded": "emails",
+      "sent": "enviado",
+      "send": "Enviar",
+      "sending": "Enviando...",
+      "sendAllInvites": "Enviar Todos os Convites",
+      "allSent": "Tudo Enviado",
+      "emailSent": "Convite de indicação enviado com sucesso"
     },
     "billing": {
       "title": "Cobrança e Assinatura",
@@ -156,6 +201,9 @@
     "monthlyOn1st": "Mensalmente no dia 1"
   },
   "sidebar": {
+    "referAndEarn": "Indicar e Ganhar",
+    "new": "Novo",
+    "upgrade": "Melhorar",
     "chats": "Chats",
     "agents": "Agentes",
     "workers": "Workers",
@@ -220,7 +268,7 @@
     "customWorkers": "Workers Personalizados",
     "scheduledTriggers": "Triggers Agendados",
     "appTriggers": "Triggers de App",
-    "limitsExceeded": "Ficaste sem limites. Melhora teu plano para chatear mais.",
+    "limitsExceeded": "Atingiste teu limite de chats ({current}/{limit}). Melhora teu plano para criar mais chats.",
     "agentInitiatedSuccessfully": "Agente iniciado com sucesso",
     "aiAssistantReady": "Teu assistente de IA está pronto para ajudar"
   },
@@ -283,6 +331,85 @@
   "home": {
     "heroPlaceholder": "Descreve a tarefa que queres que teu Worker complete..."
   },
+  "showcase": {
+    "title": "Kortix: Teu Worker de IA Autônomo",
+    "subtitle": "Construído para tarefas complexas, projetado para tudo. O assistente de IA definitivo que lida com tudo—de solicitações simples a projetos mega-complexos.",
+    "tryItOut": "Experimentar",
+    "kortixComputer": "Kortix Computer",
+    "running": "Em execução",
+    "workers": {
+      "images": {
+        "title": "Imagens",
+        "description": "Cria imagens sob demanda. De fotos de produtos a gráficos para redes sociais até ilustrações completas. Ajusta estilo, iluminação, cores e layout, ou refina visuais existentes com edições rápidas e retoques.",
+        "capabilities": {
+          "0": "Gerar fotos de produtos",
+          "1": "Criar gráficos para redes sociais",
+          "2": "Criar ilustrações",
+          "3": "Variações de estilo e iluminação",
+          "4": "Criação de logo / recursos",
+          "5": "+ Muito mais"
+        },
+        "imageAlt": "Exemplo gráfico O crescimento não é linear",
+        "fileType": "image"
+      },
+      "slides": {
+        "title": "Apresentações",
+        "description": "Cria apresentações impressionantes instantaneamente. De pitch decks a relatórios até materiais de treinamento. Ajusta temas, layouts, estrutura de conteúdo ou refina apresentações existentes com edições e atualizações rápidas.",
+        "capabilities": {
+          "0": "Pitch decks",
+          "1": "Material de treinamento",
+          "2": "Apresentações de relatórios",
+          "3": "Variações de tema e layout",
+          "4": "Reestruturação de conteúdo",
+          "5": "+ Muito mais"
+        },
+        "imageAlt": "Exemplo de slide Nexus Enterprise Automation Platform",
+        "fileType": "PPTX"
+      },
+      "data": {
+        "title": "Dados",
+        "description": "Transforma dados brutos em insights. De planilhas a dashboards até visualizações. Limpa conjuntos de dados, cria gráficos, gera relatórios ou refina análises existentes com atualizações rápidas.",
+        "capabilities": {
+          "0": "Dashboards",
+          "1": "Visualizações",
+          "2": "Relatórios de dados",
+          "3": "Limpar e organizar dados",
+          "4": "Gerar insights",
+          "5": "+ Muito mais"
+        },
+        "imageAlt": "Exemplo de dashboard modelo financeiro",
+        "fileType": "Visualização"
+      },
+      "docs": {
+        "title": "Documentos",
+        "description": "Escreve e edita documentos sem esforço. De propostas a guias até conteúdos. Ajusta tom, estrutura, formatação ou refina documentos existentes com reescritas rápidas e polimento.",
+        "capabilities": {
+          "0": "Propostas",
+          "1": "Guias e manuais",
+          "2": "Conteúdos",
+          "3": "Variações de tom e estilo",
+          "4": "Formatar e reestruturar",
+          "5": "+ Muito mais"
+        },
+        "imageAlt": "Exemplo de relatório executivo resumo Q3 2025",
+        "fileType": "PDF"
+      },
+      "research": {
+        "title": "Pesquisa",
+        "description": "Pesquisa tópicos de forma abrangente. De tendências de mercado a análises competitivas até estudos aprofundados. Coleta fontes, sintetiza descobertas ou refina pesquisas existentes com atualizações rápidas.",
+        "capabilities": {
+          "0": "Analisar tendências de mercado",
+          "1": "Pesquisa competitiva",
+          "2": "Estudos aprofundados de tópicos",
+          "3": "Coletar fontes",
+          "4": "Sintetizar descobertas",
+          "5": "+ Muito mais"
+        },
+        "imageAlt": "Exemplo de pesquisa Perfis detalhados de concorrentes",
+        "fileType": "PDF"
+      }
+    }
+  },
   "threads": {
     "title": "Threads",
     "newThread": "Nova Thread",
@@ -295,6 +422,8 @@
     "credits": "Créditos",
     "popular": "Popular",
     "creditsExplained": "Créditos explicados",
+    "creditsExhausted": "+200 Créditos em {time}. Atualize para usar agora.",
+    "creditsExhaustedRefreshIn": "Você esgotou seus créditos. Eles serão renovados em {time}",
     "trialActive": "Teste Ativo",
     "trialBadge": "Teste de 7 Dias",
     "currentPlan": "Plano Atual",
@@ -409,11 +538,38 @@
       "integrations": "100+ integrações",
       "premiumAIModels": "Modelos de IA Premium",
       "prioritySupport": "Suporte Prioritário"
+    },
+    "downgradeDialog": {
+      "confirmTitle": "Confirmar mudança de plano",
+      "confirmSubtitle": "Lamentamos ver você partir",
+      "confirmDescription": "Você está prestes a mudar para o plano {planName}. Esta alteração entrará em vigor no final do seu período de faturamento atual. Você manterá seus benefícios atuais até lá.",
+      "continue": "Continuar",
+      "keepCurrentPlan": "Manter meu plano atual",
+      "feedbackTitle": "Ajude-nos a melhorar",
+      "feedbackSubtitle": "Seu feedback molda o futuro do Kortix",
+      "whatWouldMakeYouStay": "O que faria você ficar?",
+      "feedbackPlaceholder": "Se houvesse uma coisa que pudéssemos mudar ou adicionar para tornar o Kortix valioso para você, qual seria?",
+      "feedbackFooter": "Nossa equipe lê cada resposta. Suas palavras influenciam diretamente o que construímos a seguir.",
+      "confirmDowngrade": "Confirmar downgrade",
+      "processing": "Processando...",
+      "pleaseSelectReason": "Por favor, selecione um motivo",
+      "reasons": {
+        "tooExpensive": "É muito caro para minhas necessidades",
+        "notUsingOften": "Não estou usando o Kortix o suficiente",
+        "foundAlternative": "Encontrei outra solução",
+        "technicalIssues": "Tive problemas técnicos",
+        "resultsNotGood": "Os resultados não atenderam às minhas expectativas",
+        "other": "Outro motivo"
+      }
     }
   },
   "auth": {
+    "haveReferralCode": "Tens um código de indicação?",
+    "referralCode": "Código de Indicação",
+    "enterCode": "Inserir código",
     "logIntoAccount": "Entra na tua conta",
     "createAccount": "Criar conta",
+    "signInOrCreateAccount": "Entra ou cria a tua conta Kortix",
     "continueWithGoogle": "Continuar com Google",
     "continueWithGitHub": "Continuar com GitHub",
     "orEmail": "ou email",
@@ -441,7 +597,22 @@
     "cancel": "Cancelar",
     "pleaseEnterValidEmail": "Por favor digite um endereço de email válido",
     "signInFailed": "Falha ao entrar. Confere teus dados.",
-    "signUpFailed": "Cadastro falhou. Tenta de novo."
+    "signUpFailed": "Cadastro falhou. Tenta de novo.",
+    "sendMagicLink": "Enviar magic link",
+    "sending": "Enviando...",
+    "magicLinkSent": "Enviamos um magic link para",
+    "magicLinkDescription": "Clica no link no teu email para entrar. O link expirará em 1 hora.",
+    "magicLinkExplanation": "Vamos te enviar um link seguro para entrar. Não precisa de senha.",
+    "magicLinkExpired": "Este link expirou",
+    "magicLinkExpiredDescription": "O magic link em que clicaste expirou. Os magic links expiram após 1 hora por razões de segurança.",
+    "resendMagicLink": "Reenviar magic link",
+    "resending": "A reenviar...",
+    "byContinuingYouAgree": "Ao continuar, concordas com a nossa <privacyPolicy>Política de Privacidade</privacyPolicy> e os nossos <termsOfService>Termos de Serviço</termsOfService>",
+    "openProvider": "Abrir {provider}",
+    "didntReceiveEmail": "Não recebeste o e-mail?",
+    "resend": "Reenviar",
+    "alreadySignedIn": "Já tens sessão iniciada. Nenhuma ação necessária.",
+    "goToDashboard": "Ir para o Painel"
   },
   "onboarding": {
     "welcome": "Bem-vindo",

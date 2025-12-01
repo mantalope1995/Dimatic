@@ -9,8 +9,8 @@ import { View, Pressable, Linking, Clipboard } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Icon } from '@/components/ui/icon';
 import * as Haptics from 'expo-haptics';
-import { 
-  Globe, 
+import {
+  Globe,
   ExternalLink,
   CheckCircle2,
   AlertCircle,
@@ -20,13 +20,13 @@ import {
 } from 'lucide-react-native';
 import type { ToolViewProps } from './types';
 
-export function ExposePortToolView({ toolData }: ToolViewProps) {
-  const { arguments: toolArgs, result } = toolData;
+export function ExposePortToolView({ toolCall, toolResult }: ToolViewProps) {
+  const toolArgs = typeof toolCall.arguments === 'object' ? toolCall.arguments : JSON.parse(toolCall.arguments);
   const [copied, setCopied] = useState(false);
-  const isError = !result.success;
+  const isError = !toolResult?.success;
 
   const port = toolArgs.port;
-  const publicUrl = result.output?.url || result.output?.public_url || '';
+  const publicUrl = toolResult?.output?.url || toolResult?.output?.public_url || '';
 
   const handleCopy = async () => {
     if (publicUrl) {
@@ -50,28 +50,13 @@ export function ExposePortToolView({ toolData }: ToolViewProps) {
   };
 
   return (
-    <View className="px-6 py-4 gap-6">
-      {/* Header */}
-      <View className="flex-row items-center gap-3">
-        <View className="bg-primary/10 rounded-2xl items-center justify-center" style={{ width: 48, height: 48 }}>
-          <Icon as={Globe} size={24} className="text-primary" />
-        </View>
-        <View className="flex-1">
-          <Text className="text-xs font-roobert-medium text-foreground/50 uppercase tracking-wider mb-1">
-            Port Exposure
-          </Text>
-          <Text className="text-xl font-roobert-semibold text-foreground">
-            Port Exposed
-          </Text>
-        </View>
-      </View>
-
+    <View className="px-6 gap-6">
       {/* Port Number */}
       <View className="gap-2">
         <Text className="text-xs font-roobert-medium text-foreground/50 uppercase tracking-wider">
           Local Port
         </Text>
-        <View className="bg-primary/10 border border-primary/20 rounded-2xl p-6 items-center">
+        <View className="bg-card border border-border rounded-2xl p-6 items-center">
           <Text className="text-4xl font-roobert-bold text-primary" selectable>
             {port}
           </Text>
@@ -84,34 +69,34 @@ export function ExposePortToolView({ toolData }: ToolViewProps) {
           <Text className="text-xs font-roobert-medium text-foreground/50 uppercase tracking-wider">
             Public URL
           </Text>
-          
+
           {/* URL Display */}
-          <View className="bg-primary/5 border border-primary/20 rounded-2xl p-4">
+          <View className="bg-card border border-border rounded-2xl p-4">
             <Text className="text-sm font-roobert text-primary leading-5" selectable>
               {publicUrl}
             </Text>
           </View>
-            
+
           {/* Action Buttons */}
           <View className="flex-row gap-3">
             <Pressable
               onPress={handleOpenUrl}
               className="flex-1 bg-primary active:opacity-80 rounded-2xl py-4 flex-row items-center justify-center gap-2"
             >
-              <Icon as={ExternalLink} size={18} className="text-white" />
-              <Text className="text-white text-base font-roobert-semibold">
+              <Icon as={ExternalLink} size={18} className="text-primary-foreground" />
+              <Text className="text-primary-foreground text-base font-roobert-semibold">
                 Open URL
               </Text>
             </Pressable>
-            
+
             <Pressable
               onPress={handleCopy}
-              className="bg-primary/10 border border-primary/20 active:bg-primary/20 rounded-2xl px-6 py-4 flex-row items-center justify-center gap-2"
+              className="bg-card border border-border active:bg-background rounded-2xl px-6 py-4 flex-row items-center justify-center gap-2"
             >
-              <Icon 
-                as={copied ? Check : Copy} 
-                size={18} 
-                className={copied ? 'text-primary' : 'text-primary'} 
+              <Icon
+                as={copied ? Check : Copy}
+                size={18}
+                className={copied ? 'text-primary' : 'text-primary'}
               />
               <Text className="text-primary text-base font-roobert-semibold">
                 {copied ? 'Copied!' : 'Copy'}
@@ -136,19 +121,17 @@ export function ExposePortToolView({ toolData }: ToolViewProps) {
         <Text className="text-xs font-roobert-medium text-foreground/50 uppercase tracking-wider">
           Status
         </Text>
-        <View className={`flex-row items-center gap-2 rounded-2xl p-4 border ${
-          isError 
-            ? 'bg-destructive/5 border-destructive/20' 
-            : 'bg-primary/5 border-primary/20'
-        }`}>
-          <Icon 
-            as={isError ? AlertCircle : CheckCircle2} 
-            size={18} 
-            className={isError ? 'text-destructive' : 'text-primary'} 
-          />
-          <Text className={`text-sm font-roobert-medium ${
-            isError ? 'text-destructive' : 'text-primary'
+        <View className={`flex-row items-center gap-2 rounded-2xl p-4 border ${isError
+          ? 'bg-destructive/5 border-destructive/20'
+          : 'bg-primary/5 border-primary/20'
           }`}>
+          <Icon
+            as={isError ? AlertCircle : CheckCircle2}
+            size={18}
+            className={isError ? 'text-destructive' : 'text-primary'}
+          />
+          <Text className={`text-sm font-roobert-medium ${isError ? 'text-destructive' : 'text-primary'
+            }`}>
             {isError ? 'Failed to Expose Port' : 'Port Successfully Exposed'}
           </Text>
         </View>

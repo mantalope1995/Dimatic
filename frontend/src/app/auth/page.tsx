@@ -4,36 +4,23 @@ import Link from 'next/link';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import GoogleSignIn from '@/components/GoogleSignIn';
+import { Button } from '@/components/ui/button';
 import { useMediaQuery } from '@/hooks/utils';
-import { useState, useEffect, Suspense } from 'react';
-import { signIn, signUp, forgotPassword } from './actions';
+import { useState, useEffect, Suspense, lazy } from 'react';
+import { signUp, resendMagicLink } from './actions';
 import { useSearchParams, useRouter } from 'next/navigation';
-import {
-  ArrowLeft,
-  X,
-  CheckCircle,
-  AlertCircle,
-  MailCheck,
-} from 'lucide-react';
-import { KortixLoader } from '@/components/ui/kortix-loader';
+import { MailCheck, Clock, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useAuthMethodTracking } from '@/stores/auth-tracking';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import GitHubSignIn from '@/components/GithubSignIn';
 import { KortixLogo } from '@/components/sidebar/kortix-logo';
-import { AnimatedBg } from '@/components/ui/animated-bg';
-import { ReleaseBadge } from '@/components/auth/release-badge';
+import { ReferralCodeDialog } from '@/components/referrals/referral-code-dialog';
+
+// Lazy load heavy components
+const GoogleSignIn = lazy(() => import('@/components/GoogleSignIn'));
+const GitHubSignIn = lazy(() => import('@/components/GithubSignIn'));
+const AnimatedBg = lazy(() => import('@/components/ui/animated-bg').then(mod => ({ default: mod.AnimatedBg })));
 
 function LoginContent() {
   const router = useRouter();
@@ -42,20 +29,27 @@ function LoginContent() {
   const mode = searchParams.get('mode');
   const returnUrl = searchParams.get('returnUrl') || searchParams.get('redirect');
   const message = searchParams.get('message');
+  const isExpired = searchParams.get('expired') === 'true';
+  const expiredEmail = searchParams.get('email') || '';
+  const referralCodeParam = searchParams.get('ref') || '';
   const t = useTranslations('auth');
 
-  const isSignUp = mode === 'signup';
+  const isSignUp = mode !== 'signin';
+  const [referralCode, setReferralCode] = useState(referralCodeParam);
+  const [showReferralInput, setShowReferralInput] = useState(false);
+  const [showReferralDialog, setShowReferralDialog] = useState(false);
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [mounted, setMounted] = useState(false);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false); // GDPR requires explicit opt-in
 
   const { wasLastMethod: wasEmailLastMethod, markAsUsed: markEmailAsUsed } = useAuthMethodTracking('email');
 
   useEffect(() => {
-    if (!isLoading && user) {
+    // Don't auto-redirect if showing expired link state
+    if (!isLoading && user && !isExpired) {
       router.push(returnUrl || '/dashboard');
     }
-  }, [user, isLoading, router, returnUrl]);
+  }, [user, isLoading, router, returnUrl, isExpired]);
 
   const isSuccessMessage =
     message &&
@@ -67,13 +61,11 @@ function LoginContent() {
   const [registrationSuccess, setRegistrationSuccess] =
     useState(!!isSuccessMessage);
   const [registrationEmail, setRegistrationEmail] = useState('');
-
-  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
-  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
-  const [forgotPasswordStatus, setForgotPasswordStatus] = useState<{
-    success?: boolean;
-    message?: string;
-  }>({});
+  
+  // Expired link state
+  const [linkExpired, setLinkExpired] = useState(isExpired);
+  const [expiredEmailState, setExpiredEmailState] = useState(expiredEmail);
+  const [resendEmail, setResendEmail] = useState('');
 
   useEffect(() => {
     setMounted(true);
@@ -85,26 +77,39 @@ function LoginContent() {
     }
   }, [isSuccessMessage]);
 
-  const handleSignIn = async (prevState: any, formData: FormData) => {
+  useEffect(() => {
+    if (isExpired) {
+      setLinkExpired(true);
+      if (expiredEmail) {
+        setExpiredEmailState(expiredEmail);
+      }
+    }
+  }, [isExpired, expiredEmail]);
+
+  const handleAuth = async (prevState: any, formData: FormData) => {
     markEmailAsUsed();
+
+    const email = formData.get('email') as string;
+    setRegistrationEmail(email);
 
     const finalReturnUrl = returnUrl || '/dashboard';
     formData.append('returnUrl', finalReturnUrl);
-    const result = await signIn(prevState, formData);
+    formData.append('origin', window.location.origin);
+    formData.append('acceptedTerms', acceptedTerms.toString());
 
-    if (
-      result &&
-      typeof result === 'object' &&
-      'success' in result &&
-      result.success &&
-      'redirectTo' in result
-    ) {
-      window.location.href = result.redirectTo as string;
-      return null;
+    const result = await signUp(prevState, formData);
+
+    // Magic link always returns success with message (no immediate redirect)
+    if (result && typeof result === 'object' && 'success' in result && result.success) {
+      if ('email' in result && result.email) {
+        setRegistrationEmail(result.email as string);
+        setRegistrationSuccess(true);
+        return result;
+      }
     }
 
     if (result && typeof result === 'object' && 'message' in result) {
-      toast.error(t('signInFailed'), {
+      toast.error(t('signUpFailed'), {
         description: result.message as string,
         duration: 5000,
       });
@@ -114,105 +119,183 @@ function LoginContent() {
     return result;
   };
 
-  const handleSignUp = async (prevState: any, formData: FormData) => {
+
+  // Helper to get email provider info for "Open in X" button
+  // Uses mobile deep links when on mobile devices
+  const getEmailProviderInfo = (email: string) => {
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (!domain) return null;
+    
+    // Detect mobile device for deep links
+    const isMobileDevice = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    // Provider config with web and mobile URLs
+    // Mobile URLs use deep links that open native apps if installed
+    const providers: { [key: string]: { name: string; webUrl: string; mobileUrl: string } } = {
+      // Gmail - googlemail:// opens Gmail app on iOS/Android
+      'gmail.com': { name: 'Gmail', webUrl: 'https://mail.google.com', mobileUrl: 'googlegmail://' },
+      'googlemail.com': { name: 'Gmail', webUrl: 'https://mail.google.com', mobileUrl: 'googlegmail://' },
+      // Outlook - ms-outlook:// opens Outlook app
+      'outlook.com': { name: 'Outlook', webUrl: 'https://outlook.live.com', mobileUrl: 'ms-outlook://' },
+      'hotmail.com': { name: 'Outlook', webUrl: 'https://outlook.live.com', mobileUrl: 'ms-outlook://' },
+      'live.com': { name: 'Outlook', webUrl: 'https://outlook.live.com', mobileUrl: 'ms-outlook://' },
+      'msn.com': { name: 'Outlook', webUrl: 'https://outlook.live.com', mobileUrl: 'ms-outlook://' },
+      // Yahoo - ymail:// opens Yahoo Mail app
+      'yahoo.com': { name: 'Yahoo Mail', webUrl: 'https://mail.yahoo.com', mobileUrl: 'ymail://' },
+      'yahoo.de': { name: 'Yahoo Mail', webUrl: 'https://mail.yahoo.com', mobileUrl: 'ymail://' },
+      'yahoo.co.uk': { name: 'Yahoo Mail', webUrl: 'https://mail.yahoo.com', mobileUrl: 'ymail://' },
+      // iCloud - Use web URL, Apple Mail is default on iOS
+      'icloud.com': { name: 'Mail', webUrl: 'https://www.icloud.com/mail', mobileUrl: 'message://' },
+      'me.com': { name: 'Mail', webUrl: 'https://www.icloud.com/mail', mobileUrl: 'message://' },
+      'mac.com': { name: 'Mail', webUrl: 'https://www.icloud.com/mail', mobileUrl: 'message://' },
+      // ProtonMail - protonmail:// opens ProtonMail app
+      'protonmail.com': { name: 'ProtonMail', webUrl: 'https://mail.proton.me', mobileUrl: 'protonmail://' },
+      'proton.me': { name: 'ProtonMail', webUrl: 'https://mail.proton.me', mobileUrl: 'protonmail://' },
+      'pm.me': { name: 'ProtonMail', webUrl: 'https://mail.proton.me', mobileUrl: 'protonmail://' },
+      // AOL - Use web URL (no widely-used deep link)
+      'aol.com': { name: 'AOL Mail', webUrl: 'https://mail.aol.com', mobileUrl: 'https://mail.aol.com' },
+      // Zoho - Use web URL
+      'zoho.com': { name: 'Zoho Mail', webUrl: 'https://mail.zoho.com', mobileUrl: 'https://mail.zoho.com' },
+      // GMX - Use web URL
+      'gmx.com': { name: 'GMX', webUrl: 'https://www.gmx.com', mobileUrl: 'https://www.gmx.com' },
+      'gmx.de': { name: 'GMX', webUrl: 'https://www.gmx.net', mobileUrl: 'https://www.gmx.net' },
+      'gmx.net': { name: 'GMX', webUrl: 'https://www.gmx.net', mobileUrl: 'https://www.gmx.net' },
+      'web.de': { name: 'WEB.DE', webUrl: 'https://web.de', mobileUrl: 'https://web.de' },
+      't-online.de': { name: 'T-Online', webUrl: 'https://email.t-online.de', mobileUrl: 'https://email.t-online.de' },
+    };
+    
+    const provider = providers[domain];
+    if (!provider) return null;
+    
+    return {
+      name: provider.name,
+      url: isMobileDevice ? provider.mobileUrl : provider.webUrl,
+    };
+  };
+
+  const handleResendMagicLink = async (prevState: any, formData: FormData) => {
     markEmailAsUsed();
 
-    const email = formData.get('email') as string;
+    const email = expiredEmailState || formData.get('email') as string;
+    if (!email) {
+      toast.error(t('pleaseEnterValidEmail'));
+      return {};
+    }
+    
     setRegistrationEmail(email);
 
     const finalReturnUrl = returnUrl || '/dashboard';
+    formData.append('email', email);
     formData.append('returnUrl', finalReturnUrl);
-
-    // Add origin for email redirects
     formData.append('origin', window.location.origin);
+    // If email is already known from expired link, assume terms were already accepted
+    formData.append('acceptedTerms', 'true');
 
-    const result = await signUp(prevState, formData);
+    const result = await resendMagicLink(prevState, formData);
 
-    // Check for success and redirectTo properties (direct login case)
-    if (
-      result &&
-      typeof result === 'object' &&
-      'success' in result &&
-      result.success &&
-      'redirectTo' in result
-    ) {
-      // Use window.location for hard navigation to avoid stale state
-      window.location.href = result.redirectTo as string;
-      return null; // Return null to prevent normal form action completion
+    // Magic link always returns success with message (no immediate redirect)
+    if (result && typeof result === 'object' && 'success' in result && result.success) {
+      if ('email' in result && result.email) {
+        setRegistrationEmail(result.email as string);
+        setLinkExpired(false);
+        setRegistrationSuccess(true);
+        // Clean up URL params
+        const params = new URLSearchParams(window.location.search);
+        params.delete('expired');
+        params.delete('email');
+        window.history.pushState({ path: window.location.pathname }, '', window.location.pathname + (params.toString() ? '?' + params.toString() : ''));
+        return result;
+      }
     }
 
-    // Check if registration was successful but needs email verification
     if (result && typeof result === 'object' && 'message' in result) {
-      const resultMessage = result.message as string;
-      if (resultMessage.includes('Check your email')) {
-        setRegistrationSuccess(true);
-
-        // Update URL without causing a refresh
-        const params = new URLSearchParams(window.location.search);
-        params.set('message', resultMessage);
-
-        const newUrl =
-          window.location.pathname +
-          (params.toString() ? '?' + params.toString() : '');
-
-        window.history.pushState({ path: newUrl }, '', newUrl);
-
-        return result;
-      } else {
-        toast.error(t('signUpFailed'), {
-          description: resultMessage,
-          duration: 5000,
-        });
-        return {};
-      }
+      toast.error(t('signUpFailed'), {
+        description: result.message as string,
+        duration: 5000,
+      });
+      return {};
     }
 
     return result;
   };
 
-  const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  // Don't block render while checking auth - let content show immediately
+  // The useEffect will redirect if user is already authenticated
 
-    setForgotPasswordStatus({});
-
-    if (!forgotPasswordEmail || !forgotPasswordEmail.includes('@')) {
-      setForgotPasswordStatus({
-        success: false,
-        message: t('pleaseEnterValidEmail'),
-      });
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('email', forgotPasswordEmail);
-    formData.append('origin', window.location.origin);
-
-    const result = await forgotPassword(null, formData);
-
-    setForgotPasswordStatus(result);
-  };
-
-  const resetRegistrationSuccess = () => {
-    setRegistrationSuccess(false);
-    // Remove message from URL and set mode to signin
-    const params = new URLSearchParams(window.location.search);
-    params.delete('message');
-    params.set('mode', 'signin');
-
-    const newUrl =
-      window.location.pathname +
-      (params.toString() ? '?' + params.toString() : '');
-
-    window.history.pushState({ path: newUrl }, '', newUrl);
-
-    router.refresh();
-  };
-
-  // Show loading spinner while checking auth state
-  if (isLoading) {
+  // Expired link view - always show resend form (Supabase clears session on expired links anyway)
+  if (linkExpired) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <KortixLoader size="large" />
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-md mx-auto">
+          <div className="text-center">
+            <div className="bg-orange-50 dark:bg-orange-950/20 rounded-full p-4 mb-6 inline-flex">
+              <Clock className="h-12 w-12 text-orange-500 dark:text-orange-400" />
+            </div>
+
+            <h1 className="text-3xl font-semibold text-foreground mb-4">
+              {t('magicLinkExpired')}
+            </h1>
+
+            <p className="text-muted-foreground mb-6">
+              {t('magicLinkExpiredDescription')}
+            </p>
+
+            {expiredEmailState && (
+              <p className="text-lg font-medium mb-6 text-foreground">
+                {expiredEmailState}
+              </p>
+            )}
+
+            <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/50 rounded-lg p-4 mb-8">
+              <p className="text-sm text-orange-800 dark:text-orange-400">
+                {t('magicLinkDescription')}
+              </p>
+            </div>
+
+            <form className="space-y-4">
+              {!expiredEmailState && (
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder={t('emailAddress')}
+                  required
+                  onChange={(e) => setResendEmail(e.target.value)}
+                />
+              )}
+
+              <SubmitButton
+                formAction={handleResendMagicLink}
+                className="w-full h-10"
+                pendingText={t('resending')}
+                disabled={!expiredEmailState && !resendEmail}
+              >
+                {t('resendMagicLink')}
+              </SubmitButton>
+
+              {/* Show "Open X" button when email is known */}
+              {(() => {
+                const email = expiredEmailState || resendEmail;
+                const provider = email ? getEmailProviderInfo(email) : null;
+                if (provider) {
+                  return (
+                    <Button asChild variant="outline" size="lg" className="w-full">
+                      <a
+                        href={provider.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {t('openProvider', { provider: provider.name })}
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  );
+                }
+                return null;
+              })()}
+            </form>
+          </div>
+        </div>
       </div>
     );
   }
@@ -232,7 +315,7 @@ function LoginContent() {
             </h1>
 
             <p className="text-muted-foreground mb-2">
-              {t('confirmationLinkSent')}
+              {t('magicLinkSent') || 'We sent a magic link to'}
             </p>
 
             <p className="text-lg font-medium mb-6">
@@ -241,24 +324,44 @@ function LoginContent() {
 
             <div className="bg-green-50 dark:bg-green-950/20 border border-green-100 dark:border-green-900/50 rounded-lg p-4 mb-8">
               <p className="text-sm text-green-800 dark:text-green-400">
-                {t('clickLinkToActivate')}
+                {t('magicLinkDescription') || 'Click the link in your email to sign in. The link will expire in 1 hour.'}
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-              <Link
-                href="/"
-                className="flex h-11 items-center justify-center px-6 text-center rounded-lg border border-border bg-background hover:bg-accent transition-colors"
-              >
-                {t('returnToHome')}
-              </Link>
+            {(() => {
+              const provider = registrationEmail ? getEmailProviderInfo(registrationEmail) : null;
+              if (provider) {
+                return (
+                  <Button asChild size="lg" className="w-full">
+                    <a
+                      href={provider.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t('openProvider', { provider: provider.name })}
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  </Button>
+                );
+              }
+              return null;
+            })()}
+
+            <p className="text-sm text-muted-foreground text-center mt-6">
+              {t('didntReceiveEmail')}{' '}
               <button
-                onClick={resetRegistrationSuccess}
-                className="flex h-11 items-center justify-center px-6 text-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                onClick={() => {
+                  setRegistrationSuccess(false);
+                  const params = new URLSearchParams(window.location.search);
+                  params.set('mode', 'signin');
+                  const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+                  window.history.pushState({ path: newUrl }, '', newUrl);
+                }}
+                className="text-primary hover:underline font-medium"
               >
-                {t('backToSignIn')}
+                {t('resend')}
               </button>
-            </div>
+            </p>
           </div>
         </div>
       </div>
@@ -277,12 +380,16 @@ function LoginContent() {
           <div className="w-full max-w-sm">
             <div className="mb-4 flex items-center flex-col gap-3 sm:gap-4 justify-center">
               <h1 className="text-xl sm:text-2xl font-semibold text-foreground text-center leading-tight">
-                {isSignUp ? t('createAccount') : t('logIntoAccount')}
+                {t('signInOrCreateAccount')}
               </h1>
             </div>
             <div className="space-y-3 mb-4">
-              <GoogleSignIn returnUrl={returnUrl || undefined} />
-              <GitHubSignIn returnUrl={returnUrl || undefined} />
+              <Suspense fallback={<div className="h-11 bg-muted/20 rounded-full animate-pulse" />}>
+                <GoogleSignIn returnUrl={returnUrl || undefined} referralCode={referralCode} />
+              </Suspense>
+              <Suspense fallback={<div className="h-11 bg-muted/20 rounded-full animate-pulse" />}>
+                <GitHubSignIn returnUrl={returnUrl || undefined} referralCode={referralCode} />
+              </Suspense>
             </div>
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
@@ -294,280 +401,132 @@ function LoginContent() {
                 </span>
               </div>
             </div>
-            <form className="space-y-3">
+            <form className="space-y-4">
               <Input
                 id="email"
                 name="email"
                 type="email"
                 placeholder={t('emailAddress')}
-                className=""
                 required
               />
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder={t('password')}
-                className=""
-                required
-              />
-              {isSignUp && (
-                <>
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    placeholder={t('confirmPassword')}
-                    className=""
-                    required
-                  />
-                  
-                  {/* GDPR Consent Checkbox */}
-                  <div className="flex items-center gap-3 my-4">
-                    <Checkbox
-                      id="gdprConsent"
-                      checked={acceptedTerms}
-                      onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
-                      required
-                    />
-                    <label 
-                      htmlFor="gdprConsent" 
-                      className="text-sm text-muted-foreground leading-none cursor-pointer select-none"
-                    >
-                      {(() => {
-                        // Get the base translation text
-                        const baseText = t('acceptPrivacyTerms');
-                        const privacyText = t('privacyPolicy');
-                        const termsText = t('termsOfService');
-                        
-                        // For Italian: "Accetto l'<privacyPolicy>Informativa sulla Privacy</privacyPolicy> e i <termsOfService>Termini di Servizio</termsOfService>"
-                        // For English: "I accept the <privacyPolicy>Privacy Policy</privacyPolicy> and <termsOfService>Terms of Service</termsOfService>"
-                        // For German: "Ich akzeptiere die <privacyPolicy>Datenschutzerklärung</privacyPolicy> und die <termsOfService>Nutzungsbedingungen</termsOfService>"
-                        
-                        // Parse the string and replace tags with links
-                        const parts: React.ReactNode[] = [];
-                        let lastIndex = 0;
-                        
-                        // Find privacyPolicy tag
-                        const privacyRegex = /<privacyPolicy>(.*?)<\/privacyPolicy>/;
-                        const privacyMatch = baseText.match(privacyRegex);
-                        
-                        if (privacyMatch) {
-                          // Add text before privacyPolicy tag
-                          if (privacyMatch.index! > lastIndex) {
-                            parts.push(baseText.substring(lastIndex, privacyMatch.index!));
-                          }
-                          // Add privacyPolicy link
-                          parts.push(
-                            <a 
-                              key="privacy"
-                              href="https://www.kortix.com/legal?tab=privacy" 
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="hover:underline underline-offset-2 transition-colors text-primary"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {privacyMatch[1]}
-                            </a>
-                          );
-                          lastIndex = privacyMatch.index! + privacyMatch[0].length;
-                        }
-                        
-                        // Find termsOfService tag
-                        const termsRegex = /<termsOfService>(.*?)<\/termsOfService>/;
-                        const termsMatch = baseText.match(termsRegex);
-                        
-                        if (termsMatch) {
-                          // Add text before termsOfService tag
-                          if (termsMatch.index! > lastIndex) {
-                            parts.push(baseText.substring(lastIndex, termsMatch.index!));
-                          }
-                          // Add termsOfService link
-                          parts.push(
-                            <a 
-                              key="terms"
-                              href="https://www.kortix.com/legal?tab=terms"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="hover:underline underline-offset-2 transition-colors text-primary"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {termsMatch[1]}
-                            </a>
-                          );
-                          lastIndex = termsMatch.index! + termsMatch[0].length;
-                        }
-                        
-                        // Add remaining text
-                        if (lastIndex < baseText.length) {
-                          parts.push(baseText.substring(lastIndex));
-                        }
-                        
-                        // If no tags found, fallback to simple text with manual links
-                        if (parts.length === 0) {
-                          // Fallback: try to find the text and replace manually
-                          const privacyIndex = baseText.indexOf(privacyText);
-                          const termsIndex = baseText.indexOf(termsText);
-                          
-                          if (privacyIndex !== -1 && termsIndex !== -1) {
-                            parts.push(baseText.substring(0, privacyIndex));
-                            parts.push(
-                              <a 
-                                key="privacy"
-                                href="https://www.kortix.com/legal?tab=privacy" 
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:underline underline-offset-2 transition-colors text-primary"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {privacyText}
-                              </a>
-                            );
-                            parts.push(baseText.substring(privacyIndex + privacyText.length, termsIndex));
-                            parts.push(
-                              <a 
-                                key="terms"
-                                href="https://www.kortix.com/legal?tab=terms"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:underline underline-offset-2 transition-colors text-primary"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {termsText}
-                              </a>
-                            );
-                            parts.push(baseText.substring(termsIndex + termsText.length));
-                          } else {
-                            // Last resort: just show the text
-                            parts.push(baseText);
-                          }
-                        }
-                        
-                        return <>{parts}</>;
-                      })()}
-                    </label>
-                  </div>
-                </>
-              )}
-              <div className="pt-2">
-                <div className="relative">
-                  <SubmitButton
-                    formAction={isSignUp ? handleSignUp : handleSignIn}
-                    className="w-full h-10"
-                    pendingText={isSignUp ? t('creatingAccount') : t('signingIn')}
-                    disabled={isSignUp && !acceptedTerms}
-                  >
-                    {isSignUp ? t('signUp') : t('signIn')}
-                  </SubmitButton>
-                  {wasEmailLastMethod && (
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background shadow-sm">
-                      <div className="w-full h-full bg-green-500 rounded-full animate-pulse" />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </form>
 
-            <div className="mt-4 space-y-3 text-center text-sm">
-              {!isSignUp && (
+              {referralCodeParam && (
+                <div className="bg-card border rounded-xl p-3">
+                  <p className="text-xs text-muted-foreground mb-1">{t('referralCode')}</p>
+                  <p className="text-sm font-semibold">{referralCode}</p>
+                </div>
+              )}
+
+              {!referralCodeParam && <input type="hidden" name="referralCode" value={referralCode} />}
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="gdprConsent"
+                  checked={acceptedTerms}
+                  onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                  required
+                  className="h-5 w-5"
+                />
+                <label 
+                  htmlFor="gdprConsent" 
+                  className="text-xs text-muted-foreground leading-relaxed cursor-pointer select-none flex-1"
+                >
+                  {t.rich('acceptPrivacyTerms', {
+                    privacyPolicy: (chunks) => {
+                      return (
+                        <a 
+                          href="https://www.kortix.com/legal?tab=privacy" 
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline underline-offset-2 text-primary"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {chunks}
+                        </a>
+                      );
+                    },
+                    termsOfService: (chunks) => {
+                      return (
+                        <a 
+                          href="https://www.kortix.com/legal?tab=terms"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline underline-offset-2 text-primary"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {chunks}
+                        </a>
+                      );
+                    }
+                  })}
+                </label>
+              </div>
+
+              <div className="relative">
+                <SubmitButton
+                  formAction={handleAuth}
+                  className="w-full h-10"
+                  pendingText={t('sending')}
+                  disabled={!acceptedTerms}
+                >
+                  {t('sendMagicLink')}
+                </SubmitButton>
+                {wasEmailLastMethod && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background shadow-sm">
+                    <div className="w-full h-full bg-green-500 rounded-full animate-pulse" />
+                  </div>
+                )}
+              </div>
+
+              {/* Magic Link Explanation */}
+              <p className="text-xs text-muted-foreground text-center">
+                {t('magicLinkExplanation')}
+              </p>
+              
+              {/* Minimal Referral Link */}
+              {!referralCodeParam && (
                 <button
                   type="button"
-                  onClick={() => setForgotPasswordOpen(true)}
-                  className="text-primary hover:underline"
+                  onClick={() => setShowReferralDialog(true)}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors w-full text-center mt-1"
                 >
-                  {t('forgotPassword')}
+                  Have a referral code?
                 </button>
               )}
-
-              <div>
-                <Link
-                  href={isSignUp
-                    ? `/auth${returnUrl ? `?returnUrl=${returnUrl}` : ''}`
-                    : `/auth?mode=signup${returnUrl ? `&returnUrl=${returnUrl}` : ''}`
-                  }
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {isSignUp
-                    ? t('alreadyHaveAccount')
-                    : t('dontHaveAccount')
-                  }
-                </Link>
-              </div>
-            </div>
+            </form>
+            
+            {/* Referral Code Dialog */}
+            <ReferralCodeDialog
+              open={showReferralDialog}
+              onOpenChange={setShowReferralDialog}
+              referralCode={referralCode}
+              onCodeChange={(code) => {
+                setReferralCode(code);
+                setShowReferralDialog(false);
+              }}
+            />
           </div>
         </div>
         <div className="hidden lg:flex flex-1 items-center justify-center relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-accent/10" />
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-            <AnimatedBg
-              variant="hero"
-              customArcs={{
-                left: [
-                  { pos: { left: -120, top: 150 }, opacity: 0.15 },
-                  { pos: { left: -120, top: 400 }, opacity: 0.18 },
-                ],
-                right: [
-                  { pos: { right: -150, top: 50 }, opacity: 0.2 },
-                  { pos: { right: 10, top: 650 }, opacity: 0.17 },
-                ]
-              }}
-            />
+            <Suspense fallback={null}>
+              <AnimatedBg
+                variant="hero"
+                customArcs={{
+                  left: [
+                    { pos: { left: -120, top: 150 }, opacity: 0.15 },
+                    { pos: { left: -120, top: 400 }, opacity: 0.18 },
+                  ],
+                  right: [
+                    { pos: { right: -150, top: 50 }, opacity: 0.2 },
+                    { pos: { right: 10, top: 650 }, opacity: 0.17 },
+                  ]
+                }}
+              />
+            </Suspense>
           </div>
         </div>
       </div>
-      <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <DialogTitle>{t('resetPassword')}</DialogTitle>
-            </div>
-            <DialogDescription>
-              {t('resetPasswordDescription')}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleForgotPassword} className="space-y-4">
-            <Input
-              id="forgot-password-email"
-              type="email"
-              placeholder={t('emailAddress')}
-              value={forgotPasswordEmail}
-              onChange={(e) => setForgotPasswordEmail(e.target.value)}
-              className=""
-              required
-            />
-            {forgotPasswordStatus.message && (
-              <div
-                className={`p-3 rounded-md flex items-center gap-3 ${forgotPasswordStatus.success
-                  ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900/50 text-green-800 dark:text-green-400'
-                  : 'bg-destructive/10 border border-destructive/20 text-destructive'
-                  }`}
-              >
-                {forgotPasswordStatus.success ? (
-                  <CheckCircle className="h-4 w-4 flex-shrink-0" />
-                ) : (
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                )}
-                <span className="text-sm">{forgotPasswordStatus.message}</span>
-              </div>
-            )}
-            <DialogFooter className="gap-2">
-              <button
-                type="button"
-                onClick={() => setForgotPasswordOpen(false)}
-                className="h-10 px-4 border border-border bg-background hover:bg-accent transition-colors rounded-md"
-              >
-                {t('cancel')}
-              </button>
-              <button
-                type="submit"
-                className="h-10 px-4 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors rounded-md"
-              >
-                {t('sendResetLink')}
-              </button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

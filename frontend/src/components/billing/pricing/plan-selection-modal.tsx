@@ -4,6 +4,7 @@ import * as React from 'react';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogTitle,
 } from '@/components/ui/dialog';
 import { X } from 'lucide-react';
@@ -11,10 +12,6 @@ import { Button } from '@/components/ui/button';
 import { PricingSection } from './pricing-section';
 import { KortixLogo } from '@/components/sidebar/kortix-logo';
 import { cn } from '@/lib/utils';
-import { useQueryClient } from '@tanstack/react-query';
-import { billingKeys } from '@/hooks/billing/use-subscription';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import { usePricingModalStore } from '@/stores/pricing-modal-store';
 
 interface PlanSelectionModalProps {
@@ -32,45 +29,20 @@ export function PlanSelectionModal({
     creditsExhausted = false,
     upgradeReason: controlledUpgradeReason,
 }: PlanSelectionModalProps) {
-    const defaultReturnUrl = typeof window !== 'undefined' ? window.location.href : '/';
-    const queryClient = useQueryClient();
-    const router = useRouter();
+    const defaultReturnUrl = typeof window !== 'undefined' ? `${window.location.origin}/dashboard?subscription=success` : '/';
     
-    const { isOpen: storeIsOpen, customTitle: storeCustomTitle, returnUrl: storeReturnUrl, closePricingModal, isAlert: storeIsAlert, alertTitle: storeAlertTitle } = usePricingModalStore();
+    const { isOpen: storeIsOpen, customTitle: storeCustomTitle, returnUrl: storeReturnUrl, closePricingModal, isAlert: storeIsAlert, alertTitle: storeAlertTitle, alertSubtitle: storeAlertSubtitle } = usePricingModalStore();
     
     const isOpen = controlledOpen !== undefined ? controlledOpen : storeIsOpen;
     const onOpenChange = controlledOnOpenChange || ((open: boolean) => !open && closePricingModal());
     const returnUrl = controlledReturnUrl || storeReturnUrl || defaultReturnUrl;
     const displayReason = controlledUpgradeReason || storeCustomTitle;
 
-    useEffect(() => {
-        if (isOpen && typeof window !== 'undefined') {
-            // Use URLSearchParams directly from window.location instead of useSearchParams()
-            // This avoids the Suspense boundary requirement
-            const searchParams = new URLSearchParams(window.location.search);
-            const checkoutSuccess = searchParams.get('checkout');
-            const sessionId = searchParams.get('session_id');
-            const clientSecret = searchParams.get('client_secret');
-            
-            // If we have checkout success indicators, invalidate billing queries
-            if (checkoutSuccess === 'success' || sessionId || clientSecret) {
-                console.log('🔄 Checkout success detected in modal, invalidating billing queries...');
-                queryClient.invalidateQueries({ queryKey: billingKeys.all });
-                
-                // Clean up URL params
-                const url = new URL(window.location.href);
-                url.searchParams.delete('checkout');
-                url.searchParams.delete('session_id');
-                url.searchParams.delete('client_secret');
-                router.replace(url.pathname + url.search, { scroll: false });
-            }
-        }
-    }, [isOpen, queryClient, router]);
+    // Note: Checkout success detection is handled by dashboard-content.tsx
+    // The modal just needs to close after subscription updates
 
     const handleSubscriptionUpdate = () => {
-        // Invalidate all billing queries
-        queryClient.invalidateQueries({ queryKey: billingKeys.all });
-        // Close modal after successful upgrade
+        // Let the dashboard handle cache invalidation - just close the modal
         setTimeout(() => {
             onOpenChange(false);
         }, 500);
@@ -89,7 +61,10 @@ export function PlanSelectionModal({
                 <DialogTitle className="sr-only">
                     {displayReason || (creditsExhausted ? 'You\'re out of credits' : 'Select a Plan')}
                 </DialogTitle>
-                <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-5 pointer-events-none bg-transparent">
+                <DialogDescription className="sr-only">
+                    {displayReason || (creditsExhausted ? 'Choose a plan to continue using Kortix' : 'Choose the plan that best fits your needs')}
+                </DialogDescription>
+                <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-5 pointer-events-none bg-background/80 backdrop-blur-md lg:bg-transparent lg:backdrop-blur-none">
                     <div className="flex-1" />
                     
                     <div className="absolute -translate-y-1/2 top-1/2 left-1/2 -translate-x-1/2 pointer-events-none">
@@ -108,8 +83,8 @@ export function PlanSelectionModal({
                         </Button>
                     </div>
                 </div>
-                <div className="w-full h-full flex items-center justify-center overflow-hidden bg-background pt-[67px]">
-                    <div className="xl:scale-90 2xl:scale-100 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+                <div className="w-full h-full overflow-y-auto lg:overflow-hidden overflow-x-hidden bg-background pt-[67px] lg:flex lg:items-center lg:justify-center">
+                    <div className="xl:scale-90 2xl:scale-100 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 lg:pt-0 pb-8 lg:pb-0 min-h-full lg:min-h-0 flex items-center justify-center">
                         <PricingSection
                             returnUrl={returnUrl || defaultReturnUrl}
                             showTitleAndTabs={true}
@@ -118,6 +93,7 @@ export function PlanSelectionModal({
                             customTitle={displayReason || (creditsExhausted ? "You ran out of credits. Upgrade now." : undefined)}
                             isAlert={storeIsAlert}
                             alertTitle={storeAlertTitle}
+                            alertSubtitle={storeAlertSubtitle}
                             onSubscriptionUpdate={handleSubscriptionUpdate}
                         />
                     </div>

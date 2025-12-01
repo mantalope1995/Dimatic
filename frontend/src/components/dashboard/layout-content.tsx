@@ -1,23 +1,72 @@
 'use client';
 
 import { useEffect } from 'react';
-import { FloatingMobileMenuButton } from '@/components/sidebar/sidebar-left';
+import { useParams } from 'next/navigation';
+import { Suspense, lazy } from 'react';
 import { useAccounts } from '@/hooks/account';
 import { useAuth } from '@/components/AuthProvider';
 import { useMaintenanceNoticeQuery } from '@/hooks/edge-flags';
 import { useRouter } from 'next/navigation';
-import { KortixLoader } from '@/components/ui/kortix-loader';
 import { useApiHealth } from '@/hooks/usage/use-health';
-import { MaintenancePage } from '@/components/maintenance/maintenance-page';
-import { StatusOverlay } from '@/components/ui/status-overlay';
 import { useAdminRole } from '@/hooks/admin';
+import { usePresence } from '@/hooks/use-presence';
 
-import { useProjects, useThreads } from '@/hooks/sidebar/use-sidebar';
+import { useProjects } from '@/hooks/sidebar/use-sidebar';
 import { useIsMobile } from '@/hooks/utils';
-import { useAgents } from '@/hooks/agents/use-agents';
-import { PresentationViewerWrapper } from '@/stores/presentation-viewer-store';
-import { OnboardingProvider } from '@/components/onboarding/onboarding-provider';
 import { AppProviders } from '@/components/layout/app-providers';
+
+// Lazy load heavy components that aren't needed for initial render
+const FloatingMobileMenuButton = lazy(() => 
+  import('@/components/sidebar/sidebar-left').then(mod => ({ default: mod.FloatingMobileMenuButton }))
+);
+const MaintenancePage = lazy(() => 
+  import('@/components/maintenance/maintenance-page').then(mod => ({ default: mod.MaintenancePage }))
+);
+const StatusOverlay = lazy(() => 
+  import('@/components/ui/status-overlay').then(mod => ({ default: mod.StatusOverlay }))
+);
+const PresentationViewerWrapper = lazy(() => 
+  import('@/stores/presentation-viewer-store').then(mod => ({ default: mod.PresentationViewerWrapper }))
+);
+
+const OnboardingProvider = lazy(() => 
+  import('@/components/onboarding/onboarding-provider').then(mod => ({ default: mod.OnboardingProvider }))
+);
+const WelcomeBonusBanner = lazy(() => 
+  import('@/components/billing/welcome-bonus-banner').then(mod => ({ default: mod.WelcomeBonusBanner }))
+);
+
+const PresenceDebug = lazy(() => 
+  import('@/components/debug/presence-debug').then(mod => ({ default: mod.PresenceDebug }))
+);
+
+// Skeleton shell that renders immediately for FCP
+function DashboardSkeleton() {
+  return (
+    <div className="flex h-screen w-full bg-background">
+      {/* Sidebar skeleton */}
+      <div className="hidden md:flex w-[280px] flex-col border-r border-border bg-sidebar">
+        <div className="p-4 space-y-4">
+          <div className="h-8 w-32 bg-muted/40 rounded animate-pulse" />
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-10 bg-muted/30 rounded animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+      {/* Main content skeleton */}
+      <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-full max-w-3xl px-4 space-y-6">
+            <div className="h-10 w-64 mx-auto bg-muted/30 rounded animate-pulse" />
+            <div className="h-24 bg-muted/20 rounded-xl animate-pulse" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface DashboardLayoutContentProps {
   children: React.ReactNode;
@@ -27,6 +76,11 @@ export default function DashboardLayoutContent({
   children,
 }: DashboardLayoutContentProps) {
   const { user, isLoading } = useAuth();
+  const params = useParams();
+  const threadId = params?.threadId as string | undefined;
+  
+  usePresence(threadId);
+  
   const { data: accounts } = useAccounts({ enabled: !!user });
   const personalAccount = accounts?.find((account) => account.personal_account);
   const router = useRouter();
@@ -39,13 +93,6 @@ export default function DashboardLayoutContent({
   } = useApiHealth();
 
   const { data: projects } = useProjects();
-  const { data: threads } = useThreads();
-  const { data: agentsResponse } = useAgents({
-    limit: 100,
-    sort_by: 'name',
-    sort_order: 'asc'
-  });
-
   const { data: adminRoleData, isLoading: isCheckingAdminRole } = useAdminRole();
   const isAdmin = adminRoleData?.isAdmin ?? false;
 
@@ -54,13 +101,11 @@ export default function DashboardLayoutContent({
     if (isMobile) {
       console.log('📱 Mobile Layout - Prefetched data:', {
         projects: projects?.length || 0,
-        threads: threads?.length || 0,
-        agents: agentsResponse?.agents?.length || 0,
         accounts: accounts?.length || 0,
         user: !!user
       });
     }
-  }, [isMobile, projects, threads, agentsResponse, accounts, user]);
+  }, [isMobile, projects, accounts, user]);
 
   // API health is now managed by useApiHealth hook
   const isApiHealthy = healthData?.status === 'ok' && !healthError;
@@ -74,54 +119,64 @@ export default function DashboardLayoutContent({
 
   const mantenanceBanner: React.ReactNode | null = null;
 
-  // Show loading state only while checking auth (not maintenance status)
-  // Maintenance check now has placeholder data to prevent flash
-  // Health check errors should show the maintenance page, not infinite loading
+  // Show skeleton immediately for FCP while checking auth
+  // This allows content to paint quickly instead of blocking
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <KortixLoader size="large" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
-  // Don't render anything if not authenticated
+  // Redirect to auth if not authenticated (don't block render)
   if (!user) {
-    return null;
+    return <DashboardSkeleton />;
   }
 
   // Show maintenance page if maintenance mode is enabled
-  // Only show if we have actual data (not placeholder) or if explicitly enabled
-  // Bypass maintenance for admins after role check completes
+  // Lazy loaded to not impact initial FCP
   if (maintenanceNotice?.enabled && !maintenanceLoading && !isCheckingAdminRole && !isAdmin) {
-    return <MaintenancePage/>
+    return (
+      <Suspense fallback={<DashboardSkeleton />}>
+        <MaintenancePage />
+      </Suspense>
+    );
   }
 
-  // Show maintenance page if API is not healthy OR if health check failed
-  // But only after initial check completes (not during loading with placeholder data)
-  // This prevents flash during navigation when placeholder data is being used
-  // Bypass for admins after role check completes
+  // Show maintenance page if API is not healthy
   if (!isCheckingHealth && !isCheckingAdminRole && (!isApiHealthy || healthError) && !isAdmin) {
-    return <MaintenancePage />;
+    return (
+      <Suspense fallback={<DashboardSkeleton />}>
+        <MaintenancePage />
+      </Suspense>
+    );
   }
 
   return (
     <AppProviders 
       showSidebar={true}
       sidebarSiblings={
-        <>
-            {/* Status overlay for deletion operations */}
-            <StatusOverlay />
-            {/* Floating mobile menu button */}
-            <FloatingMobileMenuButton />
-        </>
+        <Suspense fallback={null}>
+          {/* Status overlay for deletion operations */}
+          <StatusOverlay />
+          {/* Floating mobile menu button */}
+          <FloatingMobileMenuButton />
+        </Suspense>
       }
     >
-      <OnboardingProvider>
-        {mantenanceBanner}
-        <div className="bg-background">{children}</div>
-        </OnboardingProvider>
-        <PresentationViewerWrapper />
+      <div className="relative h-full">
+        {/* Site-wide welcome bonus banner for free tier users */}
+        <Suspense fallback={null}>
+          <WelcomeBonusBanner />
+        </Suspense>
+        
+        <Suspense fallback={null}>
+          <OnboardingProvider>
+            {mantenanceBanner}
+            <div className="bg-background">{children}</div>
+          </OnboardingProvider>
+        </Suspense>
+        <Suspense fallback={null}>
+          <PresentationViewerWrapper />
+        </Suspense>
+      </div>
     </AppProviders>
   );
 }

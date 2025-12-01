@@ -1,13 +1,9 @@
 import * as React from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, View, Keyboard, ScrollView, ActivityIndicator, Alert, Modal, RefreshControl } from 'react-native';
+import { Platform, Pressable, View, ScrollView, Alert, Modal, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import Animated, {
   useAnimatedStyle,
-  withSpring,
-  useAnimatedKeyboard,
-  FadeIn,
-  withRepeat,
   withTiming,
   useSharedValue,
   withDelay,
@@ -21,16 +17,13 @@ import { useChatCommons, type UseChatReturn, useDeleteThread, useShareThread } f
 import { useThread } from '@/lib/chat';
 import { Text } from '@/components/ui/text';
 import { Icon } from '@/components/ui/icon';
-import { MessageCircle, ArrowDown, AlertCircle, X, RefreshCw } from 'lucide-react-native';
+import { MessageCircle, ArrowDown, AlertCircle, X } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import * as Haptics from 'expo-haptics';
 
 interface ThreadPageProps {
   onMenuPress?: () => void;
   chat: UseChatReturn;
   isAuthenticated: boolean;
-  onOpenAuthDrawer: () => void;
 }
 
 const DynamicIslandRefresh = React.memo(function DynamicIslandRefresh({
@@ -230,9 +223,7 @@ export function ThreadPage({
   onMenuPress,
   chat,
   isAuthenticated,
-  onOpenAuthDrawer,
 }: ThreadPageProps) {
-  // Use shared chat commons hook
   const { agentManager, audioRecorder, audioHandlers, isTranscribing } = useChatCommons(chat);
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -242,17 +233,13 @@ export function ThreadPage({
   const [isFileManagerVisible, setIsFileManagerVisible] = React.useState(false);
   const [selectedFilePath, setSelectedFilePath] = React.useState<string | undefined>();
 
-  // Thread actions hooks
   const deleteThreadMutation = useDeleteThread();
   const shareThreadMutation = useShareThread();
 
-  // Get full thread data with sandbox info
   const { data: fullThreadData, refetch: refetchThreadData } = useThread(chat.activeThread?.id);
 
-  // Refetch thread data when file manager opens to ensure latest sandbox info
   React.useEffect(() => {
     if (isFileManagerVisible) {
-      console.log('[ThreadPage] File manager opened - refetching thread/sandbox data...');
       refetchThreadData();
     }
   }, [isFileManagerVisible, refetchThreadData]);
@@ -310,32 +297,53 @@ export function ThreadPage({
     }
   }, []);
 
-  // Scroll to bottom function
   const scrollToBottom = React.useCallback(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
     setIsUserScrolling(false);
     setShowScrollToBottom(false);
   }, []);
 
-  // Pull to refresh handler
   const handleRefresh = React.useCallback(async () => {
     if (chat.isStreaming || chat.isAgentRunning) {
-      console.log('⚠️ Cannot refresh while streaming');
       return;
     }
 
-    console.log('🔄 Pull to refresh triggered');
     setIsRefreshing(true);
 
     try {
       await chat.refreshMessages();
-      console.log('✅ Messages refreshed');
     } catch (error) {
-      console.error('❌ Failed to refresh:', error);
+      console.error('Failed to refresh:', error);
     } finally {
       setIsRefreshing(false);
     }
   }, [chat]);
+
+  // Memoized handlers for ThreadContent
+  const handleToolClick = React.useCallback((assistantMessageId: string | null, toolName: string) => {
+    // Tool click handler - can be extended for analytics
+  }, []);
+
+  const handleToolPress = React.useCallback((toolMessages: ToolMessagePair[], initialIndex: number) => {
+    chat.setSelectedToolData({ toolMessages, initialIndex });
+  }, [chat]);
+
+  const handleFilePress = React.useCallback((filePath: string) => {
+    const normalizedPath = filePath.startsWith('/') ? filePath : `/workspace/${filePath}`;
+    setSelectedFilePath(normalizedPath);
+    setIsFileManagerVisible(true);
+  }, []);
+
+  // Memoized handlers for ToolCallPanel
+  const handleCloseToolPanel = React.useCallback(() => {
+    chat.setSelectedToolData(null);
+  }, [chat]);
+
+  // Memoized handlers for FileManagerScreen
+  const handleCloseFileManager = React.useCallback(() => {
+    setIsFileManagerVisible(false);
+    setSelectedFilePath(undefined);
+  }, []);
 
   // Ensure thread content is loaded when ThreadPage mounts or thread changes
   const hasInitializedRef = React.useRef(false);
@@ -343,48 +351,23 @@ export function ThreadPage({
 
   React.useEffect(() => {
     const currentThreadId = chat.activeThread?.id;
-    if (!currentThreadId) {
-      console.log('📱 [ThreadPage] No active thread');
-      return;
-    }
+    if (!currentThreadId) return;
 
     const isInitialMount = !hasInitializedRef.current;
     const isThreadChanged = lastThreadIdRef.current !== currentThreadId;
 
     if (isInitialMount || isThreadChanged) {
-      console.log('🔄 [ThreadPage] Thread mount/change detected:', {
-        threadId: currentThreadId,
-        isInitialMount,
-        isThreadChanged,
-        hasMessages: messages.length > 0,
-        isLoading
-      });
-
       hasInitializedRef.current = true;
       lastThreadIdRef.current = currentThreadId;
 
       if (messages.length === 0 && !isLoading && !chat.isStreaming) {
-        console.log('📡 [ThreadPage] No messages found, fetching from backend');
         chat.refreshMessages().catch(error => {
-          console.error('❌ [ThreadPage] Failed to load thread messages:', error);
+          console.error('Failed to load thread messages:', error);
           Alert.alert('Error', 'Failed to load thread messages. Please try again.');
         });
       }
     }
   }, [chat.activeThread?.id, messages.length, isLoading, chat.isStreaming, chat.refreshMessages]);
-
-  React.useEffect(() => {
-    console.log('🔄 [ThreadPage] Loading state changed:', {
-      isLoading,
-      hasMessages,
-      messageCount: messages.length,
-      threadId: chat.activeThread?.id,
-      isUserScrolling,
-      showScrollToBottom,
-      topInset: insets.top,
-      scrollViewPaddingTop: insets.top + 60,
-    });
-  }, [isLoading, hasMessages, messages.length, chat.activeThread?.id, isUserScrolling, showScrollToBottom, insets.top]);
 
   return (
     <View className="flex-1 bg-background">
@@ -482,25 +465,13 @@ export function ThreadPage({
               agentStatus={chat.isAgentRunning ? 'running' : 'idle'}
               streamHookStatus={chat.isStreaming ? 'streaming' : 'idle'}
               sandboxId={chat.activeSandboxId || fullThreadData?.project?.sandbox?.id}
-              handleToolClick={(assistantMessageId: string | null, toolName: string) => {
-                console.log('[ThreadPage] Tool clicked:', toolName);
-              }}
-              onToolPress={(toolMessages, initialIndex) => {
-                console.log('[ThreadPage] Tool card pressed, opening panel');
-                chat.setSelectedToolData({ toolMessages, initialIndex });
-              }}
-              onFilePress={(filePath: string) => {
-                console.log('[ThreadPage] File clicked:', filePath);
-                const normalizedPath = filePath.startsWith('/') ? filePath : `/workspace/${filePath}`;
-                setSelectedFilePath(normalizedPath);
-                setIsFileManagerVisible(true);
-              }}
+              handleToolClick={handleToolClick}
+              onToolPress={handleToolPress}
+              onFilePress={handleFilePress}
             />
           </ScrollView>
         )}
       </View>
-
-      {/* Scroll to Bottom Button - Positioned above chat input */}
       {showScrollToBottom && hasMessages && (
         <Pressable
           onPress={scrollToBottom}
@@ -513,29 +484,23 @@ export function ThreadPage({
         </Pressable>
       )}
 
-
-      {/* Thread Header */}
       <ThreadHeader
         threadTitle={fullThreadData?.project?.name || fullThreadData?.title || chat.activeThread?.title}
         onTitleChange={async (newTitle) => {
-          console.log('📝 Thread title changed to:', newTitle);
           try {
             await chat.updateThreadTitle(newTitle);
           } catch (error) {
-            console.error('❌ Failed to update thread title:', error);
+            console.error('Failed to update thread title:', error);
           }
         }}
         onMenuPress={onMenuPress}
         onActionsPress={() => setIsThreadActionsVisible(true)}
       />
 
-      {/* Chat Input Section with Gradient */}
       <ChatInputSection
         value={chat.inputValue}
         onChangeText={chat.setInputValue}
         onSendMessage={(content, agentId, agentName) => {
-          // Both ChatInputSection and sendMessage expect non-null strings
-          // This should never receive empty strings from ChatInput
           chat.sendMessage(content, agentId, agentName);
         }}
         onSendAudio={audioHandlers.handleSendAudio}
@@ -556,13 +521,11 @@ export function ThreadPage({
         selectedQuickActionOption={chat.selectedQuickActionOption}
         onClearQuickAction={chat.clearQuickAction}
         isAuthenticated={isAuthenticated}
-        onOpenAuthDrawer={onOpenAuthDrawer}
         isAgentRunning={chat.isAgentRunning}
         isSendingMessage={chat.isSendingMessage}
         isTranscribing={isTranscribing}
       />
 
-      {/* Shared Drawers */}
       <ChatDrawers
         isAgentDrawerVisible={agentManager.isDrawerVisible}
         onCloseAgentDrawer={agentManager.closeDrawer}
@@ -573,25 +536,20 @@ export function ThreadPage({
         onChooseFiles={chat.handleChooseFiles}
       />
 
-      {/* Thread Actions Drawer */}
       <ThreadActionsDrawer
         visible={isThreadActionsVisible}
         onClose={() => setIsThreadActionsVisible(false)}
         onShare={async () => {
           if (!chat.activeThread?.id) return;
 
-          console.log('📤 Share thread:', chat.activeThread?.title);
-
           try {
             await shareThreadMutation.mutateAsync(chat.activeThread.id);
             setIsThreadActionsVisible(false);
           } catch (error) {
             console.error('Failed to share thread:', error);
-            // Error is already shown by the native share dialog or caught silently if user cancels
           }
         }}
         onFiles={() => {
-          console.log('📁 Manage files:', chat.activeThread?.title);
           setIsThreadActionsVisible(false);
           setIsFileManagerVisible(true);
         }}
@@ -617,16 +575,11 @@ export function ThreadPage({
                   if (!chat.activeThread?.id) return;
 
                   try {
-                    console.log('🗑️ Deleting thread:', threadTitle);
                     await deleteThreadMutation.mutateAsync(chat.activeThread.id);
-
-                    // Navigate to home after successful deletion
                     chat.startNewChat();
                     if (router.canGoBack()) {
                       router.back();
                     }
-
-                    console.log('✅ Thread deleted successfully');
                   } catch (error) {
                     console.error('Failed to delete thread:', error);
                     Alert.alert('Error', 'Failed to delete thread. Please try again.');
@@ -638,15 +591,18 @@ export function ThreadPage({
         }}
       />
 
-      {/* Tool Call Panel - Native modal with automatic background scaling on iOS */}
       <ToolCallPanel
         visible={!!chat.selectedToolData}
-        onClose={() => chat.setSelectedToolData(null)}
+        onClose={handleCloseToolPanel}
         toolMessages={chat.selectedToolData?.toolMessages || []}
         initialIndex={chat.selectedToolData?.initialIndex || 0}
+        project={fullThreadData?.project ? {
+          id: fullThreadData.project.id,
+          name: fullThreadData.project.name,
+          sandbox: fullThreadData.project.sandbox
+        } : undefined}
       />
 
-      {/* File Manager Modal */}
       <Modal
         visible={isFileManagerVisible}
         animationType="slide"
@@ -660,10 +616,7 @@ export function ThreadPage({
             sandboxUrl={fullThreadData?.project?.sandbox?.sandbox_url}
             initialFilePath={selectedFilePath}
             isStreaming={chat.isStreaming}
-            onClose={() => {
-              setIsFileManagerVisible(false);
-              setSelectedFilePath(undefined);
-            }}
+            onClose={handleCloseFileManager}
           />
         ) : (
           <View style={{ flex: 1, backgroundColor: isDark ? '#121215' : '#f8f8f8' }}>
@@ -698,8 +651,6 @@ export function ThreadPage({
           </View>
         )}
       </Modal>
-
-      {/* Dynamic Island Pull Refresh Animation - Rendered last to be on top of everything */}
       <DynamicIslandRefresh isRefreshing={isRefreshing} insets={insets} />
     </View>
   );

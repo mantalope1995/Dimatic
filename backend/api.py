@@ -3,7 +3,7 @@ load_dotenv()
 
 from fastapi import FastAPI, Request, HTTPException, Response, Depends, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from core.services import redis
 import sentry
 from contextlib import asynccontextmanager
@@ -16,40 +16,65 @@ from core.utils.logger import logger, structlog
 import time
 from collections import OrderedDict
 import os
+import psutil
 
 from pydantic import BaseModel
 import uuid
+
+from core.utils.rate_limiter import (
+    auth_rate_limiter,
+    api_key_rate_limiter,
+    admin_rate_limiter,
+    get_client_identifier,
+)
 
 from core import api as core_api
 
 from core.sandbox import api as sandbox_api
 from core.billing.api import router as billing_router
-from core.billing.setup_api import router as setup_router
+from core.setup import router as setup_router, webhook_router
 from core.admin.admin_api import router as admin_router
 from core.admin.billing_admin_api import router as billing_admin_router
-from core.admin.master_password_api import router as master_password_router
+from core.admin.notification_admin_api import router as notification_admin_router
 from core.services import transcription as transcription_api
 import sys
-from core.services import email_api
 from core.triggers import api as triggers_api
 from core.services import api_keys_api
+from core.notifications import api as notifications_api
 
 
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 db = DBConnection()
-instance_id = "single"
+# Generate unique instance ID per process/worker
+# This is critical for distributed locking - each worker needs a unique ID
+import uuid
+instance_id = str(uuid.uuid4())[:8]
 
 # Rate limiter state
 ip_tracker = OrderedDict()
 MAX_CONCURRENT_IPS = 25
 
+# Background task handle for CloudWatch metrics
+_queue_metrics_task = None
+_memory_watchdog_task = None
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.debug(f"Starting up FastAPI application with instance ID: {instance_id} in {config.ENV_MODE.value} mode")
+    global _queue_metrics_task, _memory_watchdog_task
+    env_mode = config.ENV_MODE.value if config.ENV_MODE else "unknown"
+    logger.debug(f"Starting up FastAPI application with instance ID: {instance_id} in {env_mode} mode")
     try:
         await db.initialize()
+        
+        # Pre-load tool classes and schemas to avoid first-request delay
+        from core.utils.tool_discovery import warm_up_tools_cache
+        warm_up_tools_cache()
+        
+        # Pre-load static Suna config for fast path in API requests
+        from core.runtime_cache import load_static_suna_config
+        load_static_suna_config()
         
         core_api.initialize(
             db,
@@ -76,13 +101,34 @@ async def lifespan(app: FastAPI):
         template_api.initialize(db)
         composio_api.initialize(db)
         
-        from core import limits_api
-        limits_api.initialize(db)
+        # Start CloudWatch queue metrics publisher (production only)
+        if config.ENV_MODE == EnvMode.PRODUCTION:
+            from core.services import queue_metrics
+            _queue_metrics_task = asyncio.create_task(queue_metrics.start_cloudwatch_publisher())
+        
+        # Start memory watchdog for observability
+        _memory_watchdog_task = asyncio.create_task(_memory_watchdog())
         
         yield
         
         logger.debug("Cleaning up agent resources")
         await core_api.cleanup()
+        
+        # Stop CloudWatch queue metrics task
+        if _queue_metrics_task is not None:
+            _queue_metrics_task.cancel()
+            try:
+                await _queue_metrics_task
+            except asyncio.CancelledError:
+                pass
+        
+        # Stop memory watchdog task
+        if _memory_watchdog_task is not None:
+            _memory_watchdog_task.cancel()
+            try:
+                await _memory_watchdog_task
+            except asyncio.CancelledError:
+                pass
         
         try:
             logger.debug("Closing Redis connection")
@@ -98,6 +144,41 @@ async def lifespan(app: FastAPI):
         raise
 
 app = FastAPI(lifespan=lifespan)
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    """Apply rate limiting to sensitive endpoints."""
+    path = request.url.path
+    
+    # Skip rate limiting for health checks and OPTIONS requests
+    if path in ["/api/health", "/api/health-docker"] or request.method == "OPTIONS":
+        return await call_next(request)
+    
+    # Get client identifier
+    client_id = get_client_identifier(request)
+    
+    # Apply appropriate rate limiter based on path
+    rate_limiter = None
+    
+    if "/api/api-keys" in path:
+        rate_limiter = api_key_rate_limiter
+    elif "/api/admin" in path:
+        rate_limiter = admin_rate_limiter
+    elif any(sensitive in path for sensitive in ["/api/setup/initialize", "/api/billing/webhook"]):
+        rate_limiter = auth_rate_limiter
+    
+    if rate_limiter:
+        is_limited, retry_after = rate_limiter.is_rate_limited(client_id)
+        if is_limited:
+            logger.warning(f"Rate limited: {path} from {client_id[:8]}...")
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too many requests. Please try again later."},
+                headers={"Retry-After": str(retry_after)}
+            )
+    
+    return await call_next(request)
+
 
 @app.middleware("http")
 async def log_requests_middleware(request: Request, call_next):
@@ -157,12 +238,6 @@ if config.ENV_MODE == EnvMode.STAGING:
     # Allow Vercel preview deployments
     allow_origin_regex = r"https://dimatic-.*-prjcts\.vercel\.app"
 
-if config.ENV_MODE == EnvMode.PRODUCTION:
-    allowed_origins.extend([
-        "http://localhost:3015",
-        "http://18.141.208.211:3015"
-    ])
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -180,26 +255,33 @@ api_router.include_router(core_api.router)
 api_router.include_router(sandbox_api.router)
 api_router.include_router(billing_router)
 api_router.include_router(setup_router)
+api_router.include_router(webhook_router)  # Webhooks at /api/webhooks/*
 api_router.include_router(api_keys_api.router)
 api_router.include_router(billing_admin_router)
 api_router.include_router(admin_router)
-api_router.include_router(master_password_router)
+api_router.include_router(notification_admin_router)
 
 from core.mcp_module import api as mcp_api
 from core.credentials import api as credentials_api
 from core.templates import api as template_api
+from core.templates import presentations_api
 
 api_router.include_router(mcp_api.router)
 api_router.include_router(credentials_api.router, prefix="/secure-mcp")
 api_router.include_router(template_api.router, prefix="/templates")
+api_router.include_router(presentations_api.router, prefix="/presentation-templates")
 
 api_router.include_router(transcription_api.router)
-api_router.include_router(email_api.router)
 
 from core.knowledge_base import api as knowledge_base_api
 api_router.include_router(knowledge_base_api.router)
 
 api_router.include_router(triggers_api.router)
+
+api_router.include_router(notifications_api.router)
+
+from core.notifications import presence_api
+api_router.include_router(presence_api.router)
 
 from core.composio_integration import api as composio_api
 api_router.include_router(composio_api.router)
@@ -210,84 +292,8 @@ api_router.include_router(google_slides_router)
 from core.google.google_docs_api import router as google_docs_router
 api_router.include_router(google_docs_router)
 
-@api_router.get("/presentation-templates/{template_name}/image.png", summary="Get Presentation Template Image", tags=["presentations"])
-async def get_presentation_template_image(template_name: str):
-    """Serve presentation template preview images"""
-    try:
-        # Construct path to template image
-        image_path = os.path.join(
-            os.path.dirname(__file__),
-            "core",
-            "templates",
-            "presentations",
-            template_name,
-            "image.png"
-        )
-        
-        # Verify file exists and is within templates directory (security check)
-        image_path = os.path.abspath(image_path)
-        templates_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "core", "templates", "presentations"))
-        
-        if not image_path.startswith(templates_dir):
-            raise HTTPException(status_code=403, detail="Access denied")
-        
-        if not os.path.exists(image_path):
-            raise HTTPException(status_code=404, detail="Template image not found")
-        
-        return FileResponse(image_path, media_type="image/png")
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error serving template image: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-@api_router.get("/presentation-templates/{template_name}/pdf", summary="Get Presentation Template PDF", tags=["presentations"])
-async def get_presentation_template_pdf(template_name: str):
-    """Serve presentation template PDF files"""
-    try:
-        # Construct path to template pdf folder
-        pdf_folder = os.path.join(
-            os.path.dirname(__file__),
-            "core",
-            "templates",
-            "presentations",
-            template_name,
-            "pdf"
-        )
-        
-        # Verify folder exists and is within templates directory (security check)
-        pdf_folder = os.path.abspath(pdf_folder)
-        templates_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "core", "templates", "presentations"))
-        
-        if not pdf_folder.startswith(templates_dir):
-            raise HTTPException(status_code=403, detail="Access denied")
-        
-        if not os.path.exists(pdf_folder):
-            raise HTTPException(status_code=404, detail="Template PDF folder not found")
-        
-        # Find the first PDF file in the folder
-        pdf_files = [f for f in os.listdir(pdf_folder) if f.lower().endswith('.pdf')]
-        
-        if not pdf_files:
-            raise HTTPException(status_code=404, detail="No PDF file found in template")
-        
-        # Use the first PDF file found
-        pdf_path = os.path.join(pdf_folder, pdf_files[0])
-        
-        return FileResponse(
-            pdf_path, 
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": f"inline; filename={template_name}.pdf"
-            }
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error serving template PDF: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+from core.referrals import router as referrals_router
+api_router.include_router(referrals_router)
 
 @api_router.get("/health", summary="Health Check", operation_id="health_check", tags=["system"])
 async def health_check():
@@ -297,6 +303,16 @@ async def health_check():
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "instance_id": instance_id
     }
+
+@api_router.get("/metrics/queue", summary="Queue Metrics", operation_id="queue_metrics", tags=["system"])
+async def queue_metrics_endpoint():
+    """Get Dramatiq queue depth for monitoring and auto-scaling."""
+    from core.services import queue_metrics
+    try:
+        return await queue_metrics.get_queue_metrics()
+    except Exception as e:
+        logger.error(f"Failed to get queue metrics: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get queue metrics")
 
 @api_router.get("/health-docker", summary="Docker Health Check", operation_id="health_check_docker", tags=["system"])
 async def health_check_docker():
@@ -320,6 +336,32 @@ async def health_check_docker():
 
 
 app.include_router(api_router, prefix="/api")
+
+
+async def _memory_watchdog():
+    """Monitor worker memory usage and log warnings when thresholds are exceeded."""
+    try:
+        while True:
+            try:
+                process = psutil.Process()
+                mem_info = process.memory_info()
+                mem_mb = mem_info.rss / 1024 / 1024  # Convert to MB
+                
+                # Log warning at 6GB (75% of 8GB hard limit)
+                if mem_mb > 6000:
+                    logger.warning(f"Worker memory high: {mem_mb:.0f}MB (instance: {instance_id})")
+                # Log info at 5GB (62.5% of 8GB hard limit) for visibility
+                elif mem_mb > 5000:
+                    logger.info(f"Worker memory: {mem_mb:.0f}MB (instance: {instance_id})")
+                
+            except Exception as e:
+                logger.debug(f"Memory watchdog error: {e}")
+            
+            await asyncio.sleep(60)  # Check every minute
+    except asyncio.CancelledError:
+        logger.debug("Memory watchdog cancelled")
+    except Exception as e:
+        logger.error(f"Memory watchdog failed: {e}")
 
 
 if __name__ == "__main__":

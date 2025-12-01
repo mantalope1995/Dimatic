@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/components/AuthProvider';
 import { listSandboxFiles, type FileInfo } from '@/lib/api/sandbox';
@@ -209,12 +209,22 @@ export function useFileContentQuery(
     enabled: Boolean(sandboxId && normalizedPath && (options.enabled !== false)),
     staleTime: options.staleTime || (effectiveContentType === 'blob' ? 5 * 60 * 1000 : 2 * 60 * 1000), // 5min for blobs, 2min for text
     gcTime: options.gcTime || 10 * 60 * 1000, // 10 minutes
+    // Smart retry with exponential backoff and reasonable limits to prevent server overload
     retry: (failureCount, error: any) => {
       // Don't retry on auth errors
       if (error?.message?.includes('401') || error?.message?.includes('403')) {
         return false;
       }
-      return failureCount < 3;
+      // Retry up to 15 times (~8-10 minutes total with exponential backoff)
+      // This prevents DDoS while still handling slow sandbox startups
+      return failureCount < 15;
+    },
+    retryDelay: (attemptIndex) => {
+      // Progressive exponential backoff to reduce server load:
+      // Attempt 1: 1s, 2: 2s, 3: 4s, 4: 8s, 5: 16s, 6+: 30s
+      // Total wait time for 15 retries: ~8-10 minutes
+      const delay = Math.min(1000 * Math.pow(2, attemptIndex), 30000); // Cap at 30s
+      return delay;
     },
   });
   
@@ -235,6 +245,9 @@ export function useFileContentQuery(
   return {
     ...queryResult,
     refreshCache,
+    // Expose retry information for UI feedback
+    failureCount: queryResult.failureCount || 0,
+    failureReason: queryResult.failureReason,
     // Legacy compatibility methods
     getCachedFile: () => Promise.resolve(queryResult.data),
     getFromCache: () => queryResult.data,
@@ -257,20 +270,63 @@ export function useDirectoryQuery(
   
   const normalizedPath = directoryPath ? normalizePath(directoryPath) : null;
   
-  return useQuery({
+  // Debug: log query key changes
+  useEffect(() => {
+    if (sandboxId && normalizedPath) {
+      console.log('[useDirectoryQuery] Query key:', {
+        sandboxId,
+        directoryPath,
+        normalizedPath,
+        queryKey: fileQueryKeys.directory(sandboxId, normalizedPath),
+      });
+    }
+  }, [sandboxId, directoryPath, normalizedPath]);
+  
+  const queryResult = useQuery({
     queryKey: sandboxId && normalizedPath ? 
       fileQueryKeys.directory(sandboxId, normalizedPath) : [],
     queryFn: async (): Promise<FileInfo[]> => {
       if (!sandboxId || !normalizedPath) {
         throw new Error('Missing required parameters');
       }
-      return await listSandboxFiles(sandboxId, normalizedPath);
+      // Ensure we're fetching the correct path
+      console.log('[useDirectoryQuery] Fetching files for path:', normalizedPath);
+      const result = await listSandboxFiles(sandboxId, normalizedPath);
+      console.log('[useDirectoryQuery] Fetched files:', result.length, 'files');
+      return result;
     },
     enabled: Boolean(sandboxId && normalizedPath && (options.enabled !== false)),
-    staleTime: options.staleTime || 30 * 1000, // 30 seconds for directory listings
+    staleTime: options.staleTime !== undefined ? options.staleTime : 0, // Always refetch when path changes
     gcTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
+    // Smart retry with exponential backoff and reasonable limits to prevent server overload
+    retry: (failureCount, error: any) => {
+      // Don't retry on auth errors
+      if (error?.message?.includes('401') || error?.message?.includes('403')) {
+        return false;
+      }
+      // Retry up to 15 times (~8-10 minutes total with exponential backoff)
+      // This prevents DDoS while still handling slow sandbox startups
+      return failureCount < 15;
+    },
+    retryDelay: (attemptIndex) => {
+      // Progressive exponential backoff to reduce server load:
+      // Attempt 1: 1s, 2: 2s, 3: 4s, 4: 8s, 5: 16s, 6+: 30s
+      // Total wait time for 15 retries: ~8-10 minutes
+      const delay = Math.min(1000 * Math.pow(2, attemptIndex), 30000); // Cap at 30s
+      return delay;
+    },
+    refetchOnMount: true, // Always refetch when component mounts with new path
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    // Force refetch when query key changes (path changes)
+    refetchOnReconnect: false,
   });
+  
+  return {
+    ...queryResult,
+    // Expose retry information for UI feedback
+    failureCount: queryResult.failureCount || 0,
+    failureReason: queryResult.failureReason,
+  };
 }
 
 /**

@@ -4,15 +4,15 @@ import { useRouter, Stack } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
 import { Icon } from '@/components/ui/icon';
+import { Button } from '@/components/ui/button';
 import { 
   ArrowRight, 
   Presentation, 
   Search, 
   BarChart3, 
   FileText, 
-  Sparkles, 
-  Zap,
-  LogOut 
+  LogOut,
+  Rocket
 } from 'lucide-react-native';
 import { KortixLogo } from '@/components/ui/KortixLogo';
 import * as Haptics from 'expo-haptics';
@@ -39,7 +39,6 @@ import { BackgroundLogo } from '@/components/home';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const AnimatedView = Animated.createAnimatedComponent(View);
 
 interface OnboardingSlide {
@@ -55,21 +54,15 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { t } = useLanguage();
   const { colorScheme } = useColorScheme();
-  const { signOut } = useAuthContext();
+  const { signOut, isSigningOut } = useAuthContext();
   const { loadAgents } = useAgent();
   const { refetchAll: refetchBilling } = useBillingContext();
   const { markSetupComplete } = useAccountSetup();
   const { markAsCompleted } = useOnboarding();
   const queryClient = useQueryClient();
   const [currentSlide, setCurrentSlide] = React.useState(0);
-  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
   const scrollX = useSharedValue(0);
-  const scale2 = useSharedValue(1);
   const scrollViewRef = React.useRef<ScrollView>(null);
-
-  const animatedStyle2 = useAnimatedStyle(() => ({
-    transform: [{ scale: scale2.value }],
-  }));
 
   const slides: OnboardingSlide[] = [
     {
@@ -110,21 +103,12 @@ export default function OnboardingScreen() {
     },
     {
       id: '5',
-      icon: Sparkles,
-      title: t('onboarding.automation.title'),
-      description: t('onboarding.automation.description'),
-      color: '#8B5CF6',
-      gradient: ['#8B5CF6', '#EC4899'],
-      example: t('onboarding.automation.example'),
-    },
-    {
-      id: '6',
-      icon: Zap,
-      title: t('onboarding.superworker.title'),
-      description: t('onboarding.superworker.description'),
-      color: '#EC4899',
-      gradient: ['#EC4899', '#F43F5E'],
-      example: t('onboarding.superworker.example'),
+      icon: Rocket,
+      title: t('onboarding.final.title'),
+      description: t('onboarding.final.description'),
+      color: '#6366F1',
+      gradient: ['#6366F1', '#8B5CF6'],
+      example: t('onboarding.final.example'),
     },
   ];
 
@@ -151,18 +135,17 @@ export default function OnboardingScreen() {
   }, [loadAgents, refetchBilling, queryClient, router, markSetupComplete, markAsCompleted]);
 
   const handleLogout = React.useCallback(async () => {
+    if (isSigningOut) return; // Prevent multiple sign out attempts
+    
     try {
-      setIsLoggingOut(true);
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       
       console.log('🔓 Logging out from onboarding...');
       await signOut();
     } catch (error) {
       console.error('❌ Logout error:', error);
-    } finally {
-      setIsLoggingOut(false);
     }
-  }, [signOut]);
+  }, [signOut, isSigningOut]);
 
   const handleNext = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -197,17 +180,17 @@ export default function OnboardingScreen() {
           <BackgroundLogo/>
         </View>
         <View className="pt-16 px-8 pb-4 flex-row justify-between items-center">
-          <KortixLogo variant="logomark" size={60} color={colorScheme === 'dark' ? 'dark' : 'light'} />
+          <KortixLogo variant="logomark" size={90} color={colorScheme === 'dark' ? 'dark' : 'light'} />
           <View className="flex-row items-center gap-4">
             <TouchableOpacity 
               onPress={handleLogout}
-              disabled={isLoggingOut}
+              disabled={isSigningOut}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Icon 
                 as={LogOut} 
                 size={20} 
-                className={isLoggingOut ? "text-muted-foreground/50" : "text-muted-foreground"} 
+                className={isSigningOut ? "text-muted-foreground/50" : "text-muted-foreground"} 
               />
             </TouchableOpacity>
           </View>
@@ -250,30 +233,16 @@ export default function OnboardingScreen() {
             t={t}
           />
            {currentSlide < totalSlides - 1 && (
-             <AnimatedPressable 
+             <Button
+               variant="outline"
+               size="lg"
                onPress={handleComplete}
-               onPressIn={() => {
-                 scale2.value = withSpring(0.96, { damping: 15, stiffness: 400 });
-               }}
-               onPressOut={() => {
-                 scale2.value = withSpring(1, { damping: 15, stiffness: 400 });
-               }}
-               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} 
-               style={[animatedStyle2, { 
-                 backgroundColor: 'transparent',
-                 borderWidth: 1,
-                 borderColor: colorScheme === 'dark' ? '#454444' : '#c2c2c2',
-                 height: 56,
-                 borderRadius: 28,
-                 justifyContent: 'center',
-                 alignItems: 'center',
-                 marginTop: 10,
-               }]}
+               className="mt-2.5"
              >
                <Text className='text-foreground text-[16px] font-roobert-medium'>
                  {t('onboarding.skip')}
                </Text>
-             </AnimatedPressable>
+             </Button>
            )}
         </View>
       </View>
@@ -432,31 +401,14 @@ interface ContinueButtonProps {
 
 function ContinueButton({ onPress, isLast, t }: ContinueButtonProps) {
   const { colorScheme } = useColorScheme();
-  const scale = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
   const isDark = colorScheme === 'dark';
 
   return (
-    <AnimatedPressable
+    <Button
+      variant="default"
+      size="lg"
       onPress={onPress}
-      onPressIn={() => {
-        scale.value = withSpring(0.96, { damping: 15, stiffness: 400 });
-      }}
-      onPressOut={() => {
-        scale.value = withSpring(1, { damping: 15, stiffness: 400 });
-      }}
-      style={[animatedStyle, { 
-        backgroundColor: isDark ? '#FFFFFF' : '#000000',
-        height: 56,
-        borderRadius: 28,
-        justifyContent: 'center',
-        alignItems: 'center',
-        flexDirection: 'row',
-      }]}
+      className={isDark ? 'bg-white' : 'bg-black'}
     >
       <Text style={{ 
         color: isDark ? '#000000' : '#FFFFFF',
@@ -472,6 +424,6 @@ function ContinueButton({ onPress, isLast, t }: ContinueButtonProps) {
         color={isDark ? '#000000' : '#FFFFFF'} 
         strokeWidth={2.5}
       />
-    </AnimatedPressable>
+    </Button>
   );
 }

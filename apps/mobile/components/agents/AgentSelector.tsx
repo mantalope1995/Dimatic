@@ -10,6 +10,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { AgentAvatar } from './AgentAvatar';
 import { useAgent } from '@/contexts/AgentContext';
+import { KortixLogo } from '@/components/ui/KortixLogo';
+import { useColorScheme } from 'nativewind';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -18,23 +20,17 @@ interface AgentSelectorProps {
   compact?: boolean;
 }
 
-/**
- * AgentSelector Component
- * Displays current agent with avatar and name, opens drawer on press
- * 
- * Compact mode: Shows only avatar with small chevron overlay (minimal space)
- * Full mode: Shows avatar, name, and chevron (default)
- */
 export function AgentSelector({ onPress, compact = true }: AgentSelectorProps) {
   const { getCurrentAgent, isLoading, agents } = useAgent();
   const agent = getCurrentAgent();
   const scale = useSharedValue(1);
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
-  // Show loading state only if agents are actually loading
   if (isLoading || agents.length === 0) {
     return (
       <View className="flex-row items-center gap-1.5 rounded-full px-3.5 py-2 ">
@@ -44,7 +40,6 @@ export function AgentSelector({ onPress, compact = true }: AgentSelectorProps) {
     );
   }
 
-  // Show "Select Agent" if agents are loaded but none selected
   if (!agent) {
     return (
       <AnimatedPressable
@@ -73,7 +68,6 @@ export function AgentSelector({ onPress, compact = true }: AgentSelectorProps) {
   }
 
   if (compact) {
-    // Minimal version: just avatar with chevron badge
     return (
       <AnimatedPressable
         onPressIn={() => {
@@ -87,7 +81,6 @@ export function AgentSelector({ onPress, compact = true }: AgentSelectorProps) {
         style={animatedStyle}
       >
         <AgentAvatar agent={agent} size={26} />
-        {/* Small chevron indicator */}
         <View className="absolute -bottom-0.5 -right-0.5 rounded-full items-center justify-center" style={{ width: 13, height: 13 }}>
           <Icon
             as={ChevronDown}
@@ -100,7 +93,6 @@ export function AgentSelector({ onPress, compact = true }: AgentSelectorProps) {
     );
   }
 
-  // Full version with name
   return (
     <AnimatedPressable
       onPressIn={() => {
@@ -113,11 +105,8 @@ export function AgentSelector({ onPress, compact = true }: AgentSelectorProps) {
       className="flex-row items-center gap-1.5 rounded-2xl px-3.5 py-2"
       style={animatedStyle}
     >
-      {/* Agent info with avatar */}
       <AgentAvatar agent={agent} size={19} />
       <Text className="text-foreground text-sm font-roobert-medium">{agent.name}</Text>
-
-      {/* Chevron down */}
       <Icon
         as={ChevronDown}
         size={15}

@@ -3,6 +3,7 @@ import { Alert, Keyboard } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import type { UnifiedMessage } from '@/api/types';
 import { useLanguage } from '@/contexts';
 import type { ToolMessagePair } from '@/components/chat';
@@ -28,7 +29,6 @@ import { useAgentStream } from './useAgentStream';
 import { useAgent } from '@/contexts/AgentContext';
 import { useAvailableModels } from '@/lib/models';
 import { useBillingContext } from '@/contexts/BillingContext';
-import { usePricingModalStore } from '@/stores/billing-modal-store';
 
 export interface Attachment {
   type: 'image' | 'video' | 'document';
@@ -59,7 +59,7 @@ export interface UseChatReturn {
   
   messages: UnifiedMessage[];
   streamingContent: string;
-  streamingToolCall: any;
+  streamingToolCall: UnifiedMessage | null;
   isStreaming: boolean;
   
   sendMessage: (content: string, agentId: string, agentName: string) => Promise<void>;
@@ -103,9 +103,9 @@ export interface UseChatReturn {
 export function useChat(): UseChatReturn {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
-  
+  const router = useRouter();
   const { selectedModelId, selectedAgentId } = useAgent();
-  const { data: modelsData } = useAvailableModels();
+  const { data: modelsData, isLoading: modelsLoading, error: modelsError } = useAvailableModels();
   const { hasActiveSubscription } = useBillingContext();
 
   const [activeThreadId, setActiveThreadId] = useState<string | undefined>();
@@ -128,59 +128,138 @@ export function useChat(): UseChatReturn {
   const { selectModel } = useAgent();
   const { data: threadsData = [] } = useThreads();
   
-  const availableModels = modelsData?.models || [];
+  // Sort and filter models: recommended first, then by priority, then alphabetically
+  const availableModels = useMemo(() => {
+    const models = modelsData?.models || [];
+    return [...models].sort((a, b) => {
+      // Recommended models first
+      if (a.recommended !== b.recommended) {
+        return a.recommended ? -1 : 1;
+      }
+      // Then by priority (higher priority first)
+      const priorityA = a.priority || 0;
+      const priorityB = b.priority || 0;
+      if (priorityA !== priorityB) {
+        return priorityB - priorityA;
+      }
+      // Finally alphabetically by display name
+      const nameA = a.display_name || a.short_name || a.id || '';
+      const nameB = b.display_name || b.short_name || b.id || '';
+      return nameA.localeCompare(nameB);
+    });
+  }, [modelsData?.models]);
   
+  // Filter accessible models based on subscription
   const accessibleModels = useMemo(() => {
-    return availableModels.filter(model => {
+    const filtered = availableModels.filter(model => {
       if (!model.requires_subscription) return true;
       return hasActiveSubscription;
     });
+    
+    return filtered;
   }, [availableModels, hasActiveSubscription]);
   
+  // Log accessible models only when they actually change
+  const prevAccessibleModelIdsRef = useRef<string>('');
   useEffect(() => {
-    if (selectedModelId && accessibleModels.length > 0) {
-      const isModelAccessible = accessibleModels.some(m => m.id === selectedModelId);
-      if (!isModelAccessible) {
-        console.warn('⚠️ [useChat] Selected model is not accessible, clearing selection:', selectedModelId);
-        const recommendedModel = accessibleModels.find(m => m.recommended);
-        const fallbackModel = recommendedModel || accessibleModels[0];
-        if (fallbackModel) {
-          console.log('🔄 [useChat] Auto-selecting accessible model:', fallbackModel.id);
-          selectModel(fallbackModel.id);
-        }
+    const currentIds = accessibleModels.map(m => m.id).join(',');
+    if (currentIds !== prevAccessibleModelIdsRef.current) {
+      console.log('🔍 [useChat] Accessible models:', {
+        total: availableModels.length,
+        accessible: accessibleModels.length,
+        hasActiveSubscription,
+        modelIds: accessibleModels.map(m => m.id),
+      });
+      prevAccessibleModelIdsRef.current = currentIds;
+    }
+  }, [accessibleModels, availableModels.length, hasActiveSubscription]);
+
+  // Get stable accessible model IDs for dependency comparison
+  const accessibleModelIds = useMemo(() => accessibleModels.map(m => m.id).join(','), [accessibleModels]);
+  const accessibleModelsLength = accessibleModels.length;
+  
+  // Auto-select model when models first load and none is selected
+  useEffect(() => {
+    // Skip if still loading or no accessible models
+    if (modelsLoading || accessibleModelsLength === 0) {
+      return;
+    }
+
+    // If no model is selected, auto-select the best available model
+    if (!selectedModelId) {
+      const recommendedModel = accessibleModels.find(m => m.recommended);
+      const fallbackModel = recommendedModel || accessibleModels[0];
+      if (fallbackModel) {
+        console.log('🔄 [useChat] Auto-selecting model (none selected):', fallbackModel.id);
+        selectModel(fallbackModel.id);
+      }
+      return;
+    }
+
+    // If selected model is not accessible, switch to an accessible one
+    const isModelAccessible = accessibleModels.some(m => m.id === selectedModelId);
+    if (!isModelAccessible) {
+      console.warn('⚠️ [useChat] Selected model is not accessible, switching:', selectedModelId);
+      const recommendedModel = accessibleModels.find(m => m.recommended);
+      const fallbackModel = recommendedModel || accessibleModels[0];
+      if (fallbackModel) {
+        console.log('🔄 [useChat] Auto-selecting accessible model:', fallbackModel.id);
+        selectModel(fallbackModel.id);
       }
     }
-  }, [selectedModelId, accessibleModels, selectModel]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedModelId, accessibleModelIds, accessibleModelsLength, selectModel, modelsLoading]);
   
+  // Determine current model to use
   const currentModel = useMemo(() => {
-    console.log('🔍 [useChat] Model selection:', {
-      selectedModelId,
-      hasActiveSubscription,
-      totalModels: availableModels.length,
-      accessibleModels: accessibleModels.length,
-      accessibleModelIds: accessibleModels.map(m => m.id),
-    });
+    // If models are still loading, return undefined
+    if (modelsLoading) {
+      return undefined;
+    }
     
+    // If a model is selected and accessible, use it
     if (selectedModelId) {
       const model = accessibleModels.find(m => m.id === selectedModelId);
       if (model) {
-        console.log('✅ [useChat] Using selected accessible model:', model.id);
         return model.id;
       }
-      console.warn('⚠️ [useChat] Selected model not accessible:', selectedModelId);
     }
     
+    // Fallback to recommended model or first accessible model
     const recommendedModel = accessibleModels.find(m => m.recommended);
     const firstAccessibleModel = accessibleModels[0];
     const fallbackModel = recommendedModel?.id || firstAccessibleModel?.id;
     
-    console.log('⚠️ [useChat] Using fallback model:', fallbackModel, {
-      recommended: recommendedModel?.id,
-      firstAccessible: firstAccessibleModel?.id,
-    });
-    
     return fallbackModel;
-  }, [selectedModelId, accessibleModels, hasActiveSubscription, availableModels.length]);
+  }, [selectedModelId, accessibleModels, modelsLoading]);
+  
+  // Log model selection only when it actually changes
+  const prevModelSelectionRef = useRef<string>('');
+  useEffect(() => {
+    if (modelsLoading) return;
+    
+    const selectionKey = `${selectedModelId || 'none'}-${currentModel || 'none'}-${accessibleModels.length}`;
+    if (selectionKey !== prevModelSelectionRef.current) {
+      console.log('🔍 [useChat] Model selection:', {
+        selectedModelId,
+        currentModel,
+        hasActiveSubscription,
+        totalModels: availableModels.length,
+        accessibleModels: accessibleModels.length,
+        accessibleModelIds: accessibleModels.map(m => m.id),
+        modelsLoading,
+        modelsError: modelsError?.message,
+      });
+      
+      if (currentModel) {
+        console.log('✅ [useChat] Using selected accessible model:', currentModel);
+      } else {
+        console.warn('⚠️ [useChat] No accessible models available');
+      }
+      
+      prevModelSelectionRef.current = selectionKey;
+    }
+  }, [selectedModelId, currentModel, accessibleModels, hasActiveSubscription, availableModels.length, modelsLoading, modelsError]);
   
   const shouldFetchThread = !!activeThreadId;
   const shouldFetchMessages = !!activeThreadId;
@@ -278,6 +357,11 @@ export function useChat(): UseChatReturn {
 
   const handleStreamClose = useCallback(() => { }, []);
 
+  const handleToolCallChunk = useCallback((message: UnifiedMessage) => {
+    // Tool call chunk received - already handled by useAgentStream state
+    // This callback can be used for additional processing if needed
+  }, []);
+
   const {
     status: streamHookStatus,
     textContent: streamingTextContent,
@@ -292,6 +376,7 @@ export function useChat(): UseChatReturn {
       onStatusChange: handleStreamStatusChange,
       onError: handleStreamError,
       onClose: handleStreamClose,
+      onToolCallChunk: handleToolCallChunk,
     },
     activeThreadId || '',
     setMessages,
@@ -567,10 +652,9 @@ export function useChat(): UseChatReturn {
             hasActiveSubscription,
           });
           
-          usePricingModalStore.getState().openPricingModal({
-            alertTitle: hasActiveSubscription 
-              ? 'No models are currently available. Please try again later or contact support.'
-              : 'Upgrade to access AI models'
+          router.push({
+            pathname: '/plans',
+            params: { creditsExhausted: 'false' },
           });
           return;
         }
@@ -604,13 +688,12 @@ export function useChat(): UseChatReturn {
         } catch (agentStartError: any) {
           console.error('[useChat] Error starting agent for new thread:', agentStartError);
           
-          // Handle specific billing-related errors
           const errorMessage = agentStartError?.message || '';
           if (errorMessage.includes('402') && errorMessage.includes('PROJECT_LIMIT_EXCEEDED')) {
             console.log('💳 Project limit exceeded - opening billing modal');
-            usePricingModalStore.getState().openPricingModal({
-              alertTitle: 'Project limit exceeded',
-              creditsExhausted: true
+            router.push({
+              pathname: '/plans',
+              params: { creditsExhausted: 'true' },
             });
             return;
           }
@@ -705,10 +788,9 @@ export function useChat(): UseChatReturn {
             hasActiveSubscription,
           });
           
-          usePricingModalStore.getState().openPricingModal({
-            alertTitle: hasActiveSubscription 
-              ? 'No models are currently available. Please try again later or contact support.'
-              : 'Upgrade to access AI models'
+          router.push({
+            pathname: '/plans',
+            params: { creditsExhausted: 'false' },
           });
           return;
         }
@@ -736,12 +818,13 @@ export function useChat(): UseChatReturn {
           setAttachments([]);
         } catch (sendMessageError: any) {
           console.error('[useChat] Error sending message to existing thread:', sendMessageError);
+          
           const errorMessage = sendMessageError?.message || '';
           if (errorMessage.includes('402') && errorMessage.includes('PROJECT_LIMIT_EXCEEDED')) {
             console.log('💳 Project limit exceeded - opening billing modal');
-            usePricingModalStore.getState().openPricingModal({
-              alertTitle: 'Project limit exceeded',
-              creditsExhausted: true
+            router.push({
+              pathname: '/plans',
+              params: { creditsExhausted: 'true' },
             });
             return;
           }
@@ -919,6 +1002,7 @@ export function useChat(): UseChatReturn {
   const closeAttachmentDrawer = useCallback(() => {
     setIsAttachmentDrawerVisible(false);
   }, []);
+
 
   const transcribeAndAddToInput = useCallback(async (audioUri: string) => {
     try {

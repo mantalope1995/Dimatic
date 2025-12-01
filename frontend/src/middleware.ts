@@ -31,6 +31,8 @@ const PUBLIC_ROUTES = [
   '/checkout', // Public checkout wrapper for Apple compliance
   '/support', // Support page should be public
   '/suna', // Suna rebrand page should be public for SEO
+  '/help', // Help center and documentation should be public
+  '/credits-explained', // Credits explained page should be public
   // Add locale routes for marketing pages
   ...locales.flatMap(locale => MARKETING_ROUTES.map(route => `/${locale}${route === '/' ? '' : route}`)),
 ];
@@ -61,6 +63,31 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/')
   ) {
     return NextResponse.next();
+  }
+
+  // Handle Supabase verification redirects at root level
+  // Supabase sometimes redirects to root (/) instead of /auth/callback
+  // Detect authentication parameters and redirect to proper callback handler
+  if (pathname === '/' || pathname === '') {
+    const searchParams = request.nextUrl.searchParams;
+    const code = searchParams.get('code');
+    const token = searchParams.get('token');
+    const type = searchParams.get('type');
+    const error = searchParams.get('error');
+    
+    // If we have Supabase auth parameters, redirect to /auth/callback
+    // Note: Mobile apps use direct deep links and bypass this route
+    if (code || token || type || error) {
+      const callbackUrl = new URL('/auth/callback', request.url);
+      
+      // Preserve all query parameters
+      searchParams.forEach((value, key) => {
+        callbackUrl.searchParams.set(key, value);
+      });
+      
+      console.log('🔄 Redirecting Supabase verification from root to /auth/callback');
+      return NextResponse.redirect(callbackUrl);
+    }
   }
 
   // Extract path segments
@@ -220,6 +247,8 @@ export async function middleware(request: NextRequest) {
     }
 
     // Only check billing for protected routes that require active subscription
+    // NOTE: Middleware is server-side code, so direct Supabase queries are acceptable here
+    // for performance reasons. Only client-side (browser) code should use backend API.
     if (PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
       const { data: accounts } = await supabase
         .schema('basejump')
@@ -267,6 +296,13 @@ export async function middleware(request: NextRequest) {
       const hasActiveTrial = creditAccount.trial_status === 'active';
       const trialExpired = creditAccount.trial_status === 'expired' || creditAccount.trial_status === 'cancelled';
       const trialConverted = creditAccount.trial_status === 'converted';
+      
+      // If user is coming from Stripe checkout with subscription=success, allow access to dashboard
+      // The webhook might not have processed yet, but we should still allow them to see the success page
+      const subscriptionSuccess = request.nextUrl.searchParams.get('subscription') === 'success';
+      if (subscriptionSuccess && pathname === '/dashboard') {
+        return supabaseResponse;
+      }
       
       if (hasPaidTier || hasFreeTier) {
         return supabaseResponse;

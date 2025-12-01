@@ -2,37 +2,112 @@ import * as React from 'react';
 import { View } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { KortixLoader } from '@/components/ui';
-import { useAuthContext } from '@/contexts';
+import { useAuthContext, useBillingContext } from '@/contexts';
 import { useOnboarding } from '@/hooks/useOnboarding';
-import { useAccountSetup } from '@/hooks/useAccountSetup';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
+// Safely import and configure expo-notifications
+let Notifications: typeof import('expo-notifications') | null = null;
+try {
+  Notifications = require('expo-notifications');
+  if (Notifications && Notifications.setNotificationHandler) {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  }
+} catch (error) {
+  console.warn('expo-notifications module not available:', error);
+}
+
+/**
+ * Splash/Decision Screen
+ * 
+ * This is the ONLY place that decides where to route users.
+ * Account initialization now happens automatically via backend webhook on signup,
+ * so most users will go directly to onboarding or home.
+ */
 export default function SplashScreen() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuthContext();
   const { hasCompletedOnboarding, isLoading: onboardingLoading } = useOnboarding();
-  const { isChecking: setupChecking, needsSetup } = useAccountSetup();
+  const { hasActiveSubscription, isLoading: billingLoading, subscriptionData } = useBillingContext();
+  const { expoPushToken } = usePushNotifications();
+  console.log('expoPushToken', expoPushToken);
+  
+  // Track navigation to prevent double navigation
+  const [hasNavigated, setHasNavigated] = React.useState(false);
+  
+  // Reset navigation flag when component mounts (fresh visit to splash)
+  React.useEffect(() => {
+    setHasNavigated(false);
+  }, []);
+
+  // Compute ready state
+  // - Auth must be done loading
+  // - If authenticated: billing must be done loading AND have data
+  // - Onboarding check must be done
+  const authReady = !authLoading;
+  const billingReady = !isAuthenticated || (!billingLoading && subscriptionData !== null);
+  const onboardingReady = !isAuthenticated || !onboardingLoading;
+  const allDataReady = authReady && billingReady && onboardingReady;
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('📊 Splash:', {
+      authLoading,
+      isAuthenticated,
+      billingLoading,
+      subscriptionData: subscriptionData ? '✓' : '✗',
+      onboardingLoading,
+      hasCompletedOnboarding,
+      hasActiveSubscription,
+      allDataReady,
+      hasNavigated
+    });
+  }, [authLoading, isAuthenticated, billingLoading, subscriptionData, onboardingLoading, hasCompletedOnboarding, hasActiveSubscription, allDataReady, hasNavigated]);
 
   React.useEffect(() => {
-    if (!authLoading && !onboardingLoading && !setupChecking) {
-      const timeoutId = setTimeout(() => {
-        if (!isAuthenticated) {
-          console.log('🔐 User not authenticated, routing to sign in');
-          router.replace('/auth');
-        } else if (needsSetup) {
-          console.log('🔧 Account needs setup, routing to setup screen');
-          router.replace('/setting-up');
-        } else if (!hasCompletedOnboarding) {
-          console.log('👋 User needs onboarding, routing to onboarding');
-          router.replace('/onboarding');
-        } else {
-          console.log('✅ User authenticated and onboarded, routing to app');
-          router.replace('/home');
-        }
-      }, 300);
+    // Don't navigate twice
+    if (hasNavigated) return;
+    
+    // Wait until all data is ready
+    if (!allDataReady) return;
 
-      return () => clearTimeout(timeoutId);
-    }
-  }, [authLoading, onboardingLoading, setupChecking, isAuthenticated, needsSetup, hasCompletedOnboarding, router]);
+    // Small delay to ensure React state is settled
+    const timer = setTimeout(() => {
+      if (hasNavigated) return;
+      setHasNavigated(true);
+
+      // ROUTING DECISION
+      if (!isAuthenticated) {
+        console.log('🚀 → /auth (not authenticated)');
+        router.replace('/auth');
+        return;
+      }
+
+      // User is authenticated
+      // Account initialization happens automatically via webhook on signup.
+      // Most users will have a subscription by now. Only show setting-up
+      // as a fallback if webhook failed or user signed up before this change.
+      if (!hasActiveSubscription) {
+        console.log('🚀 → /setting-up (fallback: no subscription detected)');
+        router.replace('/setting-up');
+      } else if (!hasCompletedOnboarding) {
+        console.log('🚀 → /onboarding');
+        router.replace('/onboarding');
+      } else {
+        console.log('🚀 → /home');
+        router.replace('/home');
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [allDataReady, hasNavigated, isAuthenticated, hasActiveSubscription, hasCompletedOnboarding, router]);
 
   return (
     <>

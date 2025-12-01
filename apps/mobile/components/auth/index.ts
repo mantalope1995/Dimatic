@@ -1,3 +1,2 @@
-export { AuthDrawer } from './AuthDrawer';
+export { EmailAuthDrawer, type EmailAuthDrawerRef } from './EmailAuthDrawer';
 export * from './types';
-

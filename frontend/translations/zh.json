@@ -29,7 +29,7 @@
     "next": "下一步",
     "upgrade": "升级",
     "basic": "基础版",
-    "tryFree": "免费开始"
+    "tryFree": "开始"
   },
   "settings": {
     "title": "设置",
@@ -38,6 +38,7 @@
       "plan": "计划",
       "billing": "账单",
       "usage": "使用情况",
+      "referrals": "推荐",
       "knowledgeBase": "知识库",
       "integrations": "集成",
       "envManager": "环境管理器"
@@ -83,6 +84,50 @@
         "cancelDeletionDescription": "你确定要取消账户删除吗？你的账户和所有数据将被保留。",
         "cancelDeletion": "取消删除"
       }
+    },
+    "referrals": {
+      "title": "推荐计划",
+      "description": "与朋友分享您的推荐链接。当他们注册并创建账户时，您将获得",
+      "creditsPerReferral": "100个永久积分",
+      "youEarn": "您获得",
+      "friendGets": "您的朋友获得",
+      "maxEarnable": "通过推荐最多可获得：",
+      "maxCredits": "$100积分",
+      "yourReferralCode": "您的推荐码",
+      "referralLink": "推荐链接",
+      "shareYourLink": "分享您的推荐链接",
+      "yourStats": "您的统计",
+      "enterCodeDescription": "输入推荐码以赚取积分",
+      "enterCode": "输入代码",
+      "refresh": "刷新",
+      "copyCode": "复制代码",
+      "copyLink": "复制链接",
+      "share": "分享",
+      "stats": {
+        "totalReferrals": "总推荐数",
+        "successful": "成功",
+        "creditsEarned": "已获积分"
+      },
+      "recentReferrals": "最近推荐",
+      "signupComplete": "注册完成",
+      "pending": "待处理",
+      "noReferrals": "暂无推荐。分享您的推荐链接开始吧！",
+      "copied": "已复制！",
+      "codeCopied": "推荐码已复制到剪贴板",
+      "linkCopied": "推荐链接已复制到剪贴板",
+      "codeRefreshed": "推荐码刷新成功",
+      "refreshFailed": "刷新推荐码失败",
+      "inviteByEmail": "通过邮箱邀请",
+      "inviteByEmailDescription": "添加最多3个邮箱地址（按回车、空格或逗号）",
+      "emailAddress": "邮箱地址",
+      "emailPlaceholder": "输入邮箱地址（按回车、空格或逗号）",
+      "emailsAdded": "邮箱",
+      "sent": "已发送",
+      "send": "发送",
+      "sending": "发送中...",
+      "sendAllInvites": "发送所有邀请",
+      "allSent": "全部已发送",
+      "emailSent": "推荐邀请发送成功"
     },
     "billing": {
       "title": "账单和订阅",
@@ -156,6 +201,9 @@
     "monthlyOn1st": "每月1号"
   },
   "sidebar": {
+    "referAndEarn": "推荐赚取",
+    "new": "新",
+    "upgrade": "升级",
     "chats": "聊天",
     "agents": "智能体",
     "workers": "工作器",
@@ -220,7 +268,7 @@
     "customWorkers": "自定义 Workers",
     "scheduledTriggers": "计划触发器",
     "appTriggers": "应用触发器",
-    "limitsExceeded": "你已达到限制。升级你的计划以进行更多聊天。",
+    "limitsExceeded": "你已达到聊天限制（{current}/{limit}）。升级你的计划以创建更多聊天。",
     "agentInitiatedSuccessfully": "智能体启动成功",
     "aiAssistantReady": "你的 AI 助手已准备好帮助"
   },
@@ -283,6 +331,85 @@
   "home": {
     "heroPlaceholder": "描述你想让你的 Worker 完成的任务..."
   },
+  "showcase": {
+    "title": "Kortix：您的自主AI工作器",
+    "subtitle": "为复杂任务而构建，为一切而设计。终极AI助手，处理一切——从简单请求到超级复杂的项目。",
+    "tryItOut": "试试看",
+    "kortixComputer": "Kortix Computer",
+    "running": "运行中",
+    "workers": {
+      "images": {
+        "title": "图像",
+        "description": "按需创建图像。从产品照片到社交媒体图形再到完整插图。调整风格、照明、颜色和布局，或通过快速编辑和修饰来完善现有视觉效果。",
+        "capabilities": {
+          "0": "生成产品照片",
+          "1": "创建社交媒体图形",
+          "2": "制作插图",
+          "3": "风格和照明变化",
+          "4": "徽标/资产创建",
+          "5": "+ 更多"
+        },
+        "imageAlt": "增长不是线性的图形示例",
+        "fileType": "image"
+      },
+      "slides": {
+        "title": "幻灯片",
+        "description": "即时创建令人惊叹的演示文稿。从推介演示到报告再到培训材料。调整主题、布局、内容结构，或通过快速编辑和更新来完善现有演示文稿。",
+        "capabilities": {
+          "0": "推介演示",
+          "1": "培训材料",
+          "2": "报告演示",
+          "3": "主题和布局变化",
+          "4": "内容重组",
+          "5": "+ 更多"
+        },
+        "imageAlt": "Nexus企业自动化平台幻灯片示例",
+        "fileType": "PPTX"
+      },
+      "data": {
+        "title": "数据",
+        "description": "将原始数据转化为洞察。从电子表格到仪表板再到可视化。清理数据集、创建图表、构建报告，或通过快速更新来完善现有分析。",
+        "capabilities": {
+          "0": "仪表板",
+          "1": "可视化",
+          "2": "数据报告",
+          "3": "清理和组织数据",
+          "4": "生成洞察",
+          "5": "+ 更多"
+        },
+        "imageAlt": "财务模型仪表板示例",
+        "fileType": "预览"
+      },
+      "docs": {
+        "title": "文档",
+        "description": "轻松编写和编辑文档。从提案到指南再到内容片段。调整语气、结构、格式，或通过快速重写和润色来完善现有文档。",
+        "capabilities": {
+          "0": "提案",
+          "1": "指南和手册",
+          "2": "内容片段",
+          "3": "语气和风格变化",
+          "4": "格式化和重组",
+          "5": "+ 更多"
+        },
+        "imageAlt": "2025年第三季度执行摘要报告示例",
+        "fileType": "PDF"
+      },
+      "research": {
+        "title": "研究",
+        "description": "全面研究主题。从市场趋势到竞争分析再到深入研究。收集来源、综合发现，或通过快速更新来完善现有研究。",
+        "capabilities": {
+          "0": "分析市场趋势",
+          "1": "竞争研究",
+          "2": "深入主题研究",
+          "3": "收集来源",
+          "4": "综合发现",
+          "5": "+ 更多"
+        },
+        "imageAlt": "详细竞争对手档案研究示例",
+        "fileType": "PDF"
+      }
+    }
+  },
   "threads": {
     "title": "线程",
     "newThread": "新线程",
@@ -295,6 +422,8 @@
     "credits": "积分",
     "popular": "热门",
     "creditsExplained": "积分说明",
+    "creditsExhausted": "+200积分将在{time}后到账。立即升级即可使用。",
+    "creditsExhaustedRefreshIn": "您的积分已用完。将在{time}后刷新",
     "trialActive": "试用激活",
     "trialBadge": "7天试用",
     "currentPlan": "当前套餐",
@@ -409,11 +538,38 @@
       "integrations": "100+ 集成",
       "premiumAIModels": "高级 AI 模型",
       "prioritySupport": "优先支持"
+    },
+    "downgradeDialog": {
+      "confirmTitle": "确认计划变更",
+      "confirmSubtitle": "很遗憾看到您离开",
+      "confirmDescription": "您即将切换到{planName}计划。此更改将在您当前计费周期结束时生效。届时您将保留当前的权益。",
+      "continue": "继续",
+      "keepCurrentPlan": "保留我的当前计划",
+      "feedbackTitle": "帮助我们改进",
+      "feedbackSubtitle": "您的反馈塑造Kortix的未来",
+      "whatWouldMakeYouStay": "什么会让您留下来？",
+      "feedbackPlaceholder": "如果我们可以改变或添加一件事来让Kortix对您有价值，那会是什么？",
+      "feedbackFooter": "我们的团队会阅读每一条回复。您的反馈直接影响我们接下来构建什么。",
+      "confirmDowngrade": "确认降级",
+      "processing": "处理中...",
+      "pleaseSelectReason": "请选择一个原因",
+      "reasons": {
+        "tooExpensive": "对我的需求来说太贵了",
+        "notUsingOften": "我使用Kortix不够频繁",
+        "foundAlternative": "我找到了其他解决方案",
+        "technicalIssues": "我遇到了技术问题",
+        "resultsNotGood": "结果没有达到我的期望",
+        "other": "其他原因"
+      }
     }
   },
   "auth": {
+    "haveReferralCode": "有推荐码吗？",
+    "referralCode": "推荐码",
+    "enterCode": "输入代码",
     "logIntoAccount": "登录你的账户",
     "createAccount": "创建账号",
+    "signInOrCreateAccount": "登录或创建您的Kortix账户",
     "continueWithGoogle": "使用 Google 继续",
     "continueWithGitHub": "使用 GitHub 继续",
     "orEmail": "或邮箱",
@@ -441,7 +597,22 @@
     "cancel": "取消",
     "pleaseEnterValidEmail": "请输入有效的邮箱地址",
     "signInFailed": "登录失败，请检查你的账号信息",
-    "signUpFailed": "注册失败，请重试"
+    "signUpFailed": "注册失败，请重试",
+    "sendMagicLink": "发送魔法链接",
+    "sending": "发送中...",
+    "magicLinkSent": "我们已向以下地址发送魔法链接",
+    "magicLinkDescription": "点击邮件中的链接以登录。链接将在1小时后过期。",
+    "magicLinkExplanation": "我们将向您发送一个安全的登录链接。无需密码。",
+    "magicLinkExpired": "此链接已过期",
+    "magicLinkExpiredDescription": "您点击的魔法链接已过期。出于安全原因，魔法链接会在1小时后过期。",
+    "resendMagicLink": "重新发送魔法链接",
+    "resending": "重新发送中...",
+    "byContinuingYouAgree": "继续即表示您同意我们的<privacyPolicy>隐私政策</privacyPolicy>和<termsOfService>服务条款</termsOfService>",
+    "openProvider": "打开 {provider}",
+    "didntReceiveEmail": "没有收到邮件？",
+    "resend": "重新发送",
+    "alreadySignedIn": "您已登录，无需任何操作。",
+    "goToDashboard": "前往控制台"
   },
   "onboarding": {
     "welcome": "欢迎",

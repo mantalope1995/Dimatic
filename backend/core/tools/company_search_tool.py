@@ -9,8 +9,8 @@ from core.agentpress.tool import Tool, ToolResult, openapi_schema, tool_metadata
 from core.utils.config import config, EnvMode
 from core.utils.logger import logger
 from core.agentpress.thread_manager import ThreadManager
-from core.billing.credit_manager import CreditManager
-from core.billing.config import TOKEN_PRICE_MULTIPLIER
+from core.billing.credits.manager import CreditManager
+from core.billing.shared.config import TOKEN_PRICE_MULTIPLIER
 from core.services.supabase import DBConnection
 
 @tool_metadata(
@@ -81,7 +81,7 @@ class CompanySearchTool(Tool):
         "type": "function",
         "function": {
             "name": "company_search",
-            "description": "Search for companies using natural language queries and enrich with company profiles. IMPORTANT: This search costs $0.54 per search (10 results).",
+            "description": "Search for companies using natural language queries and enrich with company profiles. IMPORTANT: This search costs 54 credits per search (10 results).",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -259,16 +259,16 @@ class CompanySearchTool(Tool):
             
             if config.ENV_MODE == EnvMode.LOCAL:
                 logger.info("Running in LOCAL mode - skipping billing for company search")
-                cost_deducted_str = f"${total_cost:.2f} (LOCAL - not charged)"
+                cost_deducted_str = f"{int(total_cost * 100)} credits (LOCAL - not charged)"
             else:
                 credits_deducted = await self._deduct_credits(user_id, len(formatted_results), thread_id)
                 if not credits_deducted:
                     return self.fail_response(
                         "Insufficient credits for company search. "
-                        f"This search costs ${total_cost:.2f} ({len(formatted_results)} results). "
+                        f"This search costs {int(total_cost * 100)} credits ({len(formatted_results)} results). "
                         "Please add credits to continue."
                     )
-                cost_deducted_str = f"${total_cost:.2f}"
+                cost_deducted_str = f"{int(total_cost * 100)} credits"
             
             output = {
                 "query": query,

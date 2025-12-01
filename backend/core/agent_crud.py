@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Query
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Query, Request
 
 from core.utils.auth_utils import verify_and_get_user_id_from_jwt
 from core.utils.logger import logger
@@ -444,6 +444,7 @@ async def delete_agent(agent_id: str, user_id: str = Depends(verify_and_get_user
 
 @router.get("/agents", response_model=AgentsResponse, summary="List Agents", operation_id="list_agents")
 async def get_agents(
+    request: Request,
     user_id: str = Depends(verify_and_get_user_id_from_jwt),
     page: Optional[int] = Query(1, ge=1, description="Page number (1-based)"),
     limit: Optional[int] = Query(20, ge=1, le=100, description="Number of items per page"),
@@ -507,11 +508,11 @@ async def get_agents(
             )
         )
         
+    except HTTPException:
+        # Re-raise HTTPExceptions (like 401, 429) as-is without wrapping
+        raise
     except Exception as e:
-        # Remove exc_info=True to stop the formatter crash
-        logger.error(f"Error fetching agents for user {user_id}: {str(e)}") 
-        import traceback
-        traceback.print_exc() # Print the real error to standard output
+        logger.error("Error fetching agents for user", user_id=user_id, error=str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to fetch agents: {str(e)}")
 
 @router.get("/agents/{agent_id}", response_model=AgentResponse, summary="Get Agent", operation_id="get_agent")

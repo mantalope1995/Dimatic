@@ -17,7 +17,6 @@ import { KortixLoader } from '@/components/ui';
 import { ProfilePicture } from './ProfilePicture';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-export const placeholderImageUrl = 'https://i.ibb.co/ksprrY46/Screenshot-2025-11-12-at-2-28-27-AM.png';
   
 interface NameEditPageProps {
   visible: boolean;
@@ -30,7 +29,7 @@ export function NameEditPage({
   visible, 
   currentName, 
   onClose,
-  onNameUpdated 
+  onNameUpdated,
 }: NameEditPageProps) {
   const { colorScheme } = useColorScheme();
   const { user } = useAuthContext();
@@ -78,7 +77,6 @@ export function NameEditPage({
       return;
     }
     
-    // Check if name changed
     if (trimmedName === currentName) {
       handleClose();
       return;
@@ -174,7 +172,11 @@ export function NameEditPage({
           
           <View className="px-6 pb-8">
             <View className="mb-8 items-center pt-8">
-              <ProfilePicture imageUrl={placeholderImageUrl} size={24} />
+              <ProfilePicture 
+                imageUrl={user?.user_metadata?.avatar_url} 
+                size={24}
+                fallbackText={name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
+              />
               <View className="mt-6 w-full">
                 <TextInput
                   ref={inputRef}
@@ -235,7 +237,6 @@ export function NameEditPage({
               hasChanges={hasChanges}
             />
           </View>
-
           <View className="h-20" />
         </ScrollView>
       </View>

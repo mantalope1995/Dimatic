@@ -8,10 +8,10 @@ import { extractWebScrapeData, formatFileInfo, formatDomain, getFavicon } from '
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 
-export function WebScrapeToolView({ toolData, isStreaming }: ToolViewProps) {
-  const { url, files, message, urlCount, success } = extractWebScrapeData(toolData);
+export function WebScrapeToolView({ toolCall, toolResult, isStreaming }: ToolViewProps) {
+  const { url, files, message, urlCount, success } = extractWebScrapeData({ toolCall, toolResult });
   const [copiedFile, setCopiedFile] = useState<string | null>(null);
-  
+
   const domain = url ? formatDomain(url) : 'Unknown';
   const favicon = url ? getFavicon(url) : null;
 
@@ -25,7 +25,7 @@ export function WebScrapeToolView({ toolData, isStreaming }: ToolViewProps) {
   if (isStreaming) {
     return (
       <View className="flex-1 items-center justify-center py-12 px-6">
-        <View className="bg-primary/10 rounded-2xl items-center justify-center mb-6" style={{ width: 80, height: 80 }}>
+        <View className="bg-background rounded-2xl items-center justify-center mb-6" style={{ width: 80, height: 80 }}>
           <ActivityIndicator size="large" color="#0066FF" />
         </View>
         <Text className="text-xl font-roobert-semibold text-foreground mb-2">
@@ -48,8 +48,8 @@ export function WebScrapeToolView({ toolData, isStreaming }: ToolViewProps) {
   if (!url) {
     return (
       <View className="flex-1 items-center justify-center py-12 px-6">
-        <View className="bg-muted/30 rounded-2xl items-center justify-center mb-6" style={{ width: 80, height: 80 }}>
-          <Icon as={Globe} size={40} className="text-muted-foreground" />
+        <View className="bg-background rounded-2xl items-center justify-center mb-6" style={{ width: 80, height: 80 }}>
+          <Icon as={Globe} size={40} className="text-foreground/30" />
         </View>
         <Text className="text-xl font-roobert-semibold text-foreground mb-2">
           No URL Detected
@@ -63,37 +63,7 @@ export function WebScrapeToolView({ toolData, isStreaming }: ToolViewProps) {
 
   return (
     <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-      <View className="px-6 py-4 gap-6">
-        <View className="flex-row items-center gap-3">
-          <View className="bg-primary/10 rounded-2xl items-center justify-center" style={{ width: 48, height: 48 }}>
-            <Icon as={Globe} size={24} className="text-primary" />
-          </View>
-          <View className="flex-1">
-            <Text className="text-xs font-roobert-medium text-foreground/50 uppercase tracking-wider mb-1">
-              Web Scrape
-            </Text>
-            <Text className="text-xl font-roobert-semibold text-foreground" numberOfLines={1}>
-              {domain}
-            </Text>
-          </View>
-          {!isStreaming && (
-            <View className={`flex-row items-center gap-1.5 px-2.5 py-1 rounded-full ${
-              success ? 'bg-primary/10' : 'bg-destructive/10'
-            }`}>
-              <Icon 
-                as={success ? CheckCircle2 : AlertCircle} 
-                size={12} 
-                className={success ? 'text-primary' : 'text-destructive'} 
-              />
-              <Text className={`text-xs font-roobert-medium ${
-                success ? 'text-primary' : 'text-destructive'
-              }`}>
-                {success ? 'Done' : 'Failed'}
-              </Text>
-            </View>
-          )}
-        </View>
-
+      <View className="px-6 gap-6">
         <View className="gap-3">
           <View className="flex-row items-center gap-2">
             <Icon as={Globe} size={16} className="text-foreground/50" />
@@ -101,7 +71,7 @@ export function WebScrapeToolView({ toolData, isStreaming }: ToolViewProps) {
               Source URL
             </Text>
           </View>
-          
+
           <View className="bg-card border border-border rounded-2xl p-4">
             <View className="flex-row items-center gap-3">
               {favicon && (
@@ -130,7 +100,7 @@ export function WebScrapeToolView({ toolData, isStreaming }: ToolViewProps) {
                 Generated Files
               </Text>
             </View>
-            <View className="bg-muted/30 rounded-lg px-2 py-1">
+            <View className="bg-background border border-border rounded-full px-3 py-1">
               <Text className="text-xs font-roobert-medium text-foreground/60">
                 {files.length} file{files.length !== 1 ? 's' : ''}
               </Text>
@@ -149,19 +119,19 @@ export function WebScrapeToolView({ toolData, isStreaming }: ToolViewProps) {
                     className="bg-card border border-border rounded-2xl p-4"
                   >
                     <View className="flex-row items-start gap-3">
-                      <View className="bg-primary/10 rounded-xl items-center justify-center" style={{ width: 40, height: 40 }}>
-                        <Icon as={FileText} size={20} className="text-primary" />
+                      <View className="bg-background border border-border rounded-xl items-center justify-center" style={{ width: 40, height: 40 }}>
+                        <Icon as={FileText} size={20} className="text-foreground/60" />
                       </View>
 
                       <View className="flex-1 gap-2">
                         <View className="flex-row items-center gap-2 flex-wrap">
-                          <View className="bg-muted/30 rounded-lg px-2 py-0.5">
+                          <View className="bg-background border border-border rounded-full px-3 py-1">
                             <Text className="text-xs font-roobert-medium text-foreground/60">
                               JSON
                             </Text>
                           </View>
                           {fileInfo.timestamp && (
-                            <View className="bg-muted/30 rounded-lg px-2 py-0.5 flex-row items-center gap-1">
+                            <View className="bg-background border border-border rounded-full px-3 py-1 flex-row items-center gap-1">
                               <Icon as={Calendar} size={10} className="text-foreground/60" />
                               <Text className="text-xs font-roobert text-foreground/60">
                                 {fileInfo.timestamp.replace('_', ' ')}
@@ -178,14 +148,14 @@ export function WebScrapeToolView({ toolData, isStreaming }: ToolViewProps) {
                         </Text>
                       </View>
 
-                      <Pressable 
+                      <Pressable
                         onPress={() => copyFilePath(filePath)}
-                        className="bg-muted/30 rounded-lg p-1.5"
+                        className="bg-background border border-border rounded-lg p-1.5"
                       >
-                        <Icon 
-                          as={isCopied ? Check : Copy} 
-                          size={14} 
-                          className={isCopied ? 'text-primary' : 'text-foreground/60'} 
+                        <Icon
+                          as={isCopied ? Check : Copy}
+                          size={14}
+                          className={isCopied ? 'text-primary' : 'text-foreground/60'}
                         />
                       </Pressable>
                     </View>
@@ -194,8 +164,8 @@ export function WebScrapeToolView({ toolData, isStreaming }: ToolViewProps) {
               })}
             </View>
           ) : (
-            <View className="items-center justify-center py-8 bg-muted/10 rounded-2xl">
-              <Icon as={FileText} size={32} className="text-muted-foreground opacity-50 mb-2" />
+            <View className="items-center justify-center py-8 bg-background rounded-2xl">
+              <Icon as={FileText} size={32} className="text-foreground/30 mb-2" />
               <Text className="text-sm font-roobert text-muted-foreground">
                 No files generated
               </Text>

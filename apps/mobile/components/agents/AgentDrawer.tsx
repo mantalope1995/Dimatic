@@ -98,7 +98,7 @@ export function AgentDrawer({
   const selectedAgent = agents.find(a => a.agent_id === selectedAgentId);
 
   const isOpeningRef = React.useRef(false);
-  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = React.useRef<number | null>(null);
 
   const selectedModel = React.useMemo(() => {
     if (selectedModelId) {
@@ -131,8 +131,32 @@ export function AgentDrawer({
 
   const { freeModels, premiumModels } = React.useMemo(() => {
     const resultsToUse = modelQuery ? modelResults : models;
-    const free = resultsToUse.filter(m => !m.requires_subscription).sort((a, b) => (b.priority || 0) - (a.priority || 0));
-    const premium = resultsToUse.filter(m => m.requires_subscription).sort((a, b) => (b.priority || 0) - (a.priority || 0));
+    
+    // Filter out OpenAI models when showing Kortix models
+    const hasKortixModels = resultsToUse.some(m => 
+      m.id === 'kortix/basic' || m.id === 'kortix/power' || 
+      m.id === 'kortix-basic' || m.id === 'kortix-power' ||
+      m.id.includes('claude-haiku-4-5') || m.id.includes('claude-sonnet-4-5')
+    );
+    
+    const filteredModels = hasKortixModels 
+      ? resultsToUse.filter(m => {
+          // Keep Kortix models
+          if (m.id === 'kortix/basic' || m.id === 'kortix/power' || 
+              m.id === 'kortix-basic' || m.id === 'kortix-power' ||
+              m.id.includes('claude-haiku-4-5') || m.id.includes('claude-sonnet-4-5')) {
+            return true;
+          }
+          // Filter out OpenAI models when Kortix is available
+          if (m.id.includes('openai') || m.id.includes('gpt')) {
+            return false;
+          }
+          return true;
+        })
+      : resultsToUse;
+    
+    const free = filteredModels.filter(m => !m.requires_subscription).sort((a, b) => (b.priority || 0) - (a.priority || 0));
+    const premium = filteredModels.filter(m => m.requires_subscription).sort((a, b) => (b.priority || 0) - (a.priority || 0));
     return { freeModels: free, premiumModels: premium };
   }, [models, modelQuery, modelResults]);
 
@@ -365,31 +389,35 @@ export function AgentDrawer({
         )}
       </View>
 
-      <AnimatedPressable
-        style={[
-          integrationsAnimatedStyle,
-          {
-            borderColor: colorScheme === 'dark' ? '#454444' : '#c2c2c2',
-            borderWidth: 1,
-            borderOpacity: 0.5,
-          }
-        ]}
-        className="flex-1 h-16 flex-row gap-2 mt-4 rounded-full items-center justify-center"
-        onPress={handleIntegrationsPress}
-        onPressIn={handleIntegrationsPressIn}
-        onPressOut={handleIntegrationsPressOut}
-      >
-        <AppBubble />
-        <Text className="font-roobert-medium" style={{ color: colorScheme === 'dark' ? '#f8f8f8' : '#121215' }}>
-          {t('integrations.connectApps')}
-        </Text>
-      </AnimatedPressable>
       {advancedFeaturesEnabled && (
         <>
+          <AnimatedPressable
+            style={[
+              integrationsAnimatedStyle,
+              {
+                borderColor: colorScheme === 'dark' ? '#454444' : '#c2c2c2',
+                borderWidth: 1,
+                borderOpacity: 0.5,
+              }
+            ]}
+            className="flex-1 h-16 flex-row gap-2 mt-4 rounded-2xl items-center justify-center"
+            onPress={handleIntegrationsPress}
+            onPressIn={handleIntegrationsPressIn}
+            onPressOut={handleIntegrationsPressOut}
+          >
+            <AppBubble />
+            <Text className="font-roobert-medium" style={{ color: colorScheme === 'dark' ? '#f8f8f8' : '#121215' }}>
+              {t('integrations.connectApps')}
+            </Text>
+          </AnimatedPressable>
           <View
             style={{ backgroundColor: colorScheme === 'dark' ? '#232324' : '#e0e0e0' }}
             className="h-px w-full my-3"
           />
+        </>
+      )}
+      {advancedFeaturesEnabled && (
+        <>
           <View className="pb-2">
             <View className="flex-row items-center justify-between mb-2.5">
               <Text
@@ -577,17 +605,47 @@ export function AgentDrawer({
                   entities={freeModels}
                   isLoading={false}
                   gap={3}
-                  renderItem={(model) => (
-                    <SelectableListItem
-                      key={model.id}
-                      avatar={<ModelAvatar model={model} size={48} />}
-                      title={model.display_name}
-                      subtitle={model.short_name}
-                      isSelected={model.id === selectedModel?.id}
-                      onPress={() => handleModelPress(model)}
-                      accessibilityLabel={`Select ${model.display_name} model`}
-                    />
-                  )}
+                  renderItem={(model) => {
+                    const isPower = model.id === 'kortix/power' || model.id === 'kortix-power' || model.id.includes('claude-sonnet-4-5');
+                    const isBasic = model.id === 'kortix/basic' || model.id === 'kortix-basic' || model.id.includes('claude-haiku-4-5');
+                    
+                    return (
+                      <SelectableListItem
+                        key={model.id}
+                        avatar={<ModelAvatar model={model} size={48} />}
+                        title={
+                          <View className="flex-row items-center gap-2">
+                            <Text
+                              style={{ color: colorScheme === 'dark' ? '#f8f8f8' : '#121215' }}
+                              className="font-roobert-medium"
+                            >
+                              {model.display_name}
+                            </Text>
+                            {isPower && (
+                              <Text
+                                style={{ color: colorScheme === 'dark' ? 'rgba(248, 248, 248, 0.6)' : 'rgba(18, 18, 21, 0.6)' }}
+                                className="text-xs font-roobert-medium"
+                              >
+                                Power
+                              </Text>
+                            )}
+                            {isBasic && (
+                              <Text
+                                style={{ color: colorScheme === 'dark' ? 'rgba(248, 248, 248, 0.6)' : 'rgba(18, 18, 21, 0.6)' }}
+                                className="text-xs font-roobert-medium"
+                              >
+                                Basic
+                              </Text>
+                            )}
+                          </View>
+                        }
+                        subtitle={model.short_name}
+                        isSelected={model.id === selectedModel?.id}
+                        onPress={() => handleModelPress(model)}
+                        accessibilityLabel={`Select ${model.display_name} model`}
+                      />
+                    );
+                  }}
                 />
               </View>
             )}
@@ -612,18 +670,48 @@ export function AgentDrawer({
                       entities={premiumModels.slice(0, 3)}
                       isLoading={false}
                       gap={3}
-                      renderItem={(model) => (
-                        <View key={model.id} style={{ opacity: canAccessModel(model) ? 1 : 0.7 }}>
-                          <SelectableListItem
-                            avatar={<ModelAvatar model={model} size={48} />}
-                            title={model.display_name}
-                            subtitle={model.short_name}
-                            isSelected={model.id === selectedModel?.id}
-                            onPress={() => handleModelPress(model)}
-                            accessibilityLabel={`Select ${model.display_name} model`}
-                          />
-                        </View>
-                      )}
+                      renderItem={(model) => {
+                        const isPower = model.id === 'kortix/power' || model.id === 'kortix-power' || model.id.includes('claude-sonnet-4-5');
+                        const isBasic = model.id === 'kortix/basic' || model.id === 'kortix-basic' || model.id.includes('claude-haiku-4-5');
+                        
+                        return (
+                          <View key={model.id} style={{ opacity: canAccessModel(model) ? 1 : 0.7 }}>
+                            <SelectableListItem
+                              avatar={<ModelAvatar model={model} size={48} />}
+                              title={
+                                <View className="flex-row items-center gap-2">
+                                  <Text
+                                    style={{ color: colorScheme === 'dark' ? '#f8f8f8' : '#121215' }}
+                                    className="font-roobert-medium"
+                                  >
+                                    {model.display_name}
+                                  </Text>
+                                  {isPower && (
+                                    <Text
+                                      style={{ color: colorScheme === 'dark' ? 'rgba(248, 248, 248, 0.6)' : 'rgba(18, 18, 21, 0.6)' }}
+                                      className="text-xs font-roobert-medium"
+                                    >
+                                      Power
+                                    </Text>
+                                  )}
+                                  {isBasic && (
+                                    <Text
+                                      style={{ color: colorScheme === 'dark' ? 'rgba(248, 248, 248, 0.6)' : 'rgba(18, 18, 21, 0.6)' }}
+                                      className="text-xs font-roobert-medium"
+                                    >
+                                      Basic
+                                    </Text>
+                                  )}
+                                </View>
+                              }
+                              subtitle={model.short_name}
+                              isSelected={model.id === selectedModel?.id}
+                              onPress={() => handleModelPress(model)}
+                              accessibilityLabel={`Select ${model.display_name} model`}
+                            />
+                          </View>
+                        );
+                      }}
                     />
 
                     {/* Upgrade CTA */}
@@ -667,17 +755,47 @@ export function AgentDrawer({
                     entities={premiumModels}
                     isLoading={false}
                     gap={3}
-                    renderItem={(model) => (
-                      <SelectableListItem
-                        key={model.id}
-                        avatar={<ModelAvatar model={model} size={48} />}
-                        title={model.display_name}
-                        subtitle={model.short_name}
-                        isSelected={model.id === selectedModel?.id}
-                        onPress={() => handleModelPress(model)}
-                        accessibilityLabel={`Select ${model.display_name} model`}
-                      />
-                    )}
+                    renderItem={(model) => {
+                      const isPower = model.id === 'kortix/power' || model.id === 'kortix-power' || model.id.includes('claude-sonnet-4-5');
+                      const isBasic = model.id === 'kortix/basic' || model.id === 'kortix-basic' || model.id.includes('claude-haiku-4-5');
+                      
+                      return (
+                        <SelectableListItem
+                          key={model.id}
+                          avatar={<ModelAvatar model={model} size={48} />}
+                          title={
+                            <View className="flex-row items-center gap-2">
+                              <Text
+                                style={{ color: colorScheme === 'dark' ? '#f8f8f8' : '#121215' }}
+                                className="font-roobert-medium"
+                              >
+                                {model.display_name}
+                              </Text>
+                              {isPower && (
+                                <Text
+                                  style={{ color: colorScheme === 'dark' ? 'rgba(248, 248, 248, 0.6)' : 'rgba(18, 18, 21, 0.6)' }}
+                                  className="text-xs font-roobert-medium"
+                                >
+                                  Power
+                                </Text>
+                              )}
+                              {isBasic && (
+                                <Text
+                                  style={{ color: colorScheme === 'dark' ? 'rgba(248, 248, 248, 0.6)' : 'rgba(18, 18, 21, 0.6)' }}
+                                  className="text-xs font-roobert-medium"
+                                >
+                                  Basic
+                                </Text>
+                              )}
+                            </View>
+                          }
+                          subtitle={model.short_name}
+                          isSelected={model.id === selectedModel?.id}
+                          onPress={() => handleModelPress(model)}
+                          accessibilityLabel={`Select ${model.display_name} model`}
+                        />
+                      );
+                    }}
                   />
                 )}
               </View>

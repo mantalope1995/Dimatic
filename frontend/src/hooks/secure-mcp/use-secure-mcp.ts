@@ -490,7 +490,7 @@ export function useDeleteTemplate() {
   });
 }
 
-export function useKortixTeamTemplates() {
+export function useKortixTeamTemplates(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['secure-mcp', 'kortix-templates-all'],
     queryFn: async (): Promise<MarketplaceTemplatesResponse> => {
@@ -514,6 +514,8 @@ export function useKortixTeamTemplates() {
       
       return response.json();
     },
+    enabled: options?.enabled !== false,
+    ...options,
   });
 }
 
@@ -558,6 +560,12 @@ export function useInstallTemplate() {
       queryClient.invalidateQueries({ queryKey: ['agents'] });
       queryClient.invalidateQueries({ queryKey: ['marketplace-templates'] });
       queryClient.invalidateQueries({ queryKey: ['templates'] });
+    },
+    onError: (error) => {
+      // Use centralized error handler for billing errors
+      import('@/lib/error-handler').then(({ handleApiError }) => {
+        handleApiError(error);
+      });
     },
   });
 } 

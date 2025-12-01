@@ -80,7 +80,21 @@ class Configuration:
     
     # Environment mode
     ENV_MODE: Optional[EnvMode] = EnvMode.LOCAL
-
+    
+    # ===== AGENT TOOL CALLING CONFIGURATION =====
+    # Configure which tool calling format to use (XML or Native/OpenAI)
+    # Only ONE should be enabled at a time
+    AGENT_XML_TOOL_CALLING: bool = False      # Enable XML-based tool calls (<function_calls>)
+    AGENT_NATIVE_TOOL_CALLING: bool = True  # Enable OpenAI-style native function calling
+    AGENT_EXECUTE_ON_STREAM: bool = True     # Execute tools as they stream (vs. at end)
+    AGENT_TOOL_EXECUTION_STRATEGY: str = "parallel"  # "parallel" or "sequential"
+    # ============================================
+    
+    # ===== PRESENCE CONFIGURATION =====
+    DISABLE_PRESENCE: bool = False  # Disable presence tracking entirely
+    # ==================================
+    
+    SYSTEM_ADMIN_USER_ID: Optional[str] = None  # User ID that owns shared/fallback agents
 
     # Subscription tier IDs - Production
     STRIPE_FREE_TIER_ID_PROD: Optional[str] = 'price_1RILb4G6l1KZGqIrK4QLrx9i'
@@ -324,6 +338,9 @@ class Configuration:
     REDIS_HOST: Optional[str] = "localhost"
     REDIS_PORT: Optional[int] = 6379
     REDIS_PASSWORD: Optional[str] = None
+    REDIS_USERNAME: Optional[str] = None  # Required for Redis Cloud
+    REDIS_MAX_CONNECTIONS: Optional[int] = 10  # Max connections per process (default 10)
+    REDIS_DRAMATIQ_MAX_CONNECTIONS: Optional[int] = 5  # Max connections for Dramatiq broker per process (default 5)
     REDIS_SSL: Optional[bool] = True
     
     # Daytona sandbox configuration (optional - sandbox features disabled if not configured)
@@ -365,6 +382,21 @@ class Configuration:
     SANDBOX_IMAGE_NAME = "kortix/suna:0.1.3.25"
     SANDBOX_SNAPSHOT_NAME = "kortix/suna:0.1.3.25"
     SANDBOX_ENTRYPOINT = "/usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf"
+    
+    # Debug configuration
+    # Set to True to save LLM API call inputs and stream outputs to debug_streams/ directory
+    # Always False in production, regardless of environment variable
+    _DEBUG_SAVE_LLM_IO: Optional[bool] = True
+    
+    @property
+    def DEBUG_SAVE_LLM_IO(self) -> bool:
+        """
+        Debug flag to save LLM API call inputs and stream outputs.
+        Always returns False in production, regardless of environment variable.
+        """
+        if self.ENV_MODE == EnvMode.PRODUCTION:
+            return False
+        return self._DEBUG_SAVE_LLM_IO or False
 
     # LangFuse configuration
     LANGFUSE_PUBLIC_KEY: Optional[str] = None
@@ -398,7 +430,7 @@ class Configuration:
     # Agent limits per billing tier
     # Note: These limits are bypassed in local mode (ENV_MODE=local) where unlimited agents are allowed
     AGENT_LIMITS = {
-        'free': 2,
+        'free': 0,
         'tier_2_20': 5,
         'tier_6_50': 20,
         'tier_12_100': 20,
@@ -573,6 +605,11 @@ class Configuration:
         frontend_url_env = os.getenv("FRONTEND_URL")
         if frontend_url_env is not None:
             self.FRONTEND_URL_ENV = frontend_url_env
+        
+        # Custom handling for DEBUG_SAVE_LLM_IO (always False in production)
+        debug_save_llm_io_env = os.getenv("DEBUG_SAVE_LLM_IO")
+        if debug_save_llm_io_env is not None:
+            self._DEBUG_SAVE_LLM_IO = debug_save_llm_io_env.lower() in ('true', 't', 'yes', 'y', '1')
     
     def _validate(self):
         """Validate configuration based on type hints."""

@@ -1,17 +1,4 @@
 #!/usr/bin/env python3
-"""
-Migration script to track commitment plans by querying Stripe directly.
-
-Usage:
-    # Dry run - see what would be changed without making changes
-    python -m core.billing.migrate_existing_commitments_stripe --dry-run
-    
-    # Apply the migration
-    python -m core.billing.migrate_existing_commitments_stripe
-    
-    # Only verify existing commitments
-    python -m core.billing.migrate_existing_commitments_stripe --verify-only
-"""
 import asyncio
 import sys
 import argparse
@@ -20,7 +7,8 @@ from datetime import datetime, timezone, timedelta
 from core.services.supabase import DBConnection
 from core.utils.config import config
 from core.utils.logger import logger
-from .config import is_commitment_price_id, get_commitment_duration_months
+from .shared.config import is_commitment_price_id, get_commitment_duration_months
+from .external.stripe import StripeAPIWrapper
 
 if config.STRIPE_SECRET_KEY:
     stripe.api_key = config.STRIPE_SECRET_KEY
@@ -76,7 +64,7 @@ async def migrate_existing_commitments(dry_run=False):
                 params['starting_after'] = starting_after
             
             logger.info(f"[COMMITMENT MIGRATION] Fetching batch of subscriptions from Stripe (checked {total_checked} so far)...")
-            subscriptions = await stripe.Subscription.list_async(**params)
+            subscriptions = await StripeAPIWrapper.list_subscriptions(**params)
             
             logger.info(f"[COMMITMENT MIGRATION] Retrieved {len(subscriptions.data)} subscriptions in this batch")
             
@@ -322,7 +310,7 @@ async def verify_commitment_tracking():
         if starting_after:
             params['starting_after'] = starting_after
         
-        subscriptions = await stripe.Subscription.list_async(**params)
+        subscriptions = await StripeAPIWrapper.list_subscriptions(**params)
         
         for subscription in subscriptions.data:
             price_id = None
@@ -377,7 +365,7 @@ async def list_all_price_ids():
         if starting_after:
             params['starting_after'] = starting_after
         
-        subscriptions = await stripe.Subscription.list_async(**params)
+        subscriptions = await StripeAPIWrapper.list_subscriptions(**params)
         
         for subscription in subscriptions.data:
             total_checked += 1

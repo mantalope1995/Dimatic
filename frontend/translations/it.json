@@ -29,7 +29,7 @@
     "next": "Avanti",
     "upgrade": "Aggiorna",
     "basic": "Base",
-    "tryFree": "Inizia gratis"
+    "tryFree": "Inizia"
   },
   "settings": {
     "title": "Impostazioni",
@@ -38,6 +38,7 @@
       "plan": "Piano",
       "billing": "Fatturazione",
       "usage": "Utilizzo",
+      "referrals": "Referral",
       "knowledgeBase": "Base di conoscenza",
       "integrations": "Integrazioni",
       "envManager": "Gestore ambiente"
@@ -83,6 +84,50 @@
         "cancelDeletionDescription": "Vuoi annullare l'eliminazione del tuo account? Il tuo account e tutti i dati saranno preservati.",
         "cancelDeletion": "Annulla Eliminazione"
       }
+    },
+    "referrals": {
+      "title": "Programma Referral",
+      "description": "Condividi il tuo link di referral con gli amici. Quando si registrano e creano un account, guadagnerai",
+      "creditsPerReferral": "100 crediti permanenti",
+      "youEarn": "Guadagni",
+      "friendGets": "Il tuo amico ottiene",
+      "maxEarnable": "Massimo guadagnabile tramite referral:",
+      "maxCredits": "$100 in crediti",
+      "yourReferralCode": "Il Tuo Codice Referral",
+      "referralLink": "Link di Referral",
+      "shareYourLink": "Condividi il tuo link di referral",
+      "yourStats": "Le tue statistiche",
+      "enterCodeDescription": "Inserisci un codice referral per guadagnare crediti",
+      "enterCode": "Inserisci codice",
+      "refresh": "Aggiorna",
+      "copyCode": "Copia codice",
+      "copyLink": "Copia link",
+      "share": "Condividi",
+      "stats": {
+        "totalReferrals": "Referral Totali",
+        "successful": "Riusciti",
+        "creditsEarned": "Crediti Guadagnati"
+      },
+      "recentReferrals": "Referral Recenti",
+      "signupComplete": "Registrazione Completata",
+      "pending": "In Attesa",
+      "noReferrals": "Nessun referral ancora. Condividi il tuo link di referral per iniziare!",
+      "copied": "Copiato!",
+      "codeCopied": "Codice referral copiato negli appunti",
+      "linkCopied": "Link di referral copiato negli appunti",
+      "codeRefreshed": "Codice referral aggiornato con successo",
+      "refreshFailed": "Aggiornamento del codice referral fallito",
+      "inviteByEmail": "Invita per Email",
+      "inviteByEmailDescription": "Aggiungi fino a 3 indirizzi email (premi Invio, Spazio o Virgola)",
+      "emailAddress": "Indirizzo email",
+      "emailPlaceholder": "Inserisci indirizzi email (premi Invio, Spazio o Virgola)",
+      "emailsAdded": "email",
+      "sent": "inviato",
+      "send": "Invia",
+      "sending": "Invio...",
+      "sendAllInvites": "Invia Tutti gli Inviti",
+      "allSent": "Tutto Inviato",
+      "emailSent": "Invito di referral inviato con successo"
     },
     "billing": {
       "title": "Fatturazione & Abbonamento",
@@ -184,6 +229,9 @@
     "monthlyOn1st": "Mensilmente il 1°"
   },
   "sidebar": {
+    "referAndEarn": "Invita e Guadagna",
+    "new": "Nuovo",
+    "upgrade": "Aggiorna",
     "chats": "Chat",
     "agents": "Agenti",
     "workers": "Worker",
@@ -249,7 +297,7 @@
     "customWorkers": "Worker personalizzati",
     "scheduledTriggers": "Trigger pianificati",
     "appTriggers": "Trigger app",
-    "limitsExceeded": "Hai finito i limiti. Migliora ora.",
+    "limitsExceeded": "Hai raggiunto il limite delle chat ({current}/{limit}). Aggiorna il tuo piano per creare più chat.",
     "agentInitiatedSuccessfully": "Agente avviato con successo",
     "aiAssistantReady": "Il tuo assistente AI è pronto ad aiutare"
   },
@@ -314,6 +362,85 @@
     "subtitle": "Inizia",
     "heroPlaceholder": "Descrivi il compito che vuoi che il tuo Worker completi..."
   },
+  "showcase": {
+    "title": "Kortix: Il Tuo Worker IA Autonomo",
+    "subtitle": "Costruito per compiti complessi, progettato per tutto. L'assistente IA definitivo che gestisce tutto—dalle richieste semplici ai progetti mega-complessi.",
+    "tryItOut": "Provalo",
+    "kortixComputer": "Kortix Computer",
+    "running": "In esecuzione",
+    "workers": {
+      "images": {
+        "title": "Immagini",
+        "description": "Crea immagini su richiesta. Dalle foto di prodotti ai grafici per social media fino alle illustrazioni complete. Regola stile, illuminazione, colori e layout, o perfeziona i visual esistenti con modifiche rapide e ritocchi.",
+        "capabilities": {
+          "0": "Generare foto di prodotti",
+          "1": "Creare grafici per social media",
+          "2": "Creare illustrazioni",
+          "3": "Variazioni di stile e illuminazione",
+          "4": "Creazione di logo / risorse",
+          "5": "+ Molto altro"
+        },
+        "imageAlt": "Esempio grafico La crescita non è lineare",
+        "fileType": "image"
+      },
+      "slides": {
+        "title": "Presentazioni",
+        "description": "Crea presentazioni straordinarie all'istante. Dalle pitch deck ai rapporti fino ai materiali di formazione. Regola temi, layout, struttura del contenuto o perfeziona le presentazioni esistenti con modifiche e aggiornamenti rapidi.",
+        "capabilities": {
+          "0": "Pitch deck",
+          "1": "Materiale di formazione",
+          "2": "Presentazioni di rapporti",
+          "3": "Variazioni di tema e layout",
+          "4": "Ristrutturazione del contenuto",
+          "5": "+ Molto altro"
+        },
+        "imageAlt": "Esempio di diapositiva Nexus Enterprise Automation Platform",
+        "fileType": "PPTX"
+      },
+      "data": {
+        "title": "Dati",
+        "description": "Trasforma i dati grezzi in insights. Dai fogli di calcolo alle dashboard alle visualizzazioni. Pulisce i dataset, crea grafici, genera rapporti o perfeziona le analisi esistenti con aggiornamenti rapidi.",
+        "capabilities": {
+          "0": "Dashboard",
+          "1": "Visualizzazioni",
+          "2": "Rapporti sui dati",
+          "3": "Pulire e organizzare i dati",
+          "4": "Generare insights",
+          "5": "+ Molto altro"
+        },
+        "imageAlt": "Esempio di dashboard modello finanziario",
+        "fileType": "Anteprima"
+      },
+      "docs": {
+        "title": "Documenti",
+        "description": "Scrive e modifica documenti senza sforzo. Dalle proposte alle guide ai contenuti. Regola tono, struttura, formattazione o perfeziona i documenti esistenti con riscritture rapide e rifiniture.",
+        "capabilities": {
+          "0": "Proposte",
+          "1": "Guide e manuali",
+          "2": "Contenuti",
+          "3": "Variazioni di tono e stile",
+          "4": "Formattare e ristrutturare",
+          "5": "+ Molto altro"
+        },
+        "imageAlt": "Esempio di rapporto esecutivo riepilogativo Q3 2025",
+        "fileType": "PDF"
+      },
+      "research": {
+        "title": "Ricerca",
+        "description": "Ricerca argomenti in modo completo. Dalle tendenze di mercato all'analisi competitiva fino agli approfondimenti. Raccoglie fonti, sintetizza i risultati o perfeziona le ricerche esistenti con aggiornamenti rapidi.",
+        "capabilities": {
+          "0": "Analizzare le tendenze di mercato",
+          "1": "Ricerca competitiva",
+          "2": "Approfondimenti su argomenti",
+          "3": "Raccogliere fonti",
+          "4": "Sintetizzare i risultati",
+          "5": "+ Molto altro"
+        },
+        "imageAlt": "Esempio di ricerca Profili dettagliati dei concorrenti",
+        "fileType": "PDF"
+      }
+    }
+  },
   "threads": {
     "title": "Thread",
     "newThread": "Nuovo thread",
@@ -326,6 +453,8 @@
     "credits": "Crediti",
     "popular": "Popolare",
     "creditsExplained": "Crediti spiegati",
+    "creditsExhausted": "+200 Crediti tra {time}. Aggiorna per usare ora.",
+    "creditsExhaustedRefreshIn": "Hai esaurito i tuoi crediti. Si rinnoveranno tra {time}",
     "trialActive": "Prova attiva",
     "trialBadge": "Prova di 7 giorni",
     "currentPlan": "Piano Attuale",
@@ -440,11 +569,38 @@
       "integrations": "100+ integrazioni",
       "premiumAIModels": "Modelli AI Premium",
       "prioritySupport": "Supporto prioritario"
+    },
+    "downgradeDialog": {
+      "confirmTitle": "Conferma cambio piano",
+      "confirmSubtitle": "Ci dispiace vederti andare",
+      "confirmDescription": "Stai per passare al piano {planName}. Questa modifica avrà effetto alla fine del tuo attuale periodo di fatturazione. Manterrai i tuoi vantaggi attuali fino ad allora.",
+      "continue": "Continua",
+      "keepCurrentPlan": "Mantieni il mio piano attuale",
+      "feedbackTitle": "Aiutaci a migliorare",
+      "feedbackSubtitle": "Il tuo feedback plasma il futuro di Kortix",
+      "whatWouldMakeYouStay": "Cosa ti farebbe restare?",
+      "feedbackPlaceholder": "Se ci fosse una cosa che potremmo cambiare o aggiungere per rendere Kortix utile per te, quale sarebbe?",
+      "feedbackFooter": "Il nostro team legge ogni risposta. Le tue parole influenzano direttamente cosa costruiremo dopo.",
+      "confirmDowngrade": "Conferma downgrade",
+      "processing": "Elaborazione...",
+      "pleaseSelectReason": "Seleziona un motivo",
+      "reasons": {
+        "tooExpensive": "È troppo costoso per le mie esigenze",
+        "notUsingOften": "Non uso Kortix abbastanza",
+        "foundAlternative": "Ho trovato un'altra soluzione",
+        "technicalIssues": "Ho riscontrato problemi tecnici",
+        "resultsNotGood": "I risultati non hanno soddisfatto le mie aspettative",
+        "other": "Altro motivo"
+      }
     }
   },
   "auth": {
+    "haveReferralCode": "Hai un codice referral?",
+    "referralCode": "Codice Referral",
+    "enterCode": "Inserisci codice",
     "logIntoAccount": "Accedi al tuo account",
     "createAccount": "Crea account",
+    "signInOrCreateAccount": "Accedi o crea il tuo account Kortix",
     "continueWithGoogle": "Continua con Google",
     "continueWithGitHub": "Continua con GitHub",
     "orEmail": "o email",
@@ -458,7 +614,7 @@
     "forgotPassword": "Password dimenticata?",
     "dontHaveAccount": "Non hai un account?",
     "alreadyHaveAccount": "Hai già un account?",
-    "acceptPrivacyTerms": "Accetto l'<privacyPolicy>Informativa sulla Privacy</privacyPolicy> e i <termsOfService>Termini di Servizio</termsOfService>",
+    "acceptPrivacyTerms": "Accetto l' <privacyPolicy>Informativa sulla Privacy</privacyPolicy> e i <termsOfService>Termini di Servizio</termsOfService>",
     "privacyPolicy": "Informativa sulla Privacy",
     "termsOfService": "Termini di Servizio",
     "checkYourEmail": "Controlla la tua email",
@@ -472,7 +628,22 @@
     "cancel": "Annulla",
     "pleaseEnterValidEmail": "Inserisci un indirizzo email valido",
     "signInFailed": "Accesso fallito. Controlla le tue credenziali.",
-    "signUpFailed": "Registrazione fallita. Riprova."
+    "signUpFailed": "Registrazione fallita. Riprova.",
+    "sendMagicLink": "Invia magic link",
+    "sending": "Invio in corso...",
+    "magicLinkSent": "Ti abbiamo inviato un magic link a",
+    "magicLinkDescription": "Clicca sul link nella tua email per accedere. Il link scadrà tra 1 ora.",
+    "magicLinkExplanation": "Ti invieremo un link sicuro per accedere. Nessuna password necessaria.",
+    "magicLinkExpired": "Questo link è scaduto",
+    "magicLinkExpiredDescription": "Il magic link su cui hai cliccato è scaduto. I magic link scadono dopo 1 ora per motivi di sicurezza.",
+    "resendMagicLink": "Invia di nuovo il magic link",
+    "resending": "Invio in corso...",
+    "byContinuingYouAgree": "Continuando, accetti la nostra <privacyPolicy>Informativa sulla Privacy</privacyPolicy> e i nostri <termsOfService>Termini di Servizio</termsOfService>",
+    "openProvider": "Apri {provider}",
+    "didntReceiveEmail": "Non hai ricevuto l'email?",
+    "resend": "Reinvia",
+    "alreadySignedIn": "Sei già connesso. Nessuna azione richiesta.",
+    "goToDashboard": "Vai alla Dashboard"
   },
   "onboarding": {
     "welcome": "Benvenuto",

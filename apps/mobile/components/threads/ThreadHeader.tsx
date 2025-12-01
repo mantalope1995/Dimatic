@@ -5,7 +5,7 @@ import { useLanguage } from '@/contexts';
 import * as React from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CircleEllipsis, Menu, MessageCircleMore, MoreHorizontal, TextAlignStart } from 'lucide-react-native';
+import { MessageCircleMore, TextAlignStart } from 'lucide-react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -23,12 +23,6 @@ interface ThreadHeaderProps {
   isLoading?: boolean;
 }
 
-/**
- * ThreadHeader Component
- * 
- * Clean, minimal header inspired by SettingsHeader design
- * Matches the BillingPage aesthetic with proper spacing and layout
- */
 export function ThreadHeader({
   threadTitle,
   onTitleChange,
@@ -69,6 +63,7 @@ export function ThreadHeader({
   };
 
   const handleTitlePress = () => {
+    if (isGuestMode) return;
     console.log('🎯 Thread title tapped');
     setIsEditingTitle(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -131,8 +126,6 @@ export function ThreadHeader({
         >
           <Icon as={TextAlignStart} size={20} className="text-foreground" strokeWidth={2} />
         </AnimatedPressable>
-
-        {/* Thread Title */}
         <View className="flex-1 flex-row items-center">
           {isEditingTitle ? (
             <TextInput
@@ -174,7 +167,6 @@ export function ThreadHeader({
           )}
         </View>
 
-        {/* Actions Button */}
         <AnimatedPressable
           onPressIn={() => {
             actionScale.value = withSpring(0.95, { damping: 15, stiffness: 400 });

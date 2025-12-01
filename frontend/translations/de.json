@@ -29,7 +29,7 @@
     "next": "Weiter",
     "upgrade": "Upgrade",
     "basic": "Basis",
-    "tryFree": "Kostenlos starten"
+    "tryFree": "Loslegen"
   },
   "settings": {
     "title": "Einstellungen",
@@ -38,6 +38,7 @@
       "plan": "Plan",
       "billing": "Abrechnung",
       "usage": "Nutzung",
+      "referrals": "Empfehlungen",
       "knowledgeBase": "Wissensdatenbank",
       "integrations": "Integrationen",
       "envManager": "Umgebungs-Manager"
@@ -76,6 +77,13 @@
         "billingRemoved": "Alle Abrechnungsdaten werden entfernt",
         "scheduled30Days": "Dein Konto wird für die Löschung in 30 Tagen eingeplant",
         "gracePeriod": "Du kannst diese Anfrage jederzeit innerhalb der 30-tägigen Frist stornieren. Nach 30 Tagen werden alle deine Daten dauerhaft gelöscht und können nicht wiederhergestellt werden.",
+        "chooseDeletionType": "Löschungsart wählen:",
+        "gracePeriodOption": "30-Tage-Frist",
+        "gracePeriodDescription": "Dein Konto wird für die Löschung in 30 Tagen eingeplant. Du kannst diese Anfrage jederzeit innerhalb der Frist stornieren.",
+        "immediateOption": "Sofortige Löschung",
+        "immediateDescription": "Dein Konto und alle Daten werden sofort dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+        "warningImmediate": "Diese Aktion kann nicht rückgängig gemacht werden",
+        "warningGracePeriod": "Diese Aktion kann nach 30 Tagen nicht rückgängig gemacht werden",
         "confirmText": "Tippe delete zur Bestätigung",
         "confirmPlaceholder": "delete",
         "keepAccount": "Konto behalten",
@@ -83,6 +91,50 @@
         "cancelDeletionDescription": "Möchtest du die Löschung deines Kontos stornieren? Dein Konto und alle Daten bleiben erhalten.",
         "cancelDeletion": "Löschung stornieren"
       }
+    },
+    "referrals": {
+      "title": "Freunde empfehlen & Credits verdienen",
+      "description": "Lade Freunde zu Kortix ein und verdient beide",
+      "creditsPerReferral": "+400 Credits",
+      "youEarn": "Du verdienst",
+      "friendGets": "Dein Freund bekommt",
+      "maxEarnable": "Maximal verdienbar:",
+      "maxCredits": "400 Credits",
+      "yourReferralCode": "Empfehlungscode",
+      "referralLink": "Empfehlungslink",
+      "shareYourLink": "Teile deinen Empfehlungslink",
+      "yourStats": "Deine Statistiken",
+      "enterCodeDescription": "Gib einen Empfehlungscode ein, um Credits zu verdienen",
+      "enterCode": "Code eingeben",
+      "refresh": "Aktualisieren",
+      "copyCode": "Code kopieren",
+      "copyLink": "Link kopieren",
+      "share": "Teilen",
+      "stats": {
+        "totalReferrals": "Empfehlungen",
+        "successful": "Erfolgreich",
+        "creditsEarned": "Verdiente Credits"
+      },
+      "recentReferrals": "Neueste Empfehlungen",
+      "signupComplete": "Anmeldung abgeschlossen",
+      "pending": "Ausstehend",
+      "noReferrals": "Noch keine Empfehlungen. Teile deinen Empfehlungslink, um zu starten!",
+      "copied": "Kopiert!",
+      "codeCopied": "Code kopiert",
+      "linkCopied": "Link kopiert",
+      "codeRefreshed": "Empfehlungscode erfolgreich aktualisiert",
+      "refreshFailed": "Aktualisierung des Empfehlungscodes fehlgeschlagen",
+      "inviteByEmail": "Per E-Mail einladen",
+      "inviteByEmailDescription": "Füge bis zu 3 E-Mail-Adressen hinzu (Eingabetaste, Leertaste oder Komma drücken)",
+      "emailAddress": "E-Mail-Adresse",
+      "emailPlaceholder": "E-Mail-Adressen eingeben (Eingabe, Leertaste oder Komma drücken)",
+      "emailsAdded": "E-Mails",
+      "sent": "gesendet",
+      "send": "Senden",
+      "sending": "Wird gesendet...",
+      "sendAllInvites": "Alle Einladungen senden",
+      "allSent": "Alle gesendet",
+      "emailSent": "Empfehlungseinladung erfolgreich gesendet"
     },
     "billing": {
       "title": "Abrechnungsstatus",
@@ -184,6 +236,9 @@
     "monthlyOn1st": "Monatlich am 1."
   },
   "sidebar": {
+    "referAndEarn": "Empfehlen",
+    "new": "Neu",
+    "upgrade": "Upgrade",
     "chats": "Chats",
     "agents": "Agenten",
     "workers": "Worker",
@@ -249,7 +304,7 @@
     "customWorkers": "Benutzerdefinierte Worker",
     "scheduledTriggers": "Geplante Trigger",
     "appTriggers": "App-Trigger",
-    "limitsExceeded": "Du hast deine Limits erreicht. Upgraden deinen Plan, um mehr zu chatten.",
+    "limitsExceeded": "Du hast dein Chat-Limit erreicht ({current}/{limit}). Upgraden deinen Plan, um mehr Chats zu erstellen.",
     "agentInitiatedSuccessfully": "Agent erfolgreich gestartet",
     "aiAssistantReady": "Dein KI-Assistent ist bereit zu helfen"
   },
@@ -316,6 +371,8 @@
     "credits": "Credits",
     "popular": "Beliebt",
     "creditsExplained": "Credits erklärt",
+    "creditsExhausted": "+200 Credits in {time}. Jetzt upgraden, um sofort zu nutzen.",
+    "creditsExhaustedRefreshIn": "Ihre Credits sind aufgebraucht. Sie werden in {time} erneuert",
     "trialActive": "Testversion aktiv",
     "trialBadge": "7-Tage-Testversion",
     "currentPlan": "Aktueller Plan",
@@ -430,11 +487,38 @@
       "integrations": "100+ Integrationen",
       "premiumAIModels": "Premium-KI-Modelle",
       "prioritySupport": "Prioritätssupport"
+    },
+    "downgradeDialog": {
+      "confirmTitle": "Planänderung bestätigen",
+      "confirmSubtitle": "Es tut uns leid, Sie gehen zu sehen",
+      "confirmDescription": "Sie wechseln zum {planName}-Plan. Diese Änderung wird am Ende Ihres aktuellen Abrechnungszeitraums wirksam. Sie behalten Ihre aktuellen Vorteile bis dahin.",
+      "continue": "Weiter",
+      "keepCurrentPlan": "Meinen aktuellen Plan behalten",
+      "feedbackTitle": "Helfen Sie uns, besser zu werden",
+      "feedbackSubtitle": "Ihr Feedback prägt die Zukunft von Kortix",
+      "whatWouldMakeYouStay": "Was würde Sie zum Bleiben bewegen?",
+      "feedbackPlaceholder": "Wenn wir eine Sache ändern oder hinzufügen könnten, die Kortix für Sie lohnenswert machen würde, was wäre das?",
+      "feedbackFooter": "Unser Team liest jede Antwort. Ihre Worte beeinflussen direkt, was wir als Nächstes entwickeln.",
+      "confirmDowngrade": "Downgrade bestätigen",
+      "processing": "Wird verarbeitet...",
+      "pleaseSelectReason": "Bitte wählen Sie einen Grund",
+      "reasons": {
+        "tooExpensive": "Es ist zu teuer für meine Bedürfnisse",
+        "notUsingOften": "Ich nutze Kortix nicht genug",
+        "foundAlternative": "Ich habe eine andere Lösung gefunden",
+        "technicalIssues": "Ich hatte technische Probleme",
+        "resultsNotGood": "Die Ergebnisse entsprachen nicht meinen Erwartungen",
+        "other": "Anderer Grund"
+      }
     }
   },
   "auth": {
+    "haveReferralCode": "Hast du einen Empfehlungscode?",
+    "referralCode": "Empfehlungscode",
+    "enterCode": "Code eingeben",
     "logIntoAccount": "In dein Konto einloggen",
     "createAccount": "Konto erstellen",
+    "signInOrCreateAccount": "Melde dich an oder erstelle dein Kortix-Konto",
     "continueWithGoogle": "Mit Google fortfahren",
     "continueWithGitHub": "Mit GitHub fortfahren",
     "orEmail": "oder E-Mail",
@@ -462,7 +546,22 @@
     "cancel": "Abbrechen",
     "pleaseEnterValidEmail": "Bitte gib eine gültige E-Mail-Adresse ein",
     "signInFailed": "Login fehlgeschlagen. Check deine Zugangsdaten.",
-    "signUpFailed": "Registrierung fehlgeschlagen. Versuch's nochmal."
+    "signUpFailed": "Registrierung fehlgeschlagen. Versuch's nochmal.",
+    "sendMagicLink": "Magic Link senden",
+    "sending": "Wird gesendet...",
+    "magicLinkSent": "Wir haben einen Magic Link gesendet an",
+    "magicLinkDescription": "Klicke auf den Link in deiner E-Mail, um dich anzumelden. Der Link läuft in 1 Stunde ab.",
+    "magicLinkExplanation": "Wir senden dir einen sicheren Link zum Anmelden. Kein Passwort erforderlich.",
+    "magicLinkExpired": "Dieser Link ist abgelaufen",
+    "magicLinkExpiredDescription": "Der Magic Link, den du angeklickt hast, ist abgelaufen. Magic Links laufen aus Sicherheitsgründen nach 1 Stunde ab.",
+    "resendMagicLink": "Magic Link erneut senden",
+    "resending": "Wird erneut gesendet...",
+    "byContinuingYouAgree": "Durch Fortfahren stimmst du unserer <privacyPolicy>Datenschutzerklärung</privacyPolicy> und unseren <termsOfService>Nutzungsbedingungen</termsOfService> zu",
+    "openProvider": "{provider} öffnen",
+    "didntReceiveEmail": "Keine E-Mail erhalten?",
+    "resend": "Erneut senden",
+    "alreadySignedIn": "Du bist bereits angemeldet. Keine Aktion erforderlich.",
+    "goToDashboard": "Zum Dashboard"
   },
   "onboarding": {
     "welcome": "Willkommen",
@@ -592,6 +691,85 @@
   "home": {
     "title": "Willkommen",
     "subtitle": "Loslegen"
+  },
+  "showcase": {
+    "title": "Kortix: Dein autonomer KI-Worker",
+    "subtitle": "Gebaut für komplexe Aufgaben, entwickelt für alles. Der ultimative KI-Assistent, der alles bewältigt—von einfachen Anfragen bis hin zu mega-komplexen Projekten.",
+    "tryItOut": "Ausprobieren",
+    "kortixComputer": "Kortix Computer",
+    "running": "Läuft",
+    "workers": {
+      "images": {
+        "title": "Bilder",
+        "description": "Erstelle Bilder nach Bedarf. Von Produktfotos über Social-Media-Grafiken bis hin zu vollständigen Illustrationen. Passt Stil, Beleuchtung, Farben und Layout an oder verfeinert bestehende Visuals mit schnellen Bearbeitungen und Retuschen.",
+        "capabilities": {
+          "0": "Produktfotos generieren",
+          "1": "Social-Media-Grafiken erstellen",
+          "2": "Illustrationen erstellen",
+          "3": "Stil- & Beleuchtungsvarianten",
+          "4": "Logo- / Asset-Erstellung",
+          "5": "+ Vieles mehr"
+        },
+        "imageAlt": "Wachstum ist nicht linear Grafik-Beispiel",
+        "fileType": "image"
+      },
+      "slides": {
+        "title": "Präsentationen",
+        "description": "Erstelle auf Anhieb beeindruckende Präsentationen. Von Pitch-Decks über Berichte bis hin zu Schulungsmaterialien. Passt Designs, Layouts, Inhaltsstruktur an oder verfeinert bestehende Decks mit schnellen Bearbeitungen und Updates.",
+        "capabilities": {
+          "0": "Pitch-Decks",
+          "1": "Schulungsmaterial",
+          "2": "Berichtspräsentationen",
+          "3": "Design- & Layoutvarianten",
+          "4": "Inhaltsumstrukturierung",
+          "5": "+ Vieles mehr"
+        },
+        "imageAlt": "Nexus Enterprise Automation Platform Folien-Beispiel",
+        "fileType": "PPTX"
+      },
+      "data": {
+        "title": "Daten",
+        "description": "Verwandelt Rohdaten in Erkenntnisse. Von Tabellenkalkulationen über Dashboards bis hin zu Visualisierungen. Bereinigt Datensätze, erstellt Diagramme, erstellt Berichte oder verfeinert bestehende Analysen mit schnellen Updates.",
+        "capabilities": {
+          "0": "Dashboards",
+          "1": "Visualisierungen",
+          "2": "Datenberichte",
+          "3": "Daten bereinigen & organisieren",
+          "4": "Erkenntnisse generieren",
+          "5": "+ Vieles mehr"
+        },
+        "imageAlt": "Finanzmodell-Dashboard-Beispiel",
+        "fileType": "Vorschau"
+      },
+      "docs": {
+        "title": "Dokumente",
+        "description": "Schreibt und bearbeitet Dokumente mühelos. Von Vorschlägen über Anleitungen bis hin zu Inhalten. Passt Ton, Struktur, Formatierung an oder verfeinert bestehende Dokumente mit schnellen Umschreibungen und Polierungen.",
+        "capabilities": {
+          "0": "Vorschläge",
+          "1": "Anleitungen & Handbücher",
+          "2": "Inhalte",
+          "3": "Ton- & Stilvarianten",
+          "4": "Formatieren & umstrukturieren",
+          "5": "+ Vieles mehr"
+        },
+        "imageAlt": "Q3 2025 Executive Summary Report Beispiel",
+        "fileType": "PDF"
+      },
+      "research": {
+        "title": "Recherche",
+        "description": "Erforscht Themen umfassend. Von Markttrends über Wettbewerbsanalysen bis hin zu tiefgreifenden Untersuchungen. Sammelt Quellen, synthetisiert Erkenntnisse oder verfeinert bestehende Recherchen mit schnellen Updates.",
+        "capabilities": {
+          "0": "Markttrends analysieren",
+          "1": "Wettbewerbsrecherche",
+          "2": "Tiefgreifende Themenuntersuchungen",
+          "3": "Quellen sammeln",
+          "4": "Erkenntnisse synthetisieren",
+          "5": "+ Vieles mehr"
+        },
+        "imageAlt": "Detaillierte Wettbewerber-Profile Recherche-Beispiel",
+        "fileType": "PDF"
+      }
+    }
   },
   "languages": {
     "en": "English",

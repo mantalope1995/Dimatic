@@ -110,6 +110,7 @@ RUN apk add --no-cache curl git \
     # Dependencies for Python package compilation
     freetype-dev \
     gcc \
+    linux-headers \
     musl-dev \
     python3-dev
 

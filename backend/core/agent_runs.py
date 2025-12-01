@@ -4,17 +4,18 @@ import traceback
 import uuid
 import os
 from datetime import datetime, timezone
-from typing import Optional, List, Tuple, Dict
-from fastapi import APIRouter, HTTPException, Depends, Request, Body, File, UploadFile, Form
+from typing import Optional, List, Tuple, Dict, Any
+from fastapi import APIRouter, HTTPException, Depends, Query, Request, Body, File, UploadFile, Form
 from fastapi.responses import StreamingResponse
 from core.utils.auth_utils import verify_and_get_user_id_from_jwt, get_user_id_from_stream_auth, verify_and_authorize_thread_access
 from core.utils.logger import logger, structlog
-from core.billing.billing_integration import billing_integration
+from core.billing.credits.integration import billing_integration
 from core.utils.config import config, EnvMode
 from core.services import redis
 from core.sandbox.sandbox import create_sandbox, delete_sandbox, get_or_start_sandbox
 from core.utils.sandbox_utils import generate_unique_filename, get_uploads_directory
 from run_agent_background import run_agent_background
+import dramatiq
 
 from core.ai_models import model_manager
 
@@ -45,6 +46,15 @@ async def _get_agent_run_with_access_check(client, agent_run_id: str, user_id: s
     thread_id = agent_run_data['thread_id']
     account_id = agent_run_data['threads']['account_id']
     
+    # Check metadata for actual_user_id (used for team members who share an account_id)
+    metadata = agent_run_data.get('metadata', {})
+    actual_user_id = metadata.get('actual_user_id')
+    
+    # If metadata has actual_user_id, use that for access check (handles team members)
+    if actual_user_id and actual_user_id == user_id:
+        return agent_run_data
+    
+    # Otherwise, use traditional account_id check
     if account_id == user_id:
         return agent_run_data
         
@@ -56,57 +66,121 @@ async def _get_agent_run_with_access_check(client, agent_run_id: str, user_id: s
 # Helper Functions for Unified Agent Start
 # ============================================================================
 
-async def _load_agent_config(client, agent_id: Optional[str], account_id: str, user_id: str, is_new_thread: bool = False):
-    """
-    Load agent configuration. Returns agent_config dict or None.
+async def _find_shared_suna_agent(client):
+    """Find a shared Suna agent to use as fallback when user has no agents."""
+    from .agent_loader import get_agent_loader
+    from core.utils.config import config
     
-    Args:
-        client: Database client
-        agent_id: Optional agent ID to load
-        account_id: Account ID for default agent lookup
-        user_id: User ID for authorization
-        is_new_thread: If True, ensures Suna is installed for new threads
-    """
+    admin_user_id = config.SYSTEM_ADMIN_USER_ID
+    
+    if admin_user_id:
+        admin_suna = await client.table('agents').select('agent_id').eq('account_id', admin_user_id).eq('metadata->>is_suna_default', 'true').maybe_single().execute()
+        
+        if admin_suna and admin_suna.data:
+            loader = await get_agent_loader()
+            agent_data = await loader.load_agent(admin_suna.data['agent_id'], admin_user_id, load_config=True)
+            logger.info(f"✅ Using system Suna agent from admin user: {agent_data.name} ({agent_data.agent_id})")
+            return agent_data
+        else:
+            logger.warning(f"⚠️ SYSTEM_ADMIN_USER_ID configured but no Suna agent found for user {admin_user_id}")
+    
+    # Fallback: search for any Suna agent
+    any_suna = await client.table('agents').select('agent_id, account_id').eq('metadata->>is_suna_default', 'true').limit(1).maybe_single().execute()
+    
+    if any_suna and any_suna.data:
+        loader = await get_agent_loader()
+        agent_data = await loader.load_agent(any_suna.data['agent_id'], any_suna.data['account_id'], load_config=True)
+        logger.info(f"Using shared Suna agent: {agent_data.name} ({agent_data.agent_id})")
+        return agent_data
+    
+    logger.error("❌ No Suna agent found! Set SYSTEM_ADMIN_USER_ID in .env")
+    return None
+
+
+async def _load_agent_config(client, agent_id: Optional[str], account_id: str, user_id: str, is_new_thread: bool = False):
+    import time
+    t_start = time.time()
+    
     from .agent_loader import get_agent_loader
     loader = await get_agent_loader()
     
     agent_data = None
     
     logger.debug(f"[AGENT LOAD] Loading agent: {agent_id or 'default'}")
-    
-    # Try to load specified agent
+
     if agent_id:
-        agent_data = await loader.load_agent(agent_id, user_id, load_config=True)
-        logger.debug(f"Using agent {agent_data.name} ({agent_id}) version {agent_data.version_name}")
+        # OPTIMIZED: For Suna agents, use fast path (static config + cached MCPs)
+        # This avoids DB queries entirely when cache is warm
+        from core.runtime_cache import get_static_suna_config, get_cached_user_mcps
+        
+        static_config = get_static_suna_config()
+        cached_mcps = await get_cached_user_mcps(agent_id)
+        
+        # Fast path: If we have static config AND cached MCPs, assume it's Suna
+        # (cached MCPs only exist for Suna agents)
+        if static_config and cached_mcps is not None:
+            # Fast path: Use static config + cached MCPs (zero DB calls!)
+            from core.agent_loader import AgentData
+            agent_data = AgentData(
+                agent_id=agent_id,
+                name="Suna",
+                description=None,
+                account_id=account_id,
+                is_default=True,
+                is_public=False,
+                tags=[],
+                icon_name=None,
+                icon_color=None,
+                icon_background=None,
+                created_at="",
+                updated_at="",
+                current_version_id=None,
+                version_count=1,
+                metadata={'is_suna_default': True},
+                system_prompt=static_config['system_prompt'],
+                model=static_config['model'],
+                agentpress_tools=static_config['agentpress_tools'],
+                configured_mcps=cached_mcps.get('configured_mcps', []),
+                custom_mcps=cached_mcps.get('custom_mcps', []),
+                triggers=cached_mcps.get('triggers', []),
+                is_suna_default=True,
+                centrally_managed=True,
+                config_loaded=True,
+                restrictions=static_config['restrictions']
+            )
+            logger.info(f"⚡ [FAST PATH] Suna config from memory + Redis MCPs: {(time.time() - t_start)*1000:.1f}ms (zero DB calls)")
+        else:
+            # Fall back to normal loader (handles cache misses and custom agents)
+            t_loader = time.time()
+            agent_data = await loader.load_agent(agent_id, user_id, load_config=True)
+            logger.info(f"⏱️ [TIMING] Agent loader (DB path): {(time.time() - t_loader)*1000:.1f}ms | Total: {(time.time() - t_start)*1000:.1f}ms")
+            logger.debug(f"Using agent {agent_data.name} ({agent_id}) version {agent_data.version_name}")
     else:
-        # Load default agent
         logger.debug(f"[AGENT LOAD] Loading default agent")
         
-        # For new threads, ensure Suna is installed
         if is_new_thread:
             from core.utils.ensure_suna import ensure_suna_installed
             await ensure_suna_installed(account_id)
-            
-            # Try to find the default agent (Suna)
-            default_agent = await client.table('agents').select('agent_id').eq('account_id', account_id).eq('metadata->>is_suna_default', 'true').maybe_single().execute()
-            
-            if default_agent and default_agent.data:
-                agent_data = await loader.load_agent(default_agent.data['agent_id'], user_id, load_config=True)
-                logger.debug(f"Using default agent: {agent_data.name} ({agent_data.agent_id}) version {agent_data.version_name}")
-            else:
-                logger.warning(f"[AGENT LOAD] No default agent found for account {account_id}")
-                raise HTTPException(status_code=404, detail="No default agent available. Please contact support.")
+        
+        default_agent = await client.table('agents').select('agent_id').eq('account_id', account_id).eq('metadata->>is_suna_default', 'true').maybe_single().execute()
+        
+        if default_agent and default_agent.data:
+            agent_data = await loader.load_agent(default_agent.data['agent_id'], user_id, load_config=True)
+            logger.debug(f"Using default agent: {agent_data.name} ({agent_data.agent_id}) version {agent_data.version_name}")
         else:
-            # For existing threads, try to load default agent (is_default flag)
-            default_agent = await client.table('agents').select('agent_id').eq('account_id', account_id).eq('is_default', True).maybe_single().execute()
+            logger.warning(f"[AGENT LOAD] No default agent found for account {account_id}, searching for shared Suna")
+            agent_data = await _find_shared_suna_agent(client)
             
-            if default_agent and default_agent.data:
-                agent_data = await loader.load_agent(default_agent.data['agent_id'], user_id, load_config=True)
-                logger.debug(f"Using default agent: {agent_data.name} ({agent_data.agent_id}) version {agent_data.version_name}")
-            else:
-                logger.warning(f"[AGENT LOAD] No default agent found for account {account_id}")
+            if not agent_data:
+                any_agent = await client.table('agents').select('agent_id').eq('account_id', account_id).limit(1).maybe_single().execute()
+                
+                if any_agent and any_agent.data:
+                    agent_data = await loader.load_agent(any_agent.data['agent_id'], user_id, load_config=True)
+                    logger.info(f"[AGENT LOAD] Using fallback agent: {agent_data.name} ({agent_data.agent_id})")
+                else:
+                    logger.error(f"[AGENT LOAD] No agents found for account {account_id}")
+                    raise HTTPException(status_code=404, detail="No agents available. Please create an agent first.")
     
-    # Convert to dict for backward compatibility
     agent_config = agent_data.to_dict() if agent_data else None
     
     if agent_config:
@@ -119,6 +193,8 @@ async def _check_billing_and_limits(client, account_id: str, model_name: Optiona
     """
     Check billing, model access, and rate limits.
     
+    OPTIMIZED: Runs all checks in parallel to minimize latency.
+    
     Args:
         client: Database client
         account_id: Account ID to check
@@ -128,11 +204,36 @@ async def _check_billing_and_limits(client, account_id: str, model_name: Optiona
     Raises:
         HTTPException: If billing/limits checks fail
     """
-    # Unified billing and model access check
-    can_proceed, error_message, context = await billing_integration.check_model_and_billing_access(
-        account_id, model_name, client
+    import time
+    t_start = time.time()
+    
+    # Run billing check and limit checks IN PARALLEL
+    async def check_billing():
+        return await billing_integration.check_model_and_billing_access(
+            account_id, model_name, client
+        )
+    
+    async def check_agent_runs():
+        if config.ENV_MODE == EnvMode.LOCAL:
+            return {'can_start': True}
+        return await check_agent_run_limit(client, account_id)
+    
+    async def check_projects():
+        if config.ENV_MODE == EnvMode.LOCAL or not check_project_limit:
+            return {'can_create': True}
+        return await check_project_count_limit(client, account_id)
+    
+    # Execute all checks in parallel
+    billing_result, agent_run_result, project_result = await asyncio.gather(
+        check_billing(),
+        check_agent_runs(),
+        check_projects()
     )
     
+    logger.debug(f"⏱️ [TIMING] Parallel billing/limit checks: {(time.time() - t_start) * 1000:.1f}ms")
+    
+    # Process billing result
+    can_proceed, error_message, context = billing_result
     if not can_proceed:
         if context.get("error_type") == "model_access_denied":
             raise HTTPException(status_code=402, detail={
@@ -141,38 +242,36 @@ async def _check_billing_and_limits(client, account_id: str, model_name: Optiona
                 "error_code": "MODEL_ACCESS_DENIED"
             })
         elif context.get("error_type") == "insufficient_credits":
-            raise HTTPException(status_code=402, detail={"message": error_message})
+            raise HTTPException(status_code=402, detail={
+                "message": error_message,
+                "error_code": "INSUFFICIENT_CREDITS"
+            })
         else:
             raise HTTPException(status_code=500, detail={"message": error_message})
     
-    # Check limits (only if not in local mode)
-    if config.ENV_MODE != EnvMode.LOCAL:
-        # Always check agent run limit
-        limit_check = await check_agent_run_limit(client, account_id)
-        if not limit_check['can_start']:
-            error_detail = {
-                "message": f"Maximum of {limit_check['limit']} concurrent agent runs allowed. You currently have {limit_check['running_count']} running.",
-                "running_thread_ids": limit_check['running_thread_ids'],
-                "running_count": limit_check['running_count'],
-                "limit": limit_check['limit'],
-                "error_code": "AGENT_RUN_LIMIT_EXCEEDED"
-            }
-            logger.warning(f"Agent run limit exceeded for account {account_id}: {limit_check['running_count']}/{limit_check['limit']} running agents")
-            raise HTTPException(status_code=402, detail=error_detail)
+    # Process agent run limit result
+    if not agent_run_result.get('can_start', True):
+        error_detail = {
+            "message": f"Maximum of {agent_run_result['limit']} concurrent agent runs allowed. You currently have {agent_run_result['running_count']} running.",
+            "running_thread_ids": agent_run_result.get('running_thread_ids', []),
+            "running_count": agent_run_result['running_count'],
+            "limit": agent_run_result['limit'],
+            "error_code": "AGENT_RUN_LIMIT_EXCEEDED"
+        }
+        logger.warning(f"Agent run limit exceeded for account {account_id}: {agent_run_result['running_count']}/{agent_run_result['limit']} running agents")
+        raise HTTPException(status_code=402, detail=error_detail)
 
-        # Check project limit if creating new thread
-        if check_project_limit:
-            project_limit_check = await check_project_count_limit(client, account_id)
-            if not project_limit_check['can_create']:
-                error_detail = {
-                    "message": f"Maximum of {project_limit_check['limit']} projects allowed for your current plan. You have {project_limit_check['current_count']} projects.",
-                    "current_count": project_limit_check['current_count'],
-                    "limit": project_limit_check['limit'],
-                    "tier_name": project_limit_check['tier_name'],
-                    "error_code": "PROJECT_LIMIT_EXCEEDED"
-                }
-                logger.warning(f"Project limit exceeded for account {account_id}: {project_limit_check['current_count']}/{project_limit_check['limit']} projects")
-                raise HTTPException(status_code=402, detail=error_detail)
+    # Process project limit result
+    if check_project_limit and not project_result.get('can_create', True):
+        error_detail = {
+            "message": f"Maximum of {project_result['limit']} projects allowed for your current plan. You have {project_result['current_count']} projects.",
+            "current_count": project_result['current_count'],
+            "limit": project_result['limit'],
+            "tier_name": project_result['tier_name'],
+            "error_code": "PROJECT_LIMIT_EXCEEDED"
+        }
+        logger.warning(f"Project limit exceeded for account {account_id}: {project_result['current_count']}/{project_result['limit']} projects")
+        raise HTTPException(status_code=402, detail=error_detail)
 
 
 async def _get_effective_model(model_name: Optional[str], agent_config: Optional[dict], client, account_id: str) -> str:
@@ -202,7 +301,14 @@ async def _get_effective_model(model_name: Optional[str], agent_config: Optional
         return effective_model
 
 
-async def _create_agent_run_record(client, thread_id: str, agent_config: Optional[dict], effective_model: str) -> str:
+async def _create_agent_run_record(
+    client, 
+    thread_id: str, 
+    agent_config: Optional[dict], 
+    effective_model: str, 
+    actual_user_id: str,
+    extra_metadata: Optional[Dict[str, Any]] = None
+) -> str:
     """
     Create an agent run record in the database.
     
@@ -211,24 +317,47 @@ async def _create_agent_run_record(client, thread_id: str, agent_config: Optiona
         thread_id: Thread ID to associate with
         agent_config: Agent configuration dict
         effective_model: Model name to use
+        actual_user_id: The actual user ID who initiated the run
+        extra_metadata: Additional metadata to merge into the run record
     
     Returns:
         agent_run_id: The created agent run ID
     """
+    run_metadata = {
+        "model_name": effective_model,
+        "actual_user_id": actual_user_id
+    }
+    
+    # Merge extra metadata if provided
+    if extra_metadata:
+        run_metadata.update(extra_metadata)
+    
     agent_run = await client.table('agent_runs').insert({
         "thread_id": thread_id,
         "status": "running",
         "started_at": datetime.now(timezone.utc).isoformat(),
         "agent_id": agent_config.get('agent_id') if agent_config else None,
         "agent_version_id": agent_config.get('current_version_id') if agent_config else None,
-        "metadata": {
-            "model_name": effective_model
-        }
+        "metadata": run_metadata
     }).execute()
 
     agent_run_id = agent_run.data[0]['id']
     structlog.contextvars.bind_contextvars(agent_run_id=agent_run_id)
     logger.debug(f"Created new agent run: {agent_run_id}")
+
+    # Invalidate running runs cache so next check gets fresh data
+    try:
+        from core.runtime_cache import invalidate_running_runs_cache
+        await invalidate_running_runs_cache(actual_user_id)
+    except Exception as cache_error:
+        logger.warning(f"Failed to invalidate running runs cache: {cache_error}")
+    
+    # Invalidate account-state cache to refresh concurrent runs limit
+    try:
+        from core.billing.shared.cache_utils import invalidate_account_state_cache
+        await invalidate_account_state_cache(actual_user_id)
+    except Exception as cache_error:
+        logger.warning(f"Failed to invalidate account-state cache: {cache_error}")
 
     # Register run in Redis
     instance_key = f"active_run:{utils.instance_id}:{agent_run_id}"
@@ -240,7 +369,14 @@ async def _create_agent_run_record(client, thread_id: str, agent_config: Optiona
     return agent_run_id
 
 
-async def _trigger_agent_background(agent_run_id: str, thread_id: str, project_id: str, effective_model: str, agent_config: Optional[dict]):
+async def _trigger_agent_background(
+    agent_run_id: str, 
+    thread_id: str, 
+    project_id: str, 
+    effective_model: str, 
+    agent_id: Optional[str],
+    account_id: Optional[str] = None
+):
     """
     Trigger the background agent execution.
     
@@ -249,19 +385,29 @@ async def _trigger_agent_background(agent_run_id: str, thread_id: str, project_i
         thread_id: Thread ID
         project_id: Project ID
         effective_model: Model name to use
-        agent_config: Agent configuration dict
+        agent_id: Agent ID (instead of full config to reduce log spam)
+        account_id: Account ID for authorization in worker
     """
     request_id = structlog.contextvars.get_contextvars().get('request_id')
 
-    run_agent_background.send(
-        agent_run_id=agent_run_id,
-        thread_id=thread_id,
-        instance_id=utils.instance_id,
-        project_id=project_id,
-        model_name=effective_model,
-        agent_config=agent_config,
-        request_id=request_id,
-    )
+    logger.info(f"🚀 Sending agent run {agent_run_id} to Dramatiq queue (thread: {thread_id}, model: {effective_model})")
+    
+    try:
+        message = run_agent_background.send(
+            agent_run_id=agent_run_id,
+            thread_id=thread_id,
+            instance_id=utils.instance_id,
+            project_id=project_id,
+            model_name=effective_model,
+            agent_id=agent_id,  # Pass agent_id instead of full agent_config
+            account_id=account_id,  # Pass account_id for worker authorization
+            request_id=request_id,
+        )
+        message_id = message.message_id if hasattr(message, 'message_id') else 'N/A'
+        logger.info(f"✅ Successfully enqueued agent run {agent_run_id} to Dramatiq (message_id: {message_id})")
+    except Exception as e:
+        logger.error(f"❌ Failed to enqueue agent run {agent_run_id} to Dramatiq: {e}", exc_info=True)
+        raise
 
 
 async def _handle_file_uploads(files: List[UploadFile], sandbox, project_id: str, prompt: str = "") -> str:
@@ -421,6 +567,21 @@ async def _ensure_sandbox_for_thread(client, project_id: str, files: List[Upload
                     logger.error(f"Error deleting sandbox: {str(e)}")
             raise Exception("Database update failed")
         
+        # Update project metadata cache with sandbox data (instead of invalidate)
+        try:
+            from core.runtime_cache import set_cached_project_metadata
+            sandbox_cache_data = {
+                'id': sandbox_id,
+                'pass': sandbox_pass,
+                'vnc_preview': vnc_url,
+                'sandbox_url': website_url,
+                'token': token
+            }
+            await set_cached_project_metadata(project_id, sandbox_cache_data)
+            logger.debug(f"✅ Updated project cache with sandbox data: {project_id}")
+        except Exception as cache_error:
+            logger.warning(f"Failed to update project cache: {cache_error}")
+        
         return sandbox, sandbox_id
     except Exception as e:
         logger.error(f"Error creating sandbox: {str(e)}")
@@ -428,11 +589,195 @@ async def _ensure_sandbox_for_thread(client, project_id: str, files: List[Upload
 
 
 # ============================================================================
-# Unified Agent Start Endpoint
+# Core Agent Start Function (used by HTTP endpoint and triggers)
+# ============================================================================
+
+async def start_agent_run(
+    account_id: str,
+    prompt: str,
+    agent_id: Optional[str] = None,
+    model_name: Optional[str] = None,
+    thread_id: Optional[str] = None,
+    project_id: Optional[str] = None,
+    message_content: Optional[str] = None,  # Pre-processed content (with file refs)
+    metadata: Optional[Dict[str, Any]] = None,
+    skip_limits_check: bool = False,  # For triggers that have their own limits
+) -> Dict[str, Any]:
+    """
+    Core function to start an agent run.
+    
+    Used by:
+    - HTTP endpoint (unified_agent_start)
+    - Trigger execution service
+    - Any other internal callers
+    
+    Message Creation Behavior:
+    - NEW thread (thread_id=None): Creates user message with prompt (required)
+    - EXISTING thread + prompt provided: Creates user message with prompt
+    - EXISTING thread + NO prompt: Does NOT create a message (assumes message 
+      was already added via /threads/{id}/messages/add)
+    
+    This supports two client patterns:
+    1. Single-call: POST /agent/start with prompt → creates thread + message + starts agent
+    2. Two-call: POST /threads/{id}/messages/add, then POST /agent/start (no prompt)
+    
+    Args:
+        account_id: User account ID (required)
+        prompt: User prompt/message (required for new threads, optional for existing)
+        agent_id: Agent ID to use (optional, uses default)
+        model_name: Model to use (optional, uses agent/tier default)
+        thread_id: Existing thread ID (None to create new)
+        project_id: Existing project ID (required if thread_id provided)
+        message_content: Pre-processed message content (if files were handled externally)
+        metadata: Additional metadata for the agent run
+        skip_limits_check: Skip billing/limits check (for pre-validated callers)
+    
+    Returns:
+        Dict with thread_id, agent_run_id, project_id, status
+    """
+    import time
+    t_start = time.time()
+    
+    client = await utils.db.client
+    is_new_thread = thread_id is None
+    
+    # Use message_content if provided, otherwise use prompt
+    final_message_content = message_content or prompt
+    
+    # Load config and check limits in parallel
+    t_parallel = time.time()
+    
+    async def load_config():
+        return await _load_agent_config(client, agent_id, account_id, account_id, is_new_thread=is_new_thread)
+    
+    async def check_limits():
+        if skip_limits_check:
+            return {'can_create': True}
+        await _check_billing_and_limits(client, account_id, model_name or "default", check_project_limit=is_new_thread)
+        if is_new_thread and config.ENV_MODE != EnvMode.LOCAL:
+            from core.utils.limits_checker import check_thread_limit
+            return await check_thread_limit(client, account_id)
+        return {'can_create': True}
+    
+    agent_config, limit_result = await asyncio.gather(load_config(), check_limits())
+    logger.debug(f"⏱️ [TIMING] Parallel config+limits: {(time.time() - t_parallel) * 1000:.1f}ms")
+    
+    # Check thread limit result
+    if limit_result and not limit_result.get('can_create', True):
+        raise ValueError(f"Thread limit exceeded: {limit_result.get('current_count', 0)}/{limit_result.get('limit', 0)}")
+    
+    # Resolve effective model
+    effective_model = await _get_effective_model(model_name, agent_config, client, account_id)
+    
+    if is_new_thread:
+        # ================================================================
+        # NEW THREAD PATH
+        # ================================================================
+        
+        # Create project only if not already provided (e.g., pre-created for file uploads)
+        if not project_id:
+            t_project = time.time()
+            project_id = str(uuid.uuid4())
+            placeholder_name = f"{prompt[:30]}..." if len(prompt) > 30 else prompt
+            
+            await client.table('projects').insert({
+                "project_id": project_id,
+                "account_id": account_id,
+                "name": placeholder_name,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }).execute()
+            logger.debug(f"⏱️ [TIMING] Project created: {(time.time() - t_project) * 1000:.1f}ms")
+            
+            # Pre-cache project metadata
+            try:
+                from core.runtime_cache import set_cached_project_metadata
+                await set_cached_project_metadata(project_id, {})
+            except Exception:
+                pass
+            
+            # Background naming task
+            asyncio.create_task(generate_and_update_project_name(project_id=project_id, prompt=prompt))
+        
+        # Create Thread
+        t_thread = time.time()
+        thread_id = str(uuid.uuid4())
+        await client.table('threads').insert({
+            "thread_id": thread_id,
+            "project_id": project_id,
+            "account_id": account_id,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }).execute()
+        logger.debug(f"⏱️ [TIMING] Thread created: {(time.time() - t_thread) * 1000:.1f}ms")
+        
+        structlog.contextvars.bind_contextvars(thread_id=thread_id, project_id=project_id, account_id=account_id)
+        
+        # Update thread count cache
+        try:
+            from core.runtime_cache import increment_thread_count_cache
+            asyncio.create_task(increment_thread_count_cache(account_id))
+        except Exception:
+            pass
+    
+    # Create agent run (and conditionally create message)
+    t_parallel2 = time.time()
+    
+    async def create_message():
+        """
+        Message creation logic:
+        - NEW thread: Always create message (prompt is required at endpoint validation)
+        - EXISTING thread + prompt provided: Create message (user wants to add message + start agent)
+        - EXISTING thread + NO prompt: Skip (user already added message via /threads/{id}/messages/add)
+        
+        This prevents duplicate/empty messages when clients use the two-step flow:
+        1. /threads/{id}/messages/add (with message)
+        2. /agent/start (without prompt, just to start the agent)
+        """
+        # Skip if no content to add
+        if not final_message_content or not final_message_content.strip():
+            if is_new_thread:
+                logger.warning(f"Attempted to create empty message for new thread - this shouldn't happen (validation should catch this)")
+            else:
+                logger.debug(f"No prompt provided for existing thread {thread_id} - assuming message already exists")
+            return
+            
+        await client.table('messages').insert({
+            "message_id": str(uuid.uuid4()),
+            "thread_id": thread_id,
+            "type": "user",
+            "is_llm_message": True,
+            "content": {"role": "user", "content": final_message_content},
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }).execute()
+        logger.debug(f"Created user message for thread {thread_id}")
+    
+    async def create_agent_run():
+        return await _create_agent_run_record(client, thread_id, agent_config, effective_model, account_id, metadata)
+    
+    _, agent_run_id = await asyncio.gather(create_message(), create_agent_run())
+    logger.debug(f"⏱️ [TIMING] Parallel message+agent_run: {(time.time() - t_parallel2) * 1000:.1f}ms")
+    
+    # Trigger background execution
+    t_dispatch = time.time()
+    await _trigger_agent_background(agent_run_id, thread_id, project_id, effective_model, agent_id, account_id)
+    logger.debug(f"⏱️ [TIMING] Worker dispatch: {(time.time() - t_dispatch) * 1000:.1f}ms")
+    
+    logger.info(f"⏱️ [TIMING] start_agent_run total: {(time.time() - t_start) * 1000:.1f}ms")
+    
+    return {
+        "thread_id": thread_id,
+        "agent_run_id": agent_run_id,
+        "project_id": project_id,
+        "status": "running"
+    }
+
+
+# ============================================================================
+# Unified Agent Start Endpoint (HTTP wrapper around start_agent_run)
 # ============================================================================
 
 @router.post("/agent/start", response_model=UnifiedAgentStartResponse, summary="Start Agent (Unified)", operation_id="unified_agent_start")
 async def unified_agent_start(
+    request: Request,
     thread_id: Optional[str] = Form(None),
     prompt: Optional[str] = Form(None),
     model_name: Optional[str] = Form(None),
@@ -441,241 +786,113 @@ async def unified_agent_start(
     user_id: str = Depends(verify_and_get_user_id_from_jwt)
 ):
     """
-    Unified endpoint to start an agent run.
+    Unified HTTP endpoint to start an agent run.
     
-    - If thread_id is provided: Starts agent on existing thread (with optional prompt and files)
-    - If thread_id is NOT provided: Creates new project/thread and starts agent
+    Handles:
+    - Authentication (via JWT)
+    - File uploads (preprocessing before calling internal function)
+    - HTTP-specific validation and error responses
+    - Thread access authorization
     
-    Supports file uploads for both new and existing threads.
+    Delegates core logic to start_agent_run().
     """
+    import time
+    api_request_start = time.time()
+    
     if not utils.instance_id:
         raise HTTPException(status_code=500, detail="Agent API not initialized with instance ID")
     
     client = await utils.db.client
-    account_id = user_id  # In Basejump, personal account_id is the same as user_id
+    account_id = user_id
     
-    # Debug logging - log what we received
     logger.debug(f"Received agent start request: thread_id={thread_id!r}, prompt={prompt[:100] if prompt else None!r}, model_name={model_name!r}, agent_id={agent_id!r}, files_count={len(files)}")
-    logger.debug(f"Parameter types: thread_id={type(thread_id)}, prompt={type(prompt)}, model_name={type(model_name)}, agent_id={type(agent_id)}")
     
-    # Additional validation logging
-    if not thread_id and (not prompt or (isinstance(prompt, str) and not prompt.strip())):
-        error_msg = f"VALIDATION ERROR: New thread requires prompt. Received: prompt={prompt!r} (type={type(prompt)}), thread_id={thread_id!r}"
-        logger.error(error_msg)
+    # Validation
+    if not thread_id and (not prompt or not prompt.strip()):
         raise HTTPException(status_code=400, detail="prompt is required when creating a new thread")
     
-    # Resolve and validate model name
+    # Resolve model name
     if model_name is None:
         model_name = await model_manager.get_default_model_for_user(client, account_id)
-        logger.debug(f"Using tier-based default model: {model_name}")
     else:
         model_name = model_manager.resolve_model_id(model_name)
-        logger.debug(f"Resolved model name: {model_name}")
     
     try:
-        # ====================================================================
-        # Branch: Existing Thread vs New Thread
-        # ====================================================================
+        project_id = None
+        message_content = prompt or ""
         
         if thread_id:
             # ================================================================
-            # EXISTING THREAD PATH
+            # EXISTING THREAD: Verify access and handle files
             # ================================================================
-            logger.debug(f"Starting agent on existing thread: {thread_id}")
             structlog.contextvars.bind_contextvars(thread_id=thread_id)
             
-            # Validate thread exists and get metadata
-            thread_result = await client.table('threads').select('project_id', 'account_id', 'metadata').eq('thread_id', thread_id).execute()
-            
+            thread_result = await client.table('threads').select('project_id, account_id').eq('thread_id', thread_id).execute()
             if not thread_result.data:
                 raise HTTPException(status_code=404, detail="Thread not found")
             
             thread_data = thread_result.data[0]
-            project_id = thread_data.get('project_id')
-            thread_account_id = thread_data.get('account_id')
-            thread_metadata = thread_data.get('metadata', {})
+            project_id = thread_data['project_id']
             
-            # Verify access
-            if thread_account_id != user_id:
+            # Authorization check
+            if thread_data['account_id'] != user_id:
                 await verify_and_authorize_thread_access(client, thread_id, user_id)
             
-            structlog.contextvars.bind_contextvars(
-                project_id=project_id,
-                account_id=thread_account_id,
-                thread_metadata=thread_metadata,
-            )
+            structlog.contextvars.bind_contextvars(project_id=project_id, account_id=account_id)
             
-            # Load agent configuration
-            agent_config = await _load_agent_config(client, agent_id, thread_account_id, user_id, is_new_thread=False)
-            
-            # Check billing and limits
-            await _check_billing_and_limits(client, thread_account_id, model_name, check_project_limit=False)
-            
-            # Get effective model
-            effective_model = await _get_effective_model(model_name, agent_config, client, thread_account_id)
-            
-            # Handle files if provided (for existing threads)
+            # Handle file uploads for existing thread
             if files and len(files) > 0:
-                # Ensure sandbox exists or create one (will retrieve existing or create new)
-                sandbox, sandbox_id = await _ensure_sandbox_for_thread(client, project_id, files)
-                
+                sandbox, _ = await _ensure_sandbox_for_thread(client, project_id, files)
                 if sandbox:
-                    # Upload files and create user message
                     message_content = await _handle_file_uploads(files, sandbox, project_id, prompt or "")
-                    
-                    # Create user message with files
-                    message_id = str(uuid.uuid4())
-                    message_payload = {"role": "user", "content": message_content}
-                    await client.table('messages').insert({
-                        "message_id": message_id,
-                        "thread_id": thread_id,
-                        "type": "user",
-                        "is_llm_message": True,
-                        "content": message_payload,
-                        "created_at": datetime.now(timezone.utc).isoformat()
-                    }).execute()
-                    logger.debug(f"Created user message with files for thread {thread_id}")
-                else:
-                    logger.warning(f"No sandbox available for file upload")
-            elif prompt:
-                # No files, but prompt provided - create user message
-                message_id = str(uuid.uuid4())
-                message_payload = {"role": "user", "content": prompt}
-                await client.table('messages').insert({
-                    "message_id": message_id,
-                    "thread_id": thread_id,
-                    "type": "user",
-                    "is_llm_message": True,
-                    "content": message_payload,
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                }).execute()
-                logger.debug(f"Created user message for thread {thread_id}")
-            
-            # Create agent run
-            agent_run_id = await _create_agent_run_record(client, thread_id, agent_config, effective_model)
-            
-            # Trigger background execution
-            await _trigger_agent_background(agent_run_id, thread_id, project_id, effective_model, agent_config)
-            
-            return {
-                "thread_id": thread_id,
-                "agent_run_id": agent_run_id,
-                "status": "running"
-            }
         
         else:
             # ================================================================
-            # NEW THREAD PATH
+            # NEW THREAD: Handle sandbox/files before calling internal
             # ================================================================
-            
-            # Validate that prompt is provided for new threads
-            if not prompt or (isinstance(prompt, str) and not prompt.strip()):
-                logger.error(f"Validation failed: prompt is required for new threads. Received prompt={prompt!r}, type={type(prompt)}")
-                raise HTTPException(status_code=400, detail="prompt is required when creating a new thread")
-            
-            logger.debug(f"Creating new thread with prompt and {len(files)} files")
-            
-            # Load agent configuration
-            agent_config = await _load_agent_config(client, agent_id, account_id, user_id, is_new_thread=True)
-            
-            # Check billing and limits (including project and thread limits)
-            await _check_billing_and_limits(client, account_id, model_name, check_project_limit=True)
-            
-            if config.ENV_MODE != EnvMode.LOCAL:
-                from core.utils.limits_checker import check_thread_limit
-                thread_limit_check = await check_thread_limit(client, account_id)
-                if not thread_limit_check['can_create']:
-                    error_detail = {
-                        "message": f"Maximum of {thread_limit_check['limit']} threads allowed for your current plan. You have {thread_limit_check['current_count']} threads.",
-                        "current_count": thread_limit_check['current_count'],
-                        "limit": thread_limit_check['limit'],
-                        "tier_name": thread_limit_check['tier_name'],
-                        "error_code": "THREAD_LIMIT_EXCEEDED"
-                    }
-                    logger.warning(f"Thread limit exceeded for account {account_id}: {thread_limit_check['current_count']}/{thread_limit_check['limit']}")
-                    raise HTTPException(status_code=402, detail=error_detail)
-            
-            # Get effective model
-            effective_model = await _get_effective_model(model_name, agent_config, client, account_id)
-            
-            # Create Project
-            placeholder_name = f"{prompt[:30]}..." if len(prompt) > 30 else prompt
-            project = await client.table('projects').insert({
-                "project_id": str(uuid.uuid4()),
-                "account_id": account_id,
-                "name": placeholder_name,
-                "created_at": datetime.now(timezone.utc).isoformat()
-            }).execute()
-            project_id = project.data[0]['project_id']
-            logger.info(f"Created new project: {project_id}")
-            
-            # Create sandbox if files provided
-            sandbox = None
-            sandbox_id = None
+            # For new threads with files, we need to create sandbox first
             if files and len(files) > 0:
+                # Create project early to attach sandbox
+                project_id = str(uuid.uuid4())
+                placeholder_name = f"{prompt[:30]}..." if len(prompt) > 30 else prompt
+                await client.table('projects').insert({
+                    "project_id": project_id,
+                    "account_id": account_id,
+                    "name": placeholder_name,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }).execute()
+                
+                # Pre-cache and start naming task
                 try:
-                    sandbox, sandbox_id = await _ensure_sandbox_for_thread(client, project_id, files)
-                    if not sandbox:
-                        raise Exception("Failed to create sandbox for file uploads")
+                    from core.runtime_cache import set_cached_project_metadata
+                    await set_cached_project_metadata(project_id, {})
+                except Exception:
+                    pass
+                asyncio.create_task(generate_and_update_project_name(project_id=project_id, prompt=prompt))
+                
+                try:
+                    sandbox, _ = await _ensure_sandbox_for_thread(client, project_id, files)
+                    if sandbox:
+                        message_content = await _handle_file_uploads(files, sandbox, project_id, prompt)
                 except Exception as e:
-                    logger.error(f"Error creating sandbox: {str(e)}")
-                    # Clean up project
+                    # Cleanup project on sandbox failure
                     await client.table('projects').delete().eq('project_id', project_id).execute()
                     raise HTTPException(status_code=500, detail=f"Failed to create sandbox: {str(e)}")
-            
-            # Create Thread
-            thread_data = {
-                "thread_id": str(uuid.uuid4()),
-                "project_id": project_id,
-                "account_id": account_id,
-                "created_at": datetime.now(timezone.utc).isoformat()
-            }
-            
-            structlog.contextvars.bind_contextvars(
-                thread_id=thread_data["thread_id"],
-                project_id=project_id,
-                account_id=account_id,
-            )
-            
-            if agent_config:
-                logger.debug(f"Using agent {agent_config['agent_id']} for this conversation")
-                structlog.contextvars.bind_contextvars(agent_id=agent_config['agent_id'])
-            
-            thread = await client.table('threads').insert(thread_data).execute()
-            thread_id = thread.data[0]['thread_id']
-            logger.debug(f"Created new thread: {thread_id}")
-            
-            # Trigger background naming task
-            asyncio.create_task(generate_and_update_project_name(project_id=project_id, prompt=prompt))
-            
-            # Handle file uploads and create user message
-            message_content = prompt
-            if sandbox and files:
-                message_content = await _handle_file_uploads(files, sandbox, project_id, prompt)
-            
-            # Create initial user message
-            message_id = str(uuid.uuid4())
-            message_payload = {"role": "user", "content": message_content}
-            await client.table('messages').insert({
-                "message_id": message_id,
-                "thread_id": thread_id,
-                "type": "user",
-                "is_llm_message": True,
-                "content": message_payload,
-                "created_at": datetime.now(timezone.utc).isoformat()
-            }).execute()
-            
-            # Create agent run
-            agent_run_id = await _create_agent_run_record(client, thread_id, agent_config, effective_model)
-            
-            # Trigger background execution
-            await _trigger_agent_background(agent_run_id, thread_id, project_id, effective_model, agent_config)
-            
-            return {
-                "thread_id": thread_id,
-                "agent_run_id": agent_run_id,
-                "status": "running"
-            }
+        
+        # Call the internal function
+        result = await start_agent_run(
+            account_id=account_id,
+            prompt=prompt or "",
+            agent_id=agent_id,
+            model_name=model_name,
+            thread_id=thread_id,
+            project_id=project_id,  # Pre-created if files were uploaded
+            message_content=message_content,  # Includes file references if any
+        )
+        
+        logger.info(f"⏱️ [TIMING] 🎯 API Request Total: {(time.time() - api_request_start) * 1000:.1f}ms")
+        
+        return {"thread_id": result["thread_id"], "agent_run_id": result["agent_run_id"], "status": "running"}
     
     except HTTPException:
         raise
@@ -704,41 +921,73 @@ async def stop_agent(agent_run_id: str, user_id: str = Depends(verify_and_get_us
 
 @router.get("/agent-runs/active", summary="List All Active Agent Runs", operation_id="list_active_agent_runs")
 async def get_active_agent_runs(user_id: str = Depends(verify_and_get_user_id_from_jwt)):
-    """Get all active (running) agent runs for the current user across all threads."""
+    """Get all active (running) agent runs for the current user across all threads.
+    
+    Efficiently queries DB by first filtering to user's threads, then querying agent_runs.
+    This avoids querying all running runs and filtering in memory.
+    """
     try:
         logger.debug(f"Fetching all active agent runs for user: {user_id}")
         client = await utils.db.client
         
-        # Query all running agent runs where the thread belongs to the user
-        # Join with threads table to filter by account_id
-        agent_runs = await client.table('agent_runs').select('id, thread_id, status, started_at').eq('status', 'running').execute()
-        
-        if not agent_runs.data:
+        try:
+            user_threads = await client.table('threads').select('thread_id').eq('account_id', user_id).execute()
+        except Exception as db_error:
+            logger.error(f"Database error fetching threads for user {user_id}: {str(db_error)}")
+            # Return empty list instead of failing - this is a non-critical endpoint
             return {"active_runs": []}
         
-        # Filter agent runs to only include those from threads the user has access to
-        # Get thread_ids and check access
-        thread_ids = [run['thread_id'] for run in agent_runs.data]
+        if not user_threads.data:
+            return {"active_runs": []}
         
-        # Get threads that belong to the user
-        threads = await client.table('threads').select('thread_id, account_id').in_('thread_id', thread_ids).eq('account_id', user_id).execute()
+        # Filter out None/empty thread_ids and ensure they're strings
+        thread_ids = [
+            str(thread['thread_id']) 
+            for thread in user_threads.data 
+            if thread.get('thread_id') and str(thread['thread_id']).strip()
+        ]
         
-        # Create a set of accessible thread IDs
-        accessible_thread_ids = {thread['thread_id'] for thread in threads.data}
+        logger.debug(f"Found {len(thread_ids)} valid thread_ids for user {user_id} (from {len(user_threads.data)} total threads)")
         
-        # Filter agent runs to only include accessible ones
+        # PostgREST's .in_() filter doesn't handle empty arrays gracefully
+        if not thread_ids:
+            logger.debug(f"No valid thread_ids found for user: {user_id}")
+            return {"active_runs": []}
+        
+        # Use batch_query_in utility which handles empty lists and batching
+        from core.utils.query_utils import batch_query_in
+        
+        try:
+            agent_runs_data = await batch_query_in(
+                client=client,
+                table_name='agent_runs',
+                select_fields='id, thread_id, status, started_at',
+                in_field='thread_id',
+                in_values=thread_ids,
+                additional_filters={'status': 'running'}
+            )
+        except Exception as query_error:
+            logger.error(f"Query error fetching agent runs for user {user_id}: {str(query_error)}")
+            # Return empty list instead of failing - this is a non-critical endpoint
+            return {"active_runs": []}
+        
+        # Format response - handle None or empty results
+        if not agent_runs_data:
+            return {"active_runs": []}
+        
         accessible_runs = [
             {
-                'id': run['id'],
-                'thread_id': run['thread_id'],
-                'status': run['status'],
-                'started_at': run['started_at']
+                'id': run.get('id'),
+                'thread_id': run.get('thread_id'),
+                'status': run.get('status'),
+                'started_at': run.get('started_at')
             }
-            for run in agent_runs.data
-            if run['thread_id'] in accessible_thread_ids
+            for run in agent_runs_data
+            if run and run.get('id')  # Ensure run exists and has required fields
         ]
         
         logger.debug(f"Found {len(accessible_runs)} active agent runs for user: {user_id}")
+        
         return {"active_runs": accessible_runs}
     except HTTPException:
         raise
@@ -802,7 +1051,6 @@ async def get_thread_agent(thread_id: str, user_id: str = Depends(verify_and_get
         effective_agent_id = None
         agent_source = "none"
         
-        # Get the most recently used agent from agent_runs
         recent_agent_result = await client.table('agent_runs').select('agent_id', 'agent_version_id').eq('thread_id', thread_id).not_.is_('agent_id', 'null').order('created_at', desc=True).limit(1).execute()
         if recent_agent_result.data:
             effective_agent_id = recent_agent_result.data[0]['agent_id']
@@ -907,11 +1155,10 @@ async def stream_agent_run(
     token: Optional[str] = None,
     request: Request = None
 ):
-    """Stream the responses of an agent run using Redis Lists and Pub/Sub."""
-    logger.debug(f"Starting stream for agent run: {agent_run_id}")
+    logger.debug(f"🔐 Stream auth check - agent_run: {agent_run_id}, has_token: {bool(token)}")
     client = await utils.db.client
 
-    user_id = await get_user_id_from_stream_auth(request, token) # practically instant
+    user_id = await get_user_id_from_stream_auth(request, token)
     agent_run_data = await _get_agent_run_with_access_check(client, agent_run_id, user_id) # 1 db query
 
     structlog.contextvars.bind_contextvars(
@@ -1055,12 +1302,25 @@ async def stream_agent_run(
         finally:
             terminate_stream = True
             # Graceful shutdown order: unsubscribe → close → cancel
+            # Ensure cleanup happens even on cancellation
+            pubsub_cleaned = False
             try:
                 if 'pubsub' in locals() and pubsub:
                     await pubsub.unsubscribe(response_channel, control_channel)
                     await pubsub.close()
+                    pubsub_cleaned = True
+                    logger.debug(f"PubSub cleaned up for {agent_run_id}")
+            except asyncio.CancelledError:
+                # Still try to cleanup on cancellation
+                if 'pubsub' in locals() and pubsub and not pubsub_cleaned:
+                    try:
+                        await pubsub.unsubscribe(response_channel, control_channel)
+                        await pubsub.close()
+                        logger.debug(f"PubSub cleaned up after cancellation for {agent_run_id}")
+                    except Exception:
+                        pass  # Ignore errors during cancellation cleanup
             except Exception as e:
-                logger.debug(f"Error during pubsub cleanup for {agent_run_id}: {e}")
+                logger.warning(f"Error during pubsub cleanup for {agent_run_id}: {e}")
 
             if listener_task:
                 listener_task.cancel()

@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
-import { billingKeys } from '@/hooks/billing/use-subscription';
+import { accountStateKeys } from '@/hooks/billing';
 import {
   ChatInput,
   ChatInputHandles,
@@ -21,27 +21,45 @@ import {
 import { useIsMobile } from '@/hooks/utils';
 import { useAuth } from '@/components/AuthProvider';
 import { config, isLocalMode, isStagingMode } from '@/lib/config';
-import { useInitiateAgentWithInvalidation, useThreadLimit } from '@/hooks/dashboard/use-initiate-agent';
-
+import { useInitiateAgentWithInvalidation } from '@/hooks/dashboard/use-initiate-agent';
+import { useAccountState, accountStateSelectors, invalidateAccountState } from '@/hooks/billing';
+import { getPlanName } from '@/components/billing/plan-utils';
 import { useAgents } from '@/hooks/agents/use-agents';
-import { PlanSelectionModal } from '@/components/billing/pricing';
 import { usePricingModalStore } from '@/stores/pricing-modal-store';
 import { useAgentSelection } from '@/stores/agent-selection-store';
-import { SunaModesPanel } from './suna-modes-panel';
 import { useThreadQuery } from '@/hooks/threads/use-threads';
 import { normalizeFilenameToNFC } from '@/lib/utils/unicode';
-import { AgentRunLimitDialog } from '@/components/thread/agent-run-limit-dialog';
-import { CustomAgentsSection } from './custom-agents-section';
 import { toast } from 'sonner';
-import { AgentConfigurationDialog } from '@/components/agents/agent-configuration-dialog';
 import { useSunaModePersistence } from '@/stores/suna-modes-store';
-import { CreditsDisplay } from '@/components/billing/credits-display';
 import { Button } from '../ui/button';
-import { Info, X } from 'lucide-react';
-import { useLimits } from '@/hooks/dashboard/use-limits';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Progress } from '../ui/progress';
+import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { NotificationDropdown } from '../notifications/notification-dropdown';
+import { UsageLimitsPopover } from './usage-limits-popover';
+import { useSidebar } from '@/components/ui/sidebar';
+
+// Lazy load heavy components that aren't immediately visible
+const PlanSelectionModal = lazy(() => 
+  import('@/components/billing/pricing').then(mod => ({ default: mod.PlanSelectionModal }))
+);
+const UpgradeCelebration = lazy(() => 
+  import('@/components/billing/upgrade-celebration').then(mod => ({ default: mod.UpgradeCelebration }))
+);
+const SunaModesPanel = lazy(() => 
+  import('./suna-modes-panel').then(mod => ({ default: mod.SunaModesPanel }))
+);
+const AgentRunLimitDialog = lazy(() => 
+  import('@/components/thread/agent-run-limit-dialog').then(mod => ({ default: mod.AgentRunLimitDialog }))
+);
+const CustomAgentsSection = lazy(() => 
+  import('./custom-agents-section').then(mod => ({ default: mod.CustomAgentsSection }))
+);
+const AgentConfigurationDialog = lazy(() => 
+  import('@/components/agents/agent-configuration-dialog').then(mod => ({ default: mod.AgentConfigurationDialog }))
+);
+const CreditsDisplay = lazy(() => 
+  import('@/components/billing/credits-display').then(mod => ({ default: mod.CreditsDisplay }))
+);
 
 const PENDING_PROMPT_KEY = 'pendingAgentPrompt';
 
@@ -50,6 +68,7 @@ export function DashboardContent() {
   const t = useTranslations('dashboard');
   const tCommon = useTranslations('common');
   const tBilling = useTranslations('billing');
+  const tAuth = useTranslations('auth');
   const [inputValue, setInputValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
@@ -83,17 +102,19 @@ export function DashboardContent() {
     runningCount: number;
     runningThreadIds: string[];
   } | null>(null);
+  const [showUpgradeCelebration, setShowUpgradeCelebration] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { user } = useAuth();
+  const { setOpen: setSidebarOpen } = useSidebar();
   const chatInputRef = React.useRef<ChatInputHandles>(null);
   const initiateAgentMutation = useInitiateAgentWithInvalidation();
   const pricingModalStore = usePricingModalStore();
 
-  const { data: agentsResponse } = useAgents({
-    limit: 100,
+  const { data: agentsResponse, isLoading: isLoadingAgents } = useAgents({
+    limit: 50, // Changed from 100 to 50 to match other components
     sort_by: 'name',
     sort_order: 'asc'
   });
@@ -102,18 +123,41 @@ export function DashboardContent() {
   const selectedAgent = selectedAgentId
     ? agents.find(agent => agent.agent_id === selectedAgentId)
     : null;
+  const sunaAgent = agents.find(agent => agent.metadata?.is_suna_default === true);
   const displayName = selectedAgent?.name || 'Suna';
   const agentAvatar = undefined;
-  const isSunaAgent = selectedAgent?.metadata?.is_suna_default || false;
+  // Show Suna modes while loading (assume Suna is default) or when Suna agent is selected
+  const isSunaAgent = isLoadingAgents 
+    ? true // Show Suna modes while loading
+    : (selectedAgent?.metadata?.is_suna_default || (!selectedAgentId && sunaAgent !== undefined) || false);
 
   const threadQuery = useThreadQuery(initiatedThreadId || '');
-  const { data: threadLimit, isLoading: isThreadLimitLoading } = useThreadLimit();
-  const { data: limits } = useLimits();
-  const canCreateThread = threadLimit?.can_create || false;
+  const { data: accountState, isLoading: isAccountStateLoading } = useAccountState({ enabled: !!user });
+  const isLocal = isLocalMode();
+  const planName = accountStateSelectors.planName(accountState);
+  const canCreateThread = accountState?.limits?.threads?.can_create || false;
   
   const isDismissed = typeof window !== 'undefined' && sessionStorage.getItem('threadLimitAlertDismissed') === 'true';
-  // Only show alert after loading is complete and limit is actually exceeded
-  const showAlert = !isThreadLimitLoading && !canCreateThread && !isDismissed;
+  const threadLimitExceeded = !isAccountStateLoading && !canCreateThread && !isDismissed;
+  
+  const dailyCreditsInfo = accountState?.credits.daily_refresh;
+  const hasLowCredits = accountStateSelectors.totalCredits(accountState) <= 10;
+  const hasDailyRefresh = dailyCreditsInfo?.enabled && dailyCreditsInfo?.seconds_until_refresh;
+  
+  const alertType = hasLowCredits && hasDailyRefresh 
+    ? 'daily_refresh' 
+    : threadLimitExceeded 
+    ? 'thread_limit' 
+    : null;
+  
+  const formatTimeUntilRefresh = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  };
 
   React.useEffect(() => {
     if (agents.length > 0) {
@@ -154,24 +198,61 @@ export function DashboardContent() {
   }, [threadQuery.data, initiatedThreadId, router]);
 
   // Check for checkout success and invalidate billing queries
+  // Handle subscription success - show celebration
+  const celebrationTriggeredRef = React.useRef(false);
+  
   React.useEffect(() => {
+    // Prevent double-triggering
+    if (celebrationTriggeredRef.current) return;
+    
+    const subscriptionSuccess = searchParams.get('subscription');
     const checkoutSuccess = searchParams.get('checkout');
     const sessionId = searchParams.get('session_id');
     const clientSecret = searchParams.get('client_secret');
     
-    // If we have checkout success indicators, invalidate billing queries
-    if (checkoutSuccess === 'success' || sessionId || clientSecret) {
-      console.log('🔄 Checkout success detected, invalidating billing queries...');
-      queryClient.invalidateQueries({ queryKey: billingKeys.all });
+    // If we have checkout/subscription success indicators
+    if (subscriptionSuccess === 'success' || checkoutSuccess === 'success' || sessionId || clientSecret) {
+      console.log('🎉 Subscription success detected! Showing celebration...');
+      celebrationTriggeredRef.current = true;
       
-      // Clean up URL params
+      // Invalidate and force refetch billing queries to refresh data immediately
+      // This ensures fresh data after checkout, bypassing staleTime
+      // Use invalidateAccountState helper which includes debouncing
+      invalidateAccountState(queryClient, true, true); // skipCache=true to bypass backend cache after checkout
+      
+      // Close sidebar for cleaner celebration view
+      setSidebarOpen(false);
+      
+      // Show celebration immediately
+      setShowUpgradeCelebration(true);
+      
+      // Clean up URL params after a short delay
+      setTimeout(() => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('subscription');
+        url.searchParams.delete('checkout');
+        url.searchParams.delete('session_id');
+        url.searchParams.delete('client_secret');
+        router.replace(url.pathname + url.search, { scroll: false });
+      }, 100);
+    }
+  }, [searchParams, queryClient, router, setSidebarOpen]);
+
+  // Handle expired link notification for logged-in users
+  React.useEffect(() => {
+    const linkExpired = searchParams.get('linkExpired');
+    if (linkExpired === 'true') {
+      toast.info(tAuth('magicLinkExpired'), {
+        description: tAuth('magicLinkExpiredDescription'),
+        duration: 5000,
+      });
+      
+      // Clean up URL param
       const url = new URL(window.location.href);
-      url.searchParams.delete('checkout');
-      url.searchParams.delete('session_id');
-      url.searchParams.delete('client_secret');
+      url.searchParams.delete('linkExpired');
       router.replace(url.pathname + url.search, { scroll: false });
     }
-  }, [searchParams, queryClient, router]);
+  }, [searchParams, router, tAuth]);
 
   const handleSubmit = async (
     message: string,
@@ -252,6 +333,7 @@ export function DashboardContent() {
         });
       } else if (error instanceof BillingError) {
         const message = error.detail?.message?.toLowerCase() || '';
+        const originalMessage = error.detail?.message || '';
         const isCreditsExhausted = 
           message.includes('credit') ||
           message.includes('balance') ||
@@ -259,9 +341,24 @@ export function DashboardContent() {
           message.includes('out of credits') ||
           message.includes('no credits');
         
+        // Extract balance from message if present
+        const balanceMatch = originalMessage.match(/balance is (-?\d+)\s*credits/i);
+        const balance = balanceMatch ? balanceMatch[1] : null;
+        
+        const alertTitle = isCreditsExhausted 
+          ? 'You ran out of credits'
+          : 'Pick the plan that works for you';
+        
+        const alertSubtitle = balance 
+          ? `Your current balance is ${balance} credits. Upgrade your plan to continue.`
+          : isCreditsExhausted 
+            ? 'Upgrade your plan to get more credits and continue using the AI assistant.'
+            : undefined;
+        
         pricingModalStore.openPricingModal({ 
           isAlert: true,
-          alertTitle: isCreditsExhausted ? 'You ran out of credits. Upgrade now.' : 'Pick the plan that works for you.'
+          alertTitle,
+          alertSubtitle
         });
       } else if (error instanceof AgentRunLimitError) {
         const { running_thread_ids, running_count } = error.detail;
@@ -274,7 +371,7 @@ export function DashboardContent() {
         const errorMessage = error instanceof Error ? error.message : 'Operation failed';
         toast.error(errorMessage);
       }
-      setInputValue('');
+      // Keep the input value on error so user doesn't lose their message
       chatInputRef.current?.clearPendingFiles();
       setIsSubmitting(false);
       setIsRedirecting(false);
@@ -303,70 +400,22 @@ export function DashboardContent() {
 
       return () => clearTimeout(timer);
     }
-  }, [autoSubmit, inputValue, isSubmitting, isRedirecting]);
+    return undefined;
+  }, [autoSubmit, inputValue, isSubmitting, isRedirecting, handleSubmit]);
 
   return (
     <>
-      <PlanSelectionModal />
+      <Suspense fallback={null}>
+        <PlanSelectionModal />
+      </Suspense>
 
       <div className="flex flex-col h-screen w-full overflow-hidden relative">
-        {/* Credits Display - Top right corner */}
-        <div className="absolute flex items-center gap-2 top-4 right-4 z-10">
-          <CreditsDisplay />
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button size='icon' variant='outline'>
-                <Info className='h-4 w-4'/>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align='end' className="w-70">
-              <div>
-                <h2 className="text-md font-medium mb-4">{t('usageLimits')}</h2>
-                <div className="space-y-2">
-                  <div className='space-y-2'>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">{t('threads')}</span>
-                      <span className="font-medium">{limits?.thread_count?.current_count || 0} / {limits?.thread_count?.limit || 0}</span>
-                    </div>
-                    <Progress 
-                      className='h-1'
-                      value={((limits?.thread_count?.current_count || 0) / (limits?.thread_count?.limit || 1)) * 100} 
-                    />
-                  </div>
-                  <div className='space-y-2'>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Custom Workers</span>
-                      <span className="font-medium">{limits?.agent_count?.current_count || 0} / {limits?.agent_count?.limit || 0}</span>
-                    </div>
-                    <Progress 
-                      className='h-1'
-                      value={((limits?.agent_count?.current_count || 0) / (limits?.agent_count?.limit || 1)) * 100} 
-                    />
-                  </div>
-                  <div className='space-y-2'>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">{t('scheduledTriggers')}</span>
-                      <span className="font-medium">{limits?.trigger_count?.scheduled?.current_count || 0} / {limits?.trigger_count?.scheduled?.limit || 0}</span>
-                    </div>
-                    <Progress 
-                      className='h-1'
-                      value={((limits?.trigger_count?.scheduled?.current_count || 0) / (limits?.trigger_count?.scheduled?.limit || 1)) * 100} 
-                    />
-                  </div>
-                  <div className='space-y-2'>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">{t('appTriggers')}</span>
-                      <span className="font-medium">{limits?.trigger_count?.app?.current_count || 0} / {limits?.trigger_count?.app?.limit || 0}</span>
-                    </div>
-                    <Progress 
-                      className='h-1'
-                      value={((limits?.trigger_count?.app?.current_count || 0) / (limits?.trigger_count?.app?.limit || 1)) * 100} 
-                    />
-                  </div>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+        <div className="absolute flex items-center gap-2 top-4 right-4">
+        <NotificationDropdown />
+          <Suspense fallback={<div className="h-8 w-20 bg-muted/30 rounded animate-pulse" />}>
+            <CreditsDisplay />
+          </Suspense>
+          <UsageLimitsPopover />
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -410,14 +459,14 @@ export function DashboardContent() {
             )} */}
             
 
-            <div className="flex-1 flex items-start justify-center pt-[30vh]">
+            <div className="flex-1 flex items-start justify-center pt-[25vh] sm:pt-[30vh]">
               {viewMode === 'super-worker' && (
                 <div className="w-full animate-in fade-in-0 duration-300">
-                  <div className="px-4 py-8">
-                    <div className="w-full max-w-3xl mx-auto flex flex-col items-center space-y-6 md:space-y-8">
+                  <div className="px-4 py-6 sm:py-8">
+                    <div className="w-full max-w-3xl mx-auto flex flex-col items-center space-y-5 sm:space-y-6 md:space-y-8">
                       <div className="flex flex-col items-center text-center w-full">
                         <p
-                          className="tracking-tight text-2xl md:text-3xl font-normal text-foreground/90"
+                          className="tracking-tight text-2xl sm:text-2xl md:text-3xl font-normal text-foreground/90"
                         >
                           {t('whatWouldYouLike')}
                         </p>
@@ -447,15 +496,43 @@ export function DashboardContent() {
                           selectedTemplate={selectedTemplate}
                         />
 
-                        {showAlert && (
+                        {alertType === 'daily_refresh' && (
                           <div 
-                            className='w-full h-16 p-2 px-4 dark:bg-amber-500/5 bg-amber-500/10 dark:border-amber-500/10 border-amber-700/10 border text-white rounded-b-3xl flex items-center justify-between overflow-hidden'
+                            className='w-full h-16 p-2 px-4 dark:bg-blue-500/5 bg-blue-500/10 dark:border-blue-500/10 border-blue-700/10 border rounded-b-3xl flex items-center justify-between overflow-hidden'
                             style={{
-                              marginTop: '-32px',
+                              marginTop: '-40px',
                               transition: 'margin-top 300ms ease-in-out, opacity 300ms ease-in-out',
                             }}
                           >
-                            <span className='-mb-3.5 dark:text-amber-500 text-amber-700 text-sm'>{t('limitsExceeded')}</span>
+                            <span className='-mb-3.5 dark:text-blue-400 text-blue-700 text-sm'>
+                              {tBilling('creditsExhausted', { time: formatTimeUntilRefresh(dailyCreditsInfo!.seconds_until_refresh!) })}
+                            </span>
+                            <div className='flex items-center -mb-3.5'>
+                              <Button 
+                                size='sm' 
+                                className='h-6 text-xs'
+                                onClick={() => pricingModalStore.openPricingModal()}
+                              >
+                              {tCommon('upgrade')}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {alertType === 'thread_limit' && (
+                          <div 
+                            className='w-full h-16 p-2 px-4 dark:bg-amber-500/5 bg-amber-500/10 dark:border-amber-500/10 border-amber-700/10 border text-white rounded-b-3xl flex items-center justify-between overflow-hidden'
+                            style={{
+                              marginTop: '-40px',
+                              transition: 'margin-top 300ms ease-in-out, opacity 300ms ease-in-out',
+                            }}
+                          >
+                            <span className='-mb-3.5 dark:text-amber-500 text-amber-700 text-sm'>
+                              {t('limitsExceeded', { 
+                                current: accountState?.limits?.threads?.current ?? 0, 
+                                limit: accountState?.limits?.threads?.max ?? 0 
+                              })}
+                            </span>
                             <div className='flex items-center -mb-3.5'>
                               <Button 
                                 size='sm' 
@@ -463,18 +540,7 @@ export function DashboardContent() {
                                 onClick={() => pricingModalStore.openPricingModal()}
                               >
                                 {tCommon('upgrade')}
-                                </Button>
-                              {/* <Button 
-                                size='icon' 
-                                variant='ghost' 
-                                className='h-6 text-muted-foreground'
-                                onClick={() => {
-                                  sessionStorage.setItem('threadLimitAlertDismissed', 'true');
-                                  window.dispatchEvent(new Event('storage'));
-                                }}
-                              >
-                                <X/>
-                              </Button> */}
+                              </Button>
                             </div>
                           </div>
                         )}
@@ -484,20 +550,22 @@ export function DashboardContent() {
 
                   {/* Modes Panel - Below chat input, doesn't affect its position */}
                   {isSunaAgent && (
-                    <div className="px-4 pb-8">
+                    <div className="px-4 pb-6 sm:pb-8">
                       <div className="max-w-3xl mx-auto">
-                        <SunaModesPanel
-                          selectedMode={selectedMode}
-                          onModeSelect={setSelectedMode}
-                          onSelectPrompt={setInputValue}
-                          isMobile={isMobile}
-                          selectedCharts={selectedCharts}
-                          onChartsChange={setSelectedCharts}
-                          selectedOutputFormat={selectedOutputFormat}
-                          onOutputFormatChange={setSelectedOutputFormat}
-                          selectedTemplate={selectedTemplate}
-                          onTemplateChange={setSelectedTemplate}
-                        />
+                        <Suspense fallback={<div className="h-24 bg-muted/10 rounded-lg animate-pulse" />}>
+                          <SunaModesPanel
+                            selectedMode={selectedMode}
+                            onModeSelect={setSelectedMode}
+                            onSelectPrompt={setInputValue}
+                            isMobile={isMobile}
+                            selectedCharts={selectedCharts}
+                            onChartsChange={setSelectedCharts}
+                            selectedOutputFormat={selectedOutputFormat}
+                            onOutputFormatChange={setSelectedOutputFormat}
+                            selectedTemplate={selectedTemplate}
+                            onTemplateChange={setSelectedTemplate}
+                          />
+                        </Suspense>
                       </div>
                     </div>
                   )}
@@ -508,9 +576,11 @@ export function DashboardContent() {
                   {(isStagingMode() || isLocalMode()) && (
                     <div className="w-full px-4 pb-8">
                       <div className="max-w-5xl mx-auto">
-                        <CustomAgentsSection
-                          onAgentSelect={setSelectedAgent}
-                        />
+                        <Suspense fallback={<div className="h-64 bg-muted/10 rounded-lg animate-pulse" />}>
+                          <CustomAgentsSection
+                            onAgentSelect={setSelectedAgent}
+                          />
+                        </Suspense>
                       </div>
                     </div>
                   )}
@@ -522,26 +592,40 @@ export function DashboardContent() {
       </div>
 
       {agentLimitData && (
-        <AgentRunLimitDialog
-          open={showAgentLimitDialog}
-          onOpenChange={setShowAgentLimitDialog}
-          runningCount={agentLimitData.runningCount}
-          runningThreadIds={agentLimitData.runningThreadIds}
-          projectId={undefined}
-        />
+        <Suspense fallback={null}>
+          <AgentRunLimitDialog
+            open={showAgentLimitDialog}
+            onOpenChange={setShowAgentLimitDialog}
+            runningCount={agentLimitData.runningCount}
+            runningThreadIds={agentLimitData.runningThreadIds}
+            projectId={undefined}
+          />
+        </Suspense>
       )}
 
       {configAgentId && (
-        <AgentConfigurationDialog
-          open={showConfigDialog}
-          onOpenChange={setShowConfigDialog}
-          agentId={configAgentId}
-          onAgentChange={(newAgentId) => {
-            setConfigAgentId(newAgentId);
-            setSelectedAgent(newAgentId);
-          }}
-        />
+        <Suspense fallback={null}>
+          <AgentConfigurationDialog
+            open={showConfigDialog}
+            onOpenChange={setShowConfigDialog}
+            agentId={configAgentId}
+            onAgentChange={(newAgentId) => {
+              setConfigAgentId(newAgentId);
+              setSelectedAgent(newAgentId);
+            }}
+          />
+        </Suspense>
       )}
+
+      {/* Upgrade Celebration Modal */}
+      <Suspense fallback={null}>
+        <UpgradeCelebration
+          isOpen={showUpgradeCelebration}
+          onClose={() => setShowUpgradeCelebration(false)}
+          planName={planName}
+          isLoading={isAccountStateLoading}
+        />
+      </Suspense>
     </>
   );
 }

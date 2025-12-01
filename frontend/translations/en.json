@@ -29,7 +29,7 @@
     "next": "Next",
     "upgrade": "Upgrade",
     "basic": "Basic",
-    "tryFree": "Start free"
+    "tryFree": "Get started"
   },
   "settings": {
     "title": "Settings",
@@ -38,6 +38,7 @@
       "plan": "Plan",
       "billing": "Billing",
       "usage": "Usage",
+      "referrals": "Referrals",
       "knowledgeBase": "Knowledge Base",
       "integrations": "Integrations",
       "envManager": "Env Manager"
@@ -76,6 +77,13 @@
         "billingRemoved": "All billing data will be removed",
         "scheduled30Days": "Your account will be scheduled for deletion in 30 days",
         "gracePeriod": "You can cancel this request anytime within the 30-day grace period. After 30 days, all your data will be permanently deleted and cannot be recovered.",
+        "chooseDeletionType": "Choose deletion type:",
+        "gracePeriodOption": "30-Day Grace Period",
+        "gracePeriodDescription": "Your account will be scheduled for deletion in 30 days. You can cancel this request anytime within the grace period.",
+        "immediateOption": "Immediate Deletion",
+        "immediateDescription": "Your account and all data will be permanently deleted immediately. This action cannot be undone.",
+        "warningImmediate": "This action cannot be undone",
+        "warningGracePeriod": "This action cannot be undone after 30 days",
         "confirmText": "Type delete to confirm",
         "confirmPlaceholder": "delete",
         "keepAccount": "Keep Account",
@@ -83,6 +91,50 @@
         "cancelDeletionDescription": "Are you sure you want to cancel the deletion of your account? Your account and all data will be preserved.",
         "cancelDeletion": "Cancel Deletion"
       }
+    },
+    "referrals": {
+      "title": "Referral Program",
+      "description": "Share your referral link with friends. When they sign up and create an account, you'll earn",
+      "creditsPerReferral": "100 non-expiring credits",
+      "youEarn": "You earn",
+      "friendGets": "Your friend gets",
+      "maxEarnable": "Maximum earnable through referrals:",
+      "maxCredits": "$100 in credits",
+      "yourReferralCode": "Your Referral Code",
+      "referralLink": "Referral Link",
+      "shareYourLink": "Share your referral link",
+      "yourStats": "Your Stats",
+      "enterCodeDescription": "Enter a referral code to earn credits",
+      "enterCode": "Enter code",
+      "refresh": "Refresh",
+      "copyCode": "Copy code",
+      "copyLink": "Copy link",
+      "share": "Share",
+      "stats": {
+        "totalReferrals": "Total Referrals",
+        "successful": "Successful",
+        "creditsEarned": "Credits Earned"
+      },
+      "recentReferrals": "Recent Referrals",
+      "signupComplete": "Signup Complete",
+      "pending": "Pending",
+      "noReferrals": "No referrals yet. Share your referral link to get started!",
+      "copied": "Copied!",
+      "codeCopied": "Referral code copied to clipboard",
+      "linkCopied": "Referral link copied to clipboard",
+      "codeRefreshed": "Referral code refreshed successfully",
+      "refreshFailed": "Failed to refresh referral code",
+      "inviteByEmail": "Invite by Email",
+      "inviteByEmailDescription": "Add up to 3 email addresses (press Enter, Space, or Comma to add)",
+      "emailAddress": "Email address",
+      "emailPlaceholder": "Enter email addresses (press Enter, Space, or Comma)",
+      "emailsAdded": "emails",
+      "sent": "sent",
+      "send": "Send",
+      "sending": "Sending...",
+      "sendAllInvites": "Send All Invites",
+      "allSent": "All Sent",
+      "emailSent": "Referral invitation sent successfully"
     },
     "billing": {
       "title": "Billing & Subscription",
@@ -184,6 +236,9 @@
     "monthlyOn1st": "Monthly on 1st"
   },
   "sidebar": {
+    "referAndEarn": "Refer & Earn",
+    "new": "New",
+    "upgrade": "Upgrade",
     "chats": "Chats",
     "agents": "Agents",
     "workers": "Workers",
@@ -248,7 +303,7 @@
     "customWorkers": "Custom Workers",
     "scheduledTriggers": "Scheduled Triggers",
     "appTriggers": "App Triggers",
-    "limitsExceeded": "You ran out of limits. Upgrade your plan to chat more.",
+    "limitsExceeded": "You've reached your chat limit ({current}/{limit}). Upgrade your plan to create more chats.",
     "agentInitiatedSuccessfully": "Agent initiated successfully",
     "aiAssistantReady": "Your AI assistant is ready to help"
   },
@@ -311,6 +366,85 @@
   "home": {
     "heroPlaceholder": "Describe the task you want your Worker to complete..."
   },
+  "showcase": {
+    "title": "Kortix: Your Autonomous AI Worker",
+    "subtitle": "Built for complex tasks, designed for everything. The ultimate AI assistant that handles it all—from simple requests to mega-complex projects.",
+    "tryItOut": "Try it out",
+    "kortixComputer": "Kortix Computer",
+    "running": "Running",
+    "workers": {
+      "images": {
+        "title": "Images",
+        "description": "Create images on demand. From product shots to social graphics to full illustrations. Adjusts style, lighting, colors, and layout, or refines existing visuals with quick edits and touch-ups.",
+        "capabilities": {
+          "0": "Generate product shots",
+          "1": "Create social graphics",
+          "2": "Make illustrations",
+          "3": "Style & lighting variations",
+          "4": "Logo / asset creation",
+          "5": "+ Much more"
+        },
+        "imageAlt": "Growth Isn't Linear graphic example",
+        "fileType": "image"
+      },
+      "slides": {
+        "title": "Slides",
+        "description": "Create stunning presentations instantly. From pitch decks to reports to training materials. Adjusts themes, layouts, content structure, or refines existing decks with quick edits and updates.",
+        "capabilities": {
+          "0": "Pitch decks",
+          "1": "Training material",
+          "2": "Report presentations",
+          "3": "Theme & layout variations",
+          "4": "Content restructuring",
+          "5": "+ Much more"
+        },
+        "imageAlt": "Nexus Enterprise Automation Platform slide example",
+        "fileType": "PPTX"
+      },
+      "data": {
+        "title": "Data",
+        "description": "Transforms raw data into insights. From spreadsheets to dashboards to visualizations. Cleans datasets, creates charts, builds reports, or refines existing analyses with quick updates.",
+        "capabilities": {
+          "0": "Dashboards",
+          "1": "Visualizations",
+          "2": "Data reports",
+          "3": "Clean & organize data",
+          "4": "Generate insights",
+          "5": "+ Much more"
+        },
+        "imageAlt": "Financial Model Dashboard example",
+        "fileType": "Preview"
+      },
+      "docs": {
+        "title": "Docs",
+        "description": "Writes and edits documents effortlessly. From proposals to guides to content pieces. Adjusts tone, structure, formatting, or refines existing documents with quick rewrites and polish.",
+        "capabilities": {
+          "0": "Proposals",
+          "1": "Guides & manuals",
+          "2": "Content pieces",
+          "3": "Tone & style variations",
+          "4": "Format & restructure",
+          "5": "+ Much more"
+        },
+        "imageAlt": "Q3 2025 Executive Summary Report example",
+        "fileType": "PDF"
+      },
+      "research": {
+        "title": "Research",
+        "description": "Researches topics comprehensively. From market trends to competitive analysis to deep dives. Gathers sources, synthesizes findings, or refines existing research with quick updates.",
+        "capabilities": {
+          "0": "Analyze market trends",
+          "1": "Competitive research",
+          "2": "Deep topic dives",
+          "3": "Gather sources",
+          "4": "Synthesize findings",
+          "5": "+ Much more"
+        },
+        "imageAlt": "Detailed Competitor Profiles research example",
+        "fileType": "PDF"
+      }
+    }
+  },
   "threads": {
     "title": "Threads",
     "newThread": "New Thread",
@@ -323,13 +457,15 @@
     "credits": "Credits",
     "popular": "Popular",
     "creditsExplained": "Credits explained",
+    "creditsExhausted": "+200 Credits in {time}. Upgrade to use now.",
+    "creditsExhaustedRefreshIn": "You've exhausted your credits. They will refresh in {time}",
     "trialActive": "Trial Active",
     "trialBadge": "7-Day Trial",
     "currentPlan": "Current Plan",
     "currentBadge": "Current",
     "scheduled": "Scheduled",
     "scheduledBadge": "Scheduled",
-    "loading": "Loading billing information...",
+    "loading": "Loading...",
     "subscriptionChangeScheduled": "Subscription change scheduled",
     "planWillChangeOn": "Your plan will change on {date}.",
     "failedToInitiateSubscription": "Failed to initiate subscription. Please try again.",
@@ -417,6 +553,9 @@
     "downgradePending": "Downgrade Pending",
     "downgrade": "Downgrade",
     "switchToLegacyYearly": "Switch to Legacy Yearly",
+    "confirmDowngradeTitle": "Are you sure you want to downgrade?",
+    "confirmDowngradeDescription": "You're about to downgrade to {planName}. This change will take effect at the end of your current billing period.",
+    "confirmDowngrade": "Yes, Downgrade",
     "pickPlan": "Pick the plan that works for you.",
     "reachedLimit": "You've reached your limits.",
     "projectLimit": "Project Limit ({current}/{limit})",
@@ -437,11 +576,38 @@
       "integrations": "100+ integrations",
       "premiumAIModels": "Premium AI Models",
       "prioritySupport": "Priority Support"
+    },
+    "downgradeDialog": {
+      "confirmTitle": "Confirm plan change",
+      "confirmSubtitle": "We're sorry to see you go",
+      "confirmDescription": "You're about to switch to the {planName} plan. This change will take effect at the end of your current billing period. You'll keep your current benefits until then.",
+      "continue": "Continue",
+      "keepCurrentPlan": "Keep my current plan",
+      "feedbackTitle": "Help us improve",
+      "feedbackSubtitle": "Your feedback shapes the future of Kortix",
+      "whatWouldMakeYouStay": "What would make you stay?",
+      "feedbackPlaceholder": "If there was one thing we could change or add that would make Kortix worth it for you, what would it be?",
+      "feedbackFooter": "Our team reads every response. Your words directly influence what we build next.",
+      "confirmDowngrade": "Confirm downgrade",
+      "processing": "Processing...",
+      "pleaseSelectReason": "Please select a reason",
+      "reasons": {
+        "tooExpensive": "It's too expensive for my needs",
+        "notUsingOften": "I'm not using Kortix enough",
+        "foundAlternative": "I found another solution",
+        "technicalIssues": "I experienced technical issues",
+        "resultsNotGood": "The results didn't meet my expectations",
+        "other": "Other reason"
+      }
     }
   },
   "auth": {
+    "haveReferralCode": "Have a referral code?",
+    "referralCode": "Referral Code",
+    "enterCode": "Enter code",
     "logIntoAccount": "Log into your account",
     "createAccount": "Create account",
+    "signInOrCreateAccount": "Sign in or create your Kortix account",
     "continueWithGoogle": "Continue with Google",
     "continueWithGitHub": "Continue with GitHub",
     "orEmail": "or email",
@@ -469,7 +635,22 @@
     "cancel": "Cancel",
     "pleaseEnterValidEmail": "Please enter a valid email address",
     "signInFailed": "Sign in failed. Check your credentials.",
-    "signUpFailed": "Sign up failed. Please try again."
+    "signUpFailed": "Sign up failed. Please try again.",
+    "sendMagicLink": "Send magic link",
+    "sending": "Sending...",
+    "magicLinkSent": "We sent a magic link to",
+    "magicLinkDescription": "Click the link in your email to sign in. The link will expire in 1 hour.",
+    "magicLinkExplanation": "We'll send you a secure link to sign in. No password needed.",
+    "magicLinkExpired": "This link has expired",
+    "magicLinkExpiredDescription": "The magic link you clicked has expired. Magic links expire after 1 hour for security reasons.",
+    "resendMagicLink": "Resend magic link",
+    "resending": "Resending...",
+    "byContinuingYouAgree": "By continuing, you agree to our <privacyPolicy>Privacy Policy</privacyPolicy> and <termsOfService>Terms of Service</termsOfService>",
+    "openProvider": "Open {provider}",
+    "didntReceiveEmail": "Didn't receive the email?",
+    "resend": "Resend",
+    "alreadySignedIn": "You're already signed in. No action needed.",
+    "goToDashboard": "Go to Dashboard"
   },
   "onboarding": {
     "welcome": "Welcome",
@@ -605,6 +786,25 @@
     "pt": "Português",
     "fr": "Français",
     "es": "Español"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Manage how you receive notifications",
+    "preferences": "Notification Preferences",
+    "channels": "Notification Channels",
+    "emailNotifications": "Email Notifications",
+    "emailDescription": "Receive notifications via email",
+    "pushNotifications": "Push Notifications",
+    "pushDescription": "Receive push notifications on your device",
+    "inAppNotifications": "In-App Notifications",
+    "inAppDescription": "See notifications within the app",
+    "deviceTokens": "Registered Devices",
+    "noDevices": "No devices registered",
+    "settingsUpdated": "Notification preferences updated successfully",
+    "settingsFailed": "Failed to update notification preferences",
+    "enableAll": "Enable All",
+    "disableAll": "Disable All",
+    "saveChanges": "Save Changes"
   },
   "suna": {
     "samplePrompts": "Sample prompts",

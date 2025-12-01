@@ -19,7 +19,6 @@ import { ConversationSection } from '@/components/menu/ConversationSection';
 import { BottomNav } from '@/components/menu/BottomNav';
 import { ProfileSection } from '@/components/menu/ProfileSection';
 import { SettingsPage } from '@/components/settings/SettingsPage';
-import { placeholderImageUrl } from '@/components/settings/NameEditPage';
 import { useAuthContext, useLanguage } from '@/contexts';
 import { useRouter } from 'expo-router';
 import { AgentList } from '@/components/agents/AgentList';
@@ -39,15 +38,9 @@ import { TierBadge } from '@/components/billing/TierBadge';
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
-/**
- * EmptyState Component
- * 
- * Unified empty state component for all tabs (Chats, Workers, Triggers)
- * Handles: loading, error, no results (search), and no items states
- */
 interface EmptyStateProps {
   type: 'loading' | 'error' | 'no-results' | 'empty';
-  icon: any; // Lucide icon component
+  icon: any;
   title: string;
   description: string;
   actionLabel?: string;
@@ -82,7 +75,6 @@ function EmptyState({
     onActionPress?.();
   };
 
-  // Get colors based on type
   const getColors = () => {
     switch (type) {
       case 'loading':
@@ -115,7 +107,6 @@ function EmptyState({
 
   const { iconColor, iconBgColor } = getColors();
 
-  // Loading state with spinner
   if (type === 'loading') {
     return (
       <View className="items-center justify-center py-16 px-8">
@@ -127,7 +118,6 @@ function EmptyState({
     );
   }
 
-  // All other states
   return (
     <View className="items-center justify-center py-20 px-8">
       <View className={`w-20 h-20 rounded-full ${iconBgColor} items-center justify-center mb-6`}>
@@ -169,12 +159,6 @@ function EmptyState({
   );
 }
 
-/**
- * BackButton Component
- * 
- * Elegant close button to close the menu and return to home
- * Uses X icon from Lucide
- */
 interface BackButtonProps {
   onPress?: () => void;
 }
@@ -250,7 +234,7 @@ function NewChatButton({ onPress }: NewChatButtonProps) {
       onPressOut={() => {
         scale.value = withSpring(1, { damping: 15, stiffness: 400 });
       }}
-      className="h-14 w-full rounded-full bg-primary flex-row items-center justify-center gap-2"
+      className="h-14 w-full rounded-2xl bg-primary flex-row items-center justify-center gap-2"
     >
       <Icon
         as={Plus}
@@ -299,7 +283,6 @@ function FloatingActionButton({ activeTab, onChatPress, onWorkerPress, onTrigger
     console.log('⏰ Timestamp:', new Date().toISOString());
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    // Rotate animation
     rotate.value = withSpring(rotate.value + 90, { damping: 15, stiffness: 400 });
 
     if (activeTab === 'chats') onChatPress?.();
@@ -307,7 +290,6 @@ function FloatingActionButton({ activeTab, onChatPress, onWorkerPress, onTrigger
     else if (activeTab === 'triggers') onTriggerPress?.();
   };
 
-  // Get accessibility label based on active tab
   const getAccessibilityLabel = () => {
     const item = activeTab === 'chats' ? 'chat' : activeTab === 'workers' ? 'worker' : 'trigger';
     return t('actions.createNew', { item });
@@ -804,7 +786,11 @@ export function MenuPage({
             style={profileAnimatedStyle}
             className="flex-row items-center gap-3 border border-border p-3 rounded-2xl"
           >
-            <ProfilePicture imageUrl={placeholderImageUrl} size={12} />
+            <ProfilePicture 
+              imageUrl={user?.user_metadata?.avatar_url || profile?.avatar} 
+              size={12}
+              fallbackText={profile.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
+            />
             <View className="flex-col items-start -mt-1.5">
               <Text className="text-lg font-roobert-semibold text-foreground">
                 {profile.name || 'User'}

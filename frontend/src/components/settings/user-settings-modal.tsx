@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
     Settings,
     CreditCard,
@@ -22,11 +23,19 @@ import {
     Info,
     FileText,
     Plug,
+    Bell,
+    Mail,
+    Smartphone,
+    AppWindow,
+    Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { isLocalMode } from '@/lib/config';
+import { isLocalMode, isProductionMode } from '@/lib/config';
+import { backendApi } from '@/lib/api-client';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Switch } from '@/components/ui/switch';
 import { LocalEnvManager } from '@/components/env-manager/local-env-manager';
 import { useIsMobile } from '@/hooks/utils';
 import { SpotlightCard } from '@/components/ui/spotlight-card';
@@ -34,22 +43,21 @@ import { useQueryClient } from '@tanstack/react-query';
 import { 
     useAccountDeletionStatus, 
     useRequestAccountDeletion, 
-    useCancelAccountDeletion 
+    useCancelAccountDeletion,
+    useDeleteAccountImmediately
 } from '@/hooks/account/use-account-deletion';
-import { SubscriptionInfo } from '@/lib/api/billing';
+import { AccountState } from '@/lib/api/billing';
 import { useAuth } from '@/components/AuthProvider';
 import { PlanSelectionModal, PricingSection } from '@/components/billing/pricing';
 import { CreditBalanceDisplay, CreditPurchaseModal } from '@/components/billing/credit-purchase';
 import { ScheduledDowngradeCard } from '@/components/billing/scheduled-downgrade-card';
 import { 
-    useSubscription, 
-    useSubscriptionCommitment, 
+    useAccountState,
+    accountStateSelectors,
     useCreatePortalSession,
     useCancelSubscription,
     useReactivateSubscription,
-    useCreditBalance,
-    useScheduledChanges,
-    billingKeys
+    invalidateAccountState,
 } from '@/hooks/billing';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -64,23 +72,30 @@ import {
     Clock,
     Infinity,
     ShoppingCart,
-    Lightbulb
+    Lightbulb,
+    CalendarClock,
+    ArrowRight
 } from 'lucide-react';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { getPlanName, getPlanIcon } from '../billing/plan-utils';
+import { TierBadge } from '../billing/tier-badge';
+import { siteConfig } from '@/lib/home';
 import ThreadUsage from '@/components/billing/thread-usage';
 import { formatCredits } from '@/lib/utils/credit-formatter';
 import { LanguageSwitcher } from './language-switcher';
 import { useTranslations } from 'next-intl';
+import { ReferralsTab } from '@/components/referrals/referrals-tab';
 
-type TabId = 'general' | 'plan' | 'billing' | 'usage' | 'env-manager' | 'knowledge-base' | 'integrations';
+type TabId = 'general' | 'plan' | 'billing' | 'usage' | 'env-manager' | 'knowledge-base' | 'integrations' | 'referrals';
 
 interface Tab {
     id: TabId;
     label: string;
     icon: React.ElementType;
     disabled?: boolean;
-}interface UserSettingsModalProps {
+}
+
+interface UserSettingsModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void; 
     defaultTab?: TabId;
@@ -97,11 +112,13 @@ export function UserSettingsModal({
     const [activeTab, setActiveTab] = useState<TabId>(defaultTab);
     const [showPlanModal, setShowPlanModal] = useState(false);
     const isLocal = isLocalMode();
+    const isProduction = isProductionMode();
     const tabs: Tab[] = [
         { id: 'general', label: 'General', icon: Settings },
         { id: 'plan', label: 'Plan', icon: Zap },
         { id: 'billing', label: 'Billing', icon: CreditCard },
         { id: 'usage', label: 'Usage', icon: TrendingDown },
+        ...(!isProduction ? [{ id: 'referrals' as TabId, label: 'Referrals', icon: Users }] : []),
         { id: 'knowledge-base', label: 'Knowledge Base', icon: FileText },
         { id: 'integrations', label: 'Integrations', icon: Plug },
         ...(isLocal ? [{ id: 'env-manager' as TabId, label: 'Env Manager', icon: KeyRound }] : []),
@@ -127,33 +144,78 @@ export function UserSettingsModal({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
                 className={cn(
-                    "p-0 gap-0 overflow-hidden",
-                    isMobile ? "w-full h-full max-w-full rounded-none" : "max-w-6xl max-h-[90vh]"
+                    "p-0 gap-0",
+                    isMobile 
+                        ? "fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-none m-0 translate-x-0 translate-y-0 left-0 top-0" 
+                        : "max-w-6xl max-h-[90vh] overflow-hidden"
                 )}
                 hideCloseButton={true}
             >
                 <DialogTitle className="sr-only">Settings</DialogTitle>
-                {isMobile && (
-                    <DialogHeader className="p-4 border-b border-border">
-                        <div className="flex items-center justify-between">
-                            <div className="text-lg font-semibold">Settings</div>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => onOpenChange(false)}
-                            >
-                                <X className="h-4 w-4" />
-                            </Button>
+                
+                {isMobile ? (
+                    /* Mobile Layout - Full Screen */
+                    <div className="flex flex-col h-screen w-screen overflow-hidden">
+                        {/* Mobile Header */}
+                        <div className="px-4 py-3 border-b border-border flex-shrink-0 bg-background">
+                            <div className="flex items-center justify-between">
+                                <div className="text-lg font-semibold">Settings</div>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => onOpenChange(false)}
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
-                    </DialogHeader>
-                )}                
-                <div className={cn("flex", isMobile ? "flex-col h-full" : "flex-row  h-[700px]")}>
-                    <div className={cn(
-                        "bg-background",
-                        isMobile ? "p-2" : "w-56 p-4"
-                    )}>
-                        {!isMobile && (
+                        
+                        {/* Mobile Tabs - Horizontal Scroll */}
+                        <div className="px-3 py-2.5 border-b border-border flex-shrink-0 bg-background">
+                            <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-3 px-3 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                                {tabs.map((tab) => {
+                                    const Icon = tab.icon;
+                                    const isActive = activeTab === tab.id;
+
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => handleTabClick(tab.id)}
+                                            disabled={tab.disabled}
+                                            className={cn(
+                                                "flex items-center gap-2 px-3 py-2 text-sm rounded-lg whitespace-nowrap flex-shrink-0 transition-colors",
+                                                isActive
+                                                    ? "bg-muted text-foreground font-medium"
+                                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                            )}
+                                        >
+                                            <Icon className="h-4 w-4 flex-shrink-0" />
+                                            <span>{tab.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        
+                        {/* Mobile Content - Scrollable */}
+                        <div className="flex-1 overflow-x-hidden overflow-y-auto">
+                            <div className="w-full max-w-full">
+                                {activeTab === 'general' && <GeneralTab onClose={() => onOpenChange(false)} />}
+                                {activeTab === 'billing' && <BillingTab returnUrl={returnUrl} onOpenPlanModal={() => setShowPlanModal(true)} isActive={activeTab === 'billing'} />}
+                                {activeTab === 'usage' && <UsageTab />}
+                                {activeTab === 'referrals' && <ReferralsTab />}
+                                {activeTab === 'env-manager' && isLocal && <EnvManagerTab />}
+                                {activeTab === 'knowledge-base' && <KnowledgeBaseTab />}
+                                {activeTab === 'integrations' && <IntegrationsTab />}
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    /* Desktop Layout - Side by Side */
+                    <div className="flex flex-row h-[700px]">
+                        {/* Desktop Sidebar */}
+                        <div className="bg-background flex-shrink-0 w-56 p-4 border-r border-border">
                             <div className="flex justify-start mb-3">
                                 <Button
                                     variant="ghost"
@@ -164,50 +226,45 @@ export function UserSettingsModal({
                                     <X className="h-4 w-4" />
                                 </Button>
                             </div>
-                        )}
-                        <div className={cn(
-                            "flex gap-2",
-                            isMobile ? "flex-row overflow-x-auto" : "flex-col"
-                        )}>
-                            {tabs.map((tab) => {
-                                const Icon = tab.icon;
-                                const isActive = activeTab === tab.id;
+                            
+                            {/* Desktop Tabs */}
+                            <div className="flex flex-col gap-1.5">
+                                {tabs.map((tab) => {
+                                    const Icon = tab.icon;
+                                    const isActive = activeTab === tab.id;
 
-                                return (
-                                    <SpotlightCard
-                                        key={tab.id}
-                                        className={cn(
-                                            "transition-colors cursor-pointer",
-                                            isActive ? "bg-muted" : "bg-transparent"
-                                        )}
-                                    >
+                                    return (
                                         <button
+                                            key={tab.id}
                                             onClick={() => handleTabClick(tab.id)}
                                             disabled={tab.disabled}
                                             className={cn(
-                                                "w-full flex items-center gap-3 px-4 py-3 text-sm",
+                                                "w-full flex items-center gap-3 px-4 py-3 text-sm rounded-lg transition-colors",
                                                 isActive
-                                                    ? "text-foreground"
-                                                    : "text-muted-foreground"
+                                                    ? "bg-muted text-foreground"
+                                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                                             )}
                                         >
-                                            <Icon className="h-4 w-4" />
-                                            {tab.label}
+                                            <Icon className="h-4 w-4 flex-shrink-0" />
+                                            <span>{tab.label}</span>
                                         </button>
-                                    </SpotlightCard>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        
+                        {/* Desktop Content */}
+                        <div className="flex-1 overflow-y-auto min-h-0 w-full max-w-full">
+                            {activeTab === 'general' && <GeneralTab onClose={() => onOpenChange(false)} />}
+                            {activeTab === 'billing' && <BillingTab returnUrl={returnUrl} onOpenPlanModal={() => setShowPlanModal(true)} isActive={activeTab === 'billing'} />}
+                            {activeTab === 'usage' && <UsageTab />}
+                            {activeTab === 'referrals' && <ReferralsTab />}
+                            {activeTab === 'env-manager' && isLocal && <EnvManagerTab />}
+                            {activeTab === 'knowledge-base' && <KnowledgeBaseTab />}
+                            {activeTab === 'integrations' && <IntegrationsTab />}
                         </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto">
-                        {activeTab === 'general' && <GeneralTab onClose={() => onOpenChange(false)} />}
-                        {activeTab === 'billing' && <BillingTab returnUrl={returnUrl} onOpenPlanModal={() => setShowPlanModal(true)} isActive={activeTab === 'billing'} />}
-                        {activeTab === 'usage' && <UsageTab />}
-                        {activeTab === 'env-manager' && isLocal && <EnvManagerTab />}
-                        {activeTab === 'knowledge-base' && <KnowledgeBaseTab />}
-                        {activeTab === 'integrations' && <IntegrationsTab />}
-                    </div>
-                </div>
+                )}
 
                 {/* Full-screen Plan Selection Modal */}
                 <PlanSelectionModal
@@ -220,6 +277,7 @@ export function UserSettingsModal({
     );
 }
 
+
 function GeneralTab({ onClose }: { onClose: () => void }) {
     const t = useTranslations('settings.general');
     const tCommon = useTranslations('common');
@@ -230,11 +288,14 @@ function GeneralTab({ onClose }: { onClose: () => void }) {
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [showCancelDialog, setShowCancelDialog] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
+    const [deletionType, setDeletionType] = useState<'grace-period' | 'immediate'>('grace-period');
     const supabase = createClient();
+    const queryClient = useQueryClient();
 
     const { data: deletionStatus, isLoading: isCheckingStatus } = useAccountDeletionStatus();
     const requestDeletion = useRequestAccountDeletion();
     const cancelDeletion = useCancelAccountDeletion();
+    const deleteImmediately = useDeleteAccountImmediately();
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -273,9 +334,14 @@ function GeneralTab({ onClose }: { onClose: () => void }) {
     };
 
     const handleRequestDeletion = async () => {
-        await requestDeletion.mutateAsync('User requested deletion');
+        if (deletionType === 'immediate') {
+            await deleteImmediately.mutateAsync();
+        } else {
+            await requestDeletion.mutateAsync('User requested deletion');
+        }
         setShowDeleteDialog(false);
         setDeleteConfirmText('');
+        setDeletionType('grace-period'); // Reset to default
     };
 
     const handleCancelDeletion = async () => {
@@ -294,7 +360,7 @@ function GeneralTab({ onClose }: { onClose: () => void }) {
 
     if (isLoading) {
         return (
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-6 space-y-5 sm:space-y-6 min-w-0 max-w-full">
                 <Skeleton className="h-8 w-32" />
                 <div className="space-y-4">
                     <Skeleton className="h-20 w-full" />
@@ -305,7 +371,7 @@ function GeneralTab({ onClose }: { onClose: () => void }) {
     }
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-5 sm:space-y-6 min-w-0 max-w-full overflow-x-hidden">
             <div>
                 <h3 className="text-lg font-semibold mb-1">{t('title')}</h3>
                 <p className="text-sm text-muted-foreground">
@@ -343,16 +409,18 @@ function GeneralTab({ onClose }: { onClose: () => void }) {
                 </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-4">
                 <Button
                     variant="outline"
                     onClick={onClose}
+                    className="w-full sm:w-auto"
                 >
                     {tCommon('cancel')}
                 </Button>
                 <Button
                     onClick={handleSave}
                     disabled={isSaving}
+                    className="w-full sm:w-auto"
                 >
                     {isSaving ? tCommon('saving') : t('saveChanges')}
                 </Button>
@@ -362,9 +430,9 @@ function GeneralTab({ onClose }: { onClose: () => void }) {
                 <>
                     <div className="pt-8 space-y-4">
                         <div>
-                            <h3 className="text-base font-medium mb-1">Delete Account</h3>
+                            <h3 className="text-base font-medium mb-1">{t('deleteAccount.title')}</h3>
                             <p className="text-sm text-muted-foreground">
-                                Permanently remove your account and all associated data
+                                {t('deleteAccount.description')}
                             </p>
                         </div>
 
@@ -373,13 +441,14 @@ function GeneralTab({ onClose }: { onClose: () => void }) {
                                 <Clock className="h-4 w-4 text-amber-600" />
                                 <AlertDescription>
                                     <div className="text-sm">
-                                        <strong className="text-foreground">Deletion Scheduled</strong>
+                                        <strong className="text-foreground">{t('deleteAccount.scheduled')}</strong>
                                         <p className="mt-1 text-muted-foreground">
-                                            Your account will be permanently deleted on{' '}
-                                            <strong className="text-foreground">{formatDate(deletionStatus.deletion_scheduled_for)}</strong>.
+                                            {t('deleteAccount.scheduledDescription', {
+                                                date: formatDate(deletionStatus.deletion_scheduled_for)
+                                            })}
                                         </p>
                                         <p className="mt-2 text-muted-foreground">
-                                            You can cancel this request anytime before the deletion date.
+                                            {t('deleteAccount.canCancel')}
                                         </p>
                                     </div>
                                 </AlertDescription>
@@ -390,7 +459,7 @@ function GeneralTab({ onClose }: { onClose: () => void }) {
                                         onClick={() => setShowCancelDialog(true)}
                                         disabled={cancelDeletion.isPending}
                                     >
-                                        Cancel Deletion Request
+                                        {t('deleteAccount.cancelButton')}
                                     </Button>
                                 </div>
                             </Alert>
@@ -400,71 +469,120 @@ function GeneralTab({ onClose }: { onClose: () => void }) {
                                 onClick={() => setShowDeleteDialog(true)}
                                 className="text-muted-foreground hover:text-foreground"
                             >
-                                Delete Account
+                                {t('deleteAccount.button')}
                             </Button>
                         )}
                     </div>
 
                     <Dialog open={showDeleteDialog} onOpenChange={(open) => {
                         setShowDeleteDialog(open);
-                        if (!open) setDeleteConfirmText('');
+                        if (!open) {
+                            setDeleteConfirmText('');
+                            setDeletionType('grace-period');
+                        }
                     }}>
                         <DialogContent className="max-w-md">
                             <DialogHeader>
-                                <DialogTitle>Delete Account</DialogTitle>
+                                <DialogTitle>{t('deleteAccount.dialogTitle')}</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4">
-                                <Alert className="shadow-none border-amber-500/30 bg-amber-500/5">
-                                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                <Alert className={cn(
+                                    "shadow-none",
+                                    deletionType === 'immediate' 
+                                        ? "border-red-500/30 bg-red-500/5" 
+                                        : "border-amber-500/30 bg-amber-500/5"
+                                )}>
+                                    <AlertTriangle className={cn(
+                                        "h-4 w-4",
+                                        deletionType === 'immediate' ? "text-red-600" : "text-amber-600"
+                                    )} />
                                     <AlertDescription>
-                                        <strong className="text-foreground">This action cannot be undone after 30 days</strong>
+                                        <strong className="text-foreground">
+                                            {deletionType === 'immediate' 
+                                                ? t('deleteAccount.warningImmediate')
+                                                : t('deleteAccount.warningGracePeriod')}
+                                        </strong>
                                     </AlertDescription>
                                 </Alert>
+                                
                                 <div>
                                     <p className="text-sm font-medium mb-2">
-                                        When you delete your account:
+                                        {t('deleteAccount.whenDelete')}
                                     </p>
                                     <ul className="text-sm text-muted-foreground space-y-1.5 pl-5 list-disc">
-                                        <li>All your agents and agent versions will be deleted</li>
-                                        <li>All your threads and conversations will be deleted</li>
-                                        <li>All your credentials and integrations will be removed</li>
-                                        <li>Your subscription will be cancelled</li>
-                                        <li>All billing data will be removed</li>
-                                        <li>Your account will be scheduled for deletion in 30 days</li>
+                                        <li>{t('deleteAccount.agentsDeleted')}</li>
+                                        <li>{t('deleteAccount.threadsDeleted')}</li>
+                                        <li>{t('deleteAccount.credentialsRemoved')}</li>
+                                        <li>{t('deleteAccount.subscriptionCancelled')}</li>
+                                        <li>{t('deleteAccount.billingRemoved')}</li>
+                                        {deletionType === 'grace-period' && (
+                                            <li>{t('deleteAccount.scheduled30Days')}</li>
+                                        )}
                                     </ul>
                                 </div>
-                                <p className="text-sm text-muted-foreground">
-                                    You can cancel this request anytime within the 30-day grace period.
-                                    After 30 days, all your data will be permanently deleted and cannot be recovered.
-                                </p>
+
+                                <div className="space-y-3">
+                                    <Label>{t('deleteAccount.chooseDeletionType')}</Label>
+                                    <RadioGroup value={deletionType} onValueChange={(value) => setDeletionType(value as 'grace-period' | 'immediate')}>
+                                        <div className="flex items-start space-x-2 space-y-0 rounded-md border p-4">
+                                            <RadioGroupItem value="grace-period" id="grace-period" className="mt-0.5" />
+                                            <div className="space-y-1 flex-1">
+                                                <Label htmlFor="grace-period" className="font-medium cursor-pointer">
+                                                    {t('deleteAccount.gracePeriodOption')}
+                                                </Label>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {t('deleteAccount.gracePeriodDescription')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start space-x-2 space-y-0 rounded-md border border-red-500/30 p-4">
+                                            <RadioGroupItem value="immediate" id="immediate" className="mt-0.5" />
+                                            <div className="space-y-1 flex-1">
+                                                <Label htmlFor="immediate" className="font-medium cursor-pointer text-red-600">
+                                                    {t('deleteAccount.immediateOption')}
+                                                </Label>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {t('deleteAccount.immediateDescription')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </RadioGroup>
+                                </div>
                                 
                                 <div className="space-y-2">
                                     <Label htmlFor="delete-confirm">
-                                        Type <strong>delete</strong> to confirm
+                                        {t('deleteAccount.confirmText')}
                                     </Label>
                                     <Input
                                         id="delete-confirm"
                                         value={deleteConfirmText}
                                         onChange={(e) => setDeleteConfirmText(e.target.value)}
-                                        placeholder="delete"
+                                        placeholder={t('deleteAccount.confirmPlaceholder')}
                                         className="shadow-none"
                                         autoComplete="off"
                                     />
                                 </div>
                                 
-                                <div className="flex gap-2 justify-end">
+                                <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
                                     <Button variant="outline" onClick={() => {
                                         setShowDeleteDialog(false);
                                         setDeleteConfirmText('');
-                                    }}>
-                                        Keep Account
+                                        setDeletionType('grace-period');
+                                    }} className="w-full sm:w-auto">
+                                        {t('deleteAccount.keepAccount')}
                                     </Button>
                                     <Button 
                                         variant="destructive" 
                                         onClick={handleRequestDeletion} 
-                                        disabled={requestDeletion.isPending || deleteConfirmText !== 'delete'}
+                                        disabled={
+                                            (requestDeletion.isPending || deleteImmediately.isPending) || 
+                                            deleteConfirmText !== 'delete'
+                                        }
+                                        className="w-full sm:w-auto"
                                     >
-                                        {requestDeletion.isPending ? 'Processing...' : 'Delete Account'}
+                                        {(requestDeletion.isPending || deleteImmediately.isPending) 
+                                            ? tCommon('processing') 
+                                            : t('deleteAccount.button')}
                                     </Button>
                                 </div>
                             </div>
@@ -474,22 +592,22 @@ function GeneralTab({ onClose }: { onClose: () => void }) {
                     <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
                         <AlertDialogContent className="max-w-md">
                             <AlertDialogHeader>
-                                <AlertDialogTitle>Cancel Account Deletion</AlertDialogTitle>
+                                <AlertDialogTitle>{t('deleteAccount.cancelDeletionTitle')}</AlertDialogTitle>
                             </AlertDialogHeader>
                             <div className="space-y-4">
                                 <p className="text-sm text-muted-foreground">
-                                    Are you sure you want to cancel the deletion of your account?
-                                    Your account and all data will be preserved.
+                                    {t('deleteAccount.cancelDeletionDescription')}
                                 </p>
-                                <div className="flex gap-2 justify-end">
-                                    <Button variant="outline" onClick={() => setShowCancelDialog(false)}>
-                                        Back
+                                <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+                                    <Button variant="outline" onClick={() => setShowCancelDialog(false)} className="w-full sm:w-auto">
+                                        {tCommon('back')}
                                     </Button>
                                     <Button 
                                         onClick={handleCancelDeletion} 
                                         disabled={cancelDeletion.isPending}
+                                        className="w-full sm:w-auto"
                                     >
-                                        {cancelDeletion.isPending ? 'Processing...' : 'Cancel Deletion'}
+                                        {cancelDeletion.isPending ? tCommon('processing') : t('deleteAccount.cancelDeletion')}
                                     </Button>
                                 </div>
                             </div>
@@ -497,6 +615,37 @@ function GeneralTab({ onClose }: { onClose: () => void }) {
                     </AlertDialog>
                 </>
             )}
+        </div>
+    );
+}
+
+interface NotificationToggleProps {
+    icon: React.ElementType;
+    label: string;
+    description: string;
+    enabled: boolean;
+    onToggle: (value: boolean) => void;
+}
+
+function NotificationToggle({ icon: Icon, label, description, enabled, onToggle }: NotificationToggleProps) {
+    return (
+        <div className="flex items-start justify-between gap-4 py-3 border-b last:border-0">
+            <div className="flex items-start gap-3 flex-1">
+                <Icon className="w-4 h-4 text-muted-foreground mt-0.5" />
+                <div className="space-y-0.5 flex-1">
+                    <Label htmlFor={label} className="text-sm font-medium cursor-pointer">
+                        {label}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                        {description}
+                    </p>
+                </div>
+            </div>
+            <Switch
+                id={label}
+                checked={enabled}
+                onCheckedChange={onToggle}
+            />
         </div>
     );
 }
@@ -510,55 +659,73 @@ function BillingTab({ returnUrl, onOpenPlanModal, isActive }: { returnUrl: strin
 
     const isLocal = isLocalMode();
 
-    // Use React Query hooks for subscription data
+    // Use unified account state hook
     const {
-        data: subscriptionData,
+        data: accountState,
         isLoading: isLoadingSubscription,
         error: subscriptionError,
         refetch: refetchSubscription
-    } = useSubscription({
+    } = useAccountState({
         enabled: !!session && !authLoading,
     });
-
-    const {
-        data: commitmentInfo,
-        isLoading: commitmentLoading,
-        error: commitmentError,
-        refetch: refetchCommitment
-    } = useSubscriptionCommitment(subscriptionData?.subscription?.id, !!subscriptionData?.subscription?.id);
-
-    const {
-        data: creditBalance,
-        isLoading: isLoadingBalance,
-        refetch: refetchBalance
-    } = useCreditBalance(!!session && !authLoading);
-
-    const {
-        data: scheduledChangesData,
-        refetch: refetchScheduledChanges
-    } = useScheduledChanges(!!session && !authLoading);
+    
+    // Get commitment info from account state
+    const commitmentInfo = accountState?.subscription.commitment;
 
     const createPortalSessionMutation = useCreatePortalSession();
     const cancelSubscriptionMutation = useCancelSubscription();
     const reactivateSubscriptionMutation = useReactivateSubscription();
 
-    const planName = getPlanName(subscriptionData, isLocal);
+    const planName = accountStateSelectors.planName(accountState);
     const planIcon = getPlanIcon(planName, isLocal);
-
-    // Calculate days until refresh
-    const getDaysUntilRefresh = () => {
-        if (!creditBalance?.next_credit_grant) return null;
-        const nextGrant = new Date(creditBalance.next_credit_grant);
-        const now = new Date();
-        const diffTime = nextGrant.getTime() - now.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays > 0 ? diffDays : null;
+    
+    // Get scheduled change from account state
+    const hasScheduledChange = accountState?.subscription.has_scheduled_change && accountState?.subscription.scheduled_change;
+    const scheduledChange = accountState?.subscription.scheduled_change;
+    
+    const getFrontendTierName = (tierKey: string) => {
+        const tier = siteConfig.cloudPricingItems.find(p => p.tierKey === tierKey);
+        return tier?.name || tierKey || 'Basic';
     };
 
-    const daysUntilRefresh = getDaysUntilRefresh();
-    const expiringCredits = creditBalance?.expiring_credits || 0;
-    const nonExpiringCredits = creditBalance?.non_expiring_credits || 0;
-    const totalCredits = creditBalance?.balance || 0;
+    // Calculate hours until daily refresh
+    const getHoursUntilDailyRefresh = () => {
+        const dailyInfo = accountState?.credits.daily_refresh;
+        if (!dailyInfo?.enabled) return null;
+        
+        if (dailyInfo.seconds_until_refresh) {
+            const hours = Math.ceil(dailyInfo.seconds_until_refresh / 3600);
+            return hours > 0 ? hours : null;
+        }
+        
+        if (dailyInfo.next_refresh_at) {
+            const nextRefresh = new Date(dailyInfo.next_refresh_at);
+            const now = new Date();
+            const diffMs = nextRefresh.getTime() - now.getTime();
+            const hours = Math.ceil(diffMs / (1000 * 60 * 60));
+            return hours > 0 ? hours : null;
+        }
+        
+        return null;
+    };
+
+    const hoursUntilDailyRefresh = getHoursUntilDailyRefresh();
+    const dailyCreditsInfo = accountState?.credits.daily_refresh;
+    
+    // Use the clean credits breakdown from API
+    const dailyCredits = accountState?.credits.daily ?? 0;
+    const monthlyCredits = accountState?.credits.monthly ?? 0;
+    const nonExpiringCredits = accountState?.credits.extra ?? 0;
+    const totalCredits = accountState?.credits.total ?? 0;
+    
+    console.log('[BillingTab] Credit breakdown:', { 
+        accountState: accountState?.credits,
+        dailyCreditsInfo, 
+        dailyCredits, 
+        monthlyCredits, 
+        nonExpiringCredits, 
+        totalCredits
+    });
 
     // Refetch billing info whenever the billing tab becomes active (only once per activation)
     const prevIsActiveRef = useRef(false);
@@ -566,9 +733,8 @@ function BillingTab({ returnUrl, onOpenPlanModal, isActive }: { returnUrl: strin
         // Only refetch if tab just became active (not on every render)
         if (isActive && !prevIsActiveRef.current && session && !authLoading) {
             console.log('🔄 Billing tab activated, refetching billing info...');
-            // Use queryClient to invalidate instead of individual refetches to avoid cascading
-            // This will trigger refetches but React Query will dedupe concurrent requests
-            queryClient.invalidateQueries({ queryKey: billingKeys.all });
+            // Use centralized invalidation which includes deduplication
+            invalidateAccountState(queryClient, true);
         }
         prevIsActiveRef.current = isActive;
         // Only depend on isActive, session, and authLoading - not the refetch functions
@@ -613,20 +779,17 @@ function BillingTab({ returnUrl, onOpenPlanModal, isActive }: { returnUrl: strin
     };
 
     const getEffectiveCancellationDate = () => {
-        if (subscriptionData?.subscription?.cancel_at) {
-            const cancelAt = subscriptionData.subscription.cancel_at;
-            if (typeof cancelAt === 'number') {
-                return formatDateFromTimestamp(cancelAt);
-            }
-            return formatDate(cancelAt);
+        if (accountState?.subscription.cancellation_effective_date) {
+            return formatDate(accountState.subscription.cancellation_effective_date);
         }
-        if (subscriptionData?.subscription?.current_period_end) {
-            return formatDateFlexible(subscriptionData.subscription.current_period_end);
+        if (accountState?.subscription.current_period_end) {
+            return formatDateFlexible(accountState.subscription.current_period_end);
         }
         return 'N/A';
     };
 
     const handleManageSubscription = () => {
+        console.log('[BillingTab] Creating portal session with return_url:', returnUrl);
         createPortalSessionMutation.mutate({ return_url: returnUrl });
     };
 
@@ -639,12 +802,12 @@ function BillingTab({ returnUrl, onOpenPlanModal, isActive }: { returnUrl: strin
         reactivateSubscriptionMutation.mutate();
     };
 
-    const isLoading = isLoadingSubscription || isLoadingBalance || authLoading;
+    const isLoading = isLoadingSubscription || authLoading;
     const error = subscriptionError ? (subscriptionError instanceof Error ? subscriptionError.message : 'Failed to load subscription data') : null;
 
     if (isLoading) {
         return (
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-6 space-y-5 sm:space-y-6 min-w-0 max-w-full overflow-x-hidden">
                 <Skeleton className="h-8 w-32" />
                 <div className="space-y-4">
                     <Skeleton className="h-32 w-full" />
@@ -656,7 +819,7 @@ function BillingTab({ returnUrl, onOpenPlanModal, isActive }: { returnUrl: strin
 
     if (isLocalMode()) {
         return (
-            <div className="p-6">
+            <div className="p-4 sm:p-6 min-w-0 max-w-full overflow-x-hidden">
                 <Alert className="border-blue-500/50 bg-blue-500/10">
                     <Shield className="h-4 w-4 text-blue-500" />
                     <AlertDescription>
@@ -672,7 +835,7 @@ function BillingTab({ returnUrl, onOpenPlanModal, isActive }: { returnUrl: strin
 
     if (error) {
         return (
-            <div className="p-6">
+            <div className="p-4 sm:p-6 min-w-0 max-w-full overflow-x-hidden">
                 <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>{error}</AlertDescription>
@@ -681,96 +844,139 @@ function BillingTab({ returnUrl, onOpenPlanModal, isActive }: { returnUrl: strin
         );
     }
 
-    const isSubscribed = subscriptionData?.subscription?.status === 'active' || subscriptionData?.subscription?.status === 'trialing';
-    const isFreeTier = subscriptionData?.tier?.name === 'free';
-    const subscription = subscriptionData?.subscription;
-    const isCancelled = subscription?.cancel_at_period_end || subscription?.cancel_at || subscription?.canceled_at;
-    const canPurchaseCredits = subscriptionData?.credits?.can_purchase_credits || false;
+    const subStatus = accountState?.subscription.status;
+    const isSubscribed = subStatus === 'active' || subStatus === 'trialing';
+    const isFreeTier = accountState?.subscription.tier_key === 'free' || accountState?.subscription.tier_key === 'none';
+    const isCancelled = accountState?.subscription.is_cancelled || accountState?.subscription.cancel_at_period_end;
+    const canPurchaseCredits = accountState?.subscription.can_purchase_credits || false;
 
     return (
-        <div className="p-6 space-y-8">
+        <div className="p-4 sm:p-6 space-y-6 sm:space-y-8 min-w-0 max-w-full overflow-x-hidden">
             {/* Header with Plan Badge on Right */}
-            <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                    <h1 className="text-2xl font-medium tracking-tight">Billing Status</h1>
-                    <p className="text-sm text-muted-foreground">Manage your credits and subscription</p>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 min-w-0">
+                <div className="space-y-1 min-w-0 flex-1">
+                    <h1 className="text-xl sm:text-2xl font-medium tracking-tight">Billing Status</h1>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Manage your credits and subscription</p>
                 </div>
 
                 {/* Plan Badge with Renewal Info - Right aligned */}
                 {!isFreeTier && planName && (
-                    <div className="flex items-center gap-2 text-right">
-                        {planIcon && (
-                            <>
+                    <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center gap-2">
+                            {planIcon && (
                                 <div className="rounded-full py-0.5 flex items-center justify-center">
-                                    <img src={planIcon} alt={planName} className="h-6 w-auto" />
+                                    <img 
+                                        src={planIcon} 
+                                        alt={planName} 
+                                        className="h-6 w-auto" 
+                                        style={{ height: '24px', width: 'auto' }}
+                                    />
                                 </div>
-                            </>
-                        )}
-                        {subscription?.current_period_end && (
-                            <span className="text-xs text-muted-foreground">
-                                Renews {formatDateFlexible(subscription.current_period_end)}
-                            </span>
+                            )}
+                            {accountState?.subscription.current_period_end && !hasScheduledChange && (
+                                <span className="text-xs text-muted-foreground">
+                                    Renews {formatDateFlexible(accountState.subscription.current_period_end)}
+                                </span>
+                            )}
+                        </div>
+                        {/* Scheduled Downgrade Info - inline below plan */}
+                        {hasScheduledChange && scheduledChange && (
+                            <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                                <CalendarClock className="h-3 w-3" />
+                                <span>
+                                    Changing to {getFrontendTierName(scheduledChange.target_tier.name)} on{' '}
+                                    {new Date(scheduledChange.effective_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </span>
+                            </div>
                         )}
                     </div>
                 )}
             </div>
 
-            {/* Credit Breakdown - 3 Boxes Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Credit Breakdown - Grid adapts based on tier */}
+            <div className={cn(
+                "grid gap-2 sm:gap-4",
+                dailyCreditsInfo?.enabled 
+                    ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-4" 
+                    : "grid-cols-2 sm:grid-cols-2 md:grid-cols-3"
+            )}>
                 {/* Total Available Credits */}
-                <div className="relative overflow-hidden rounded-[18px] border border-border bg-card p-6">
-                    <div className="flex flex-col gap-3">
-                        <div className="flex items-center gap-2">
-                            <CreditCard className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">Total Available Credits</span>
+                <div className="relative overflow-hidden rounded-xl sm:rounded-[18px] border border-border bg-card p-3 sm:p-5">
+                    <div className="flex flex-col gap-1.5 sm:gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                            <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
+                            <span className="text-[10px] sm:text-xs text-muted-foreground truncate">Total</span>
                         </div>
                         <div>
-                            <div className="text-2xl leading-none font-medium mb-1">{formatCredits(totalCredits)}</div>
-                            <p className="text-xs text-muted-foreground">All credits</p>
+                            <div className="text-base sm:text-xl leading-none font-semibold">{formatCredits(totalCredits)}</div>
                         </div>
                     </div>
                 </div>
 
-                {/* Monthly Credits */}
-                <div className="relative overflow-hidden rounded-[18px] border border-orange-500/20 bg-gradient-to-br from-orange-500/5 to-transparent p-6">
-                    <div className="flex flex-col gap-3">
-                        <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-orange-500" />
-                            <span className="text-sm text-muted-foreground">Monthly Credits</span>
-                        </div>
-                        <div>
-                            <div className="text-2xl leading-none font-medium mb-1">{formatCredits(expiringCredits)}</div>
-                            <p className="text-xs text-muted-foreground">
-                                {daysUntilRefresh !== null 
-                                    ? `Renewal in ${daysUntilRefresh} ${daysUntilRefresh === 1 ? 'day' : 'days'}`
-                                    : 'No renewal scheduled'
-                                }
-                            </p>
+                {/* Daily Credits - Only for free tier */}
+                {dailyCreditsInfo?.enabled && (
+                    <div className="relative overflow-hidden rounded-xl sm:rounded-[18px] border border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-transparent p-3 sm:p-5">
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                                <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 flex-shrink-0" />
+                                <span className="text-[10px] sm:text-xs text-muted-foreground truncate">Daily</span>
+                            </div>
+                            <div>
+                                <div className="text-base sm:text-xl leading-none font-semibold">{formatCredits(dailyCredits)}</div>
+                                <p className="text-[10px] sm:text-[11px] text-blue-500/80 mt-1 sm:mt-1.5 truncate">
+                                    {hoursUntilDailyRefresh !== null 
+                                        ? `${hoursUntilDailyRefresh}h`
+                                        : 'Daily'
+                                    }
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
+
+                {/* Monthly Credits - For paid tiers OR expiring credits display */}
+                {(!dailyCreditsInfo?.enabled || monthlyCredits > 0) && (
+                    <div className="relative overflow-hidden rounded-xl sm:rounded-[18px] border border-orange-500/20 bg-gradient-to-br from-orange-500/5 to-transparent p-3 sm:p-5">
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500 flex-shrink-0" />
+                                <span className="text-[10px] sm:text-xs text-muted-foreground truncate">Monthly</span>
+                            </div>
+                            <div>
+                                <div className="text-base sm:text-xl leading-none font-semibold">
+                                    {formatCredits(dailyCreditsInfo?.enabled ? monthlyCredits : (accountState?.credits.monthly || 0))}
+                                </div>
+                                {accountState?.subscription.current_period_end && (
+                                    <p className="text-[10px] sm:text-[11px] text-orange-500/80 mt-1 sm:mt-1.5 truncate">
+                                        {formatDateFlexible(accountState.subscription.current_period_end)}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Extra Credits */}
-                <div className="relative overflow-hidden rounded-[18px] border border-border bg-card p-6">
-                    <div className="flex flex-col gap-3">
-                        <div className="flex items-center gap-2">
-                            <Infinity className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">Extra Credits</span>
+                <div className="relative overflow-hidden rounded-xl sm:rounded-[18px] border border-border bg-card p-3 sm:p-5">
+                    <div className="flex flex-col gap-1.5 sm:gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                            <Infinity className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="text-[10px] sm:text-xs text-muted-foreground truncate">Extra</span>
                         </div>
                         <div>
-                            <div className="text-2xl leading-none font-medium mb-1">{formatCredits(nonExpiringCredits)}</div>
-                            <p className="text-xs text-muted-foreground">Non-expiring</p>
+                            <div className="text-base sm:text-xl leading-none font-semibold">{formatCredits(nonExpiringCredits)}</div>
+                            <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-1 sm:mt-1.5">Non-expiring</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Action Buttons - Clean Layout */}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                 <Button
                     onClick={handleManageSubscription}
                     disabled={createPortalSessionMutation.isPending}
-                    className="h-10"
+                    className="h-10 w-full sm:w-auto"
                 >
                     {createPortalSessionMutation.isPending ? 'Loading...' : 'Manage Subscription'}
                 </Button>
@@ -778,20 +984,31 @@ function BillingTab({ returnUrl, onOpenPlanModal, isActive }: { returnUrl: strin
                     <Button
                         onClick={() => setShowCreditPurchaseModal(true)}
                         variant="outline"
-                        className="h-10"
+                        className="h-10 w-full sm:w-auto"
                     >
                         <ShoppingCart className="h-4 w-4 mr-2" />
                         Get Additional Credits
                     </Button>
                 )}
-                {!isFreeTier && planName && (
-                    <Button
-                        onClick={onOpenPlanModal}
-                        variant="outline"
-                        className="h-10"
-                    >
-                        Change Plan
-                    </Button>
+                {planName && (
+                    hasScheduledChange ? (
+                        <Button
+                            variant="outline"
+                            className="h-10 w-full sm:w-auto border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 text-sm"
+                            disabled
+                        >
+                            <CalendarClock className="h-4 w-4 mr-2 flex-shrink-0" />
+                            <span className="truncate">Downgrade Scheduled</span>
+                        </Button>
+                    ) : (
+                        <Button
+                            onClick={onOpenPlanModal}
+                            variant="outline"
+                            className="h-10 w-full sm:w-auto"
+                        >
+                            Change Plan
+                        </Button>
+                    )
                 )}
             </div>
 
@@ -808,12 +1025,11 @@ function BillingTab({ returnUrl, onOpenPlanModal, isActive }: { returnUrl: strin
                 </Alert>
             )}
 
-            {scheduledChangesData?.has_scheduled_change && scheduledChangesData.scheduled_change && (
+            {hasScheduledChange && scheduledChange && (
                 <ScheduledDowngradeCard
-                    scheduledChange={scheduledChangesData.scheduled_change}
+                    scheduledChange={scheduledChange}
                     onCancel={() => {
                         refetchSubscription();
-                        refetchScheduledChanges();
                     }}
                 />
             )}
@@ -884,16 +1100,17 @@ function BillingTab({ returnUrl, onOpenPlanModal, isActive }: { returnUrl: strin
                     <div className="space-y-4">
                         <p className="text-sm text-muted-foreground">
                             Are you sure you want to cancel your subscription? You'll continue to have access until{' '}
-                            {subscription?.current_period_end && formatDateFlexible(subscription.current_period_end)}.
+                            {accountState?.subscription.current_period_end && formatDateFlexible(accountState.subscription.current_period_end)}.
                         </p>
-                        <div className="flex gap-2 justify-end">
-                            <Button variant="outline" onClick={() => setShowCancelDialog(false)}>
+                        <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+                            <Button variant="outline" onClick={() => setShowCancelDialog(false)} className="w-full sm:w-auto">
                                 Keep Subscription
                             </Button>
                             <Button 
                                 variant="destructive" 
                                 onClick={handleCancel} 
                                 disabled={cancelSubscriptionMutation.isPending}
+                                className="w-full sm:w-auto"
                             >
                                 {cancelSubscriptionMutation.isPending ? 'Cancelling...' : 'Cancel Plan'}
                             </Button>
@@ -908,7 +1125,6 @@ function BillingTab({ returnUrl, onOpenPlanModal, isActive }: { returnUrl: strin
                 canPurchase={canPurchaseCredits}
                 onPurchaseComplete={() => {
                     refetchSubscription();
-                    refetchBalance();
                 }}
             />
         </div>
@@ -937,7 +1153,7 @@ function CreditsHelpAlert() {
 
 function UsageTab() {
   return (
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-5 sm:space-y-6 min-w-0 max-w-full overflow-x-hidden">
         <ThreadUsage />
       </div>
   );
@@ -945,7 +1161,7 @@ function UsageTab() {
 
 function EnvManagerTab() {
     return (
-        <div className="p-6">
+        <div className="p-4 sm:p-6 min-w-0 max-w-full overflow-x-hidden">
             <LocalEnvManager />
         </div>
     );
@@ -957,7 +1173,7 @@ function KnowledgeBaseTab() {
     }, []);
     
     return (
-        <div className="p-6 space-y-4">
+        <div className="p-4 sm:p-6 space-y-4 min-w-0 max-w-full overflow-x-hidden">
             <div className="text-center py-8">
                 <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-lg font-semibold mb-2">Opening Knowledge Base</h3>
@@ -975,7 +1191,7 @@ function IntegrationsTab() {
     }, []);
     
     return (
-        <div className="p-6 space-y-4">
+        <div className="p-4 sm:p-6 space-y-4 min-w-0 max-w-full overflow-x-hidden">
             <div className="text-center py-8">
                 <Plug className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-lg font-semibold mb-2">Opening Integrations</h3>

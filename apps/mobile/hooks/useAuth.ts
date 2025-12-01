@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/api/supabase';
 import * as WebBrowser from 'expo-web-browser';
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -7,6 +7,14 @@ import { makeRedirectUri } from 'expo-auth-session';
 import { Platform } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { initializeRevenueCat, shouldUseRevenueCat } from '@/lib/billing';
+
+let useTracking: any = null;
+try {
+  const TrackingModule = require('@/contexts/TrackingContext');
+  useTracking = TrackingModule.useTracking;
+} catch (e) {
+  console.warn('⚠️ TrackingContext not available');
+}
 import type {
   AuthState,
   SignInCredentials,
@@ -17,24 +25,12 @@ import type {
 } from '@/lib/utils/auth-types';
 import type { Session, User, AuthChangeEvent } from '@supabase/supabase-js';
 
-// Configure WebBrowser for OAuth
 WebBrowser.maybeCompleteAuthSession();
 
-/**
- * Custom hook for Supabase authentication
- * 
- * Provides authentication state and methods for:
- * - Email/password sign in
- * - Email/password sign up
- * - OAuth providers (Google, GitHub, Apple)
- * - Password reset
- * - Sign out
- * 
- * @example
- * const { signIn, signUp, signOut, user, isAuthenticated } = useAuth();
- */
 export function useAuth() {
   const queryClient = useQueryClient();
+  const trackingState = useTracking ? useTracking() : { canTrack: false, isLoading: false };
+  const { canTrack, isLoading: trackingLoading } = trackingState;
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     session: null,
@@ -43,14 +39,17 @@ export function useAuth() {
   });
 
   const [error, setError] = useState<AuthError | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const initializedUserIdRef = useRef<string | null>(null);
+  const initializedCanTrackRef = useRef<boolean | null>(null);
 
-  // Initialize auth state
+  // Initialize session once on mount
   useEffect(() => {
-    console.log('🔐 Initializing auth state');
-    
-    // Get initial session
+    let mounted = true;
+
     supabase.auth.getSession().then(async ({ data: { session } }: { data: { session: Session | null } }) => {
-      console.log('📊 Initial session:', session ? 'Active' : 'None');
+      if (!mounted) return;
+
       setAuthState({
         user: session?.user ?? null,
         session,
@@ -59,18 +58,37 @@ export function useAuth() {
       });
 
       if (session?.user && shouldUseRevenueCat()) {
+        // Only initialize if user changed or canTrack changed from false to true
+        const shouldInitialize = 
+          initializedUserIdRef.current !== session.user.id ||
+          (canTrack && initializedCanTrackRef.current !== canTrack);
+
+        if (shouldInitialize) {
         try {
-          await initializeRevenueCat(session.user.id, session.user.email);
+          await initializeRevenueCat(session.user.id, session.user.email, canTrack);
+            initializedUserIdRef.current = session.user.id;
+            initializedCanTrackRef.current = canTrack;
         } catch (error) {
           console.warn('⚠️ Failed to initialize RevenueCat:', error);
+          }
         }
       }
     });
 
-    // Listen for auth changes
+    return () => {
+      mounted = false;
+    };
+  }, []); // Only run once on mount
+
+  // Handle auth state changes and canTrack changes
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, session: Session | null) => {
-        console.log('🔄 Auth state changed:', _event);
+        // Only log significant auth events, not every state change
+        if (_event === 'SIGNED_IN' || _event === 'SIGNED_OUT' || _event === 'TOKEN_REFRESHED') {
+          console.log('🔄 Auth state changed:', _event);
+        }
+        
         setAuthState({
           user: session?.user ?? null,
           session,
@@ -79,21 +97,48 @@ export function useAuth() {
         });
 
         if (session?.user && shouldUseRevenueCat() && _event === 'SIGNED_IN') {
+          // Only initialize if user changed or canTrack changed from false to true
+          const shouldInitialize = 
+            initializedUserIdRef.current !== session.user.id ||
+            (canTrack && initializedCanTrackRef.current !== canTrack);
+
+          if (shouldInitialize) {
           try {
-            await initializeRevenueCat(session.user.id, session.user.email);
+            await initializeRevenueCat(session.user.id, session.user.email, canTrack);
+              initializedUserIdRef.current = session.user.id;
+              initializedCanTrackRef.current = canTrack;
           } catch (error) {
             console.warn('⚠️ Failed to initialize RevenueCat:', error);
           }
+          }
+        } else if (_event === 'SIGNED_OUT') {
+          initializedUserIdRef.current = null;
+          initializedCanTrackRef.current = null;
         }
       }
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [canTrack]); // Only depend on canTrack, not trackingLoading
 
-  /**
-   * Sign in with email and password
-   */
+  // Handle canTrack changes for already-initialized RevenueCat
+  useEffect(() => {
+    if (!authState.user || !shouldUseRevenueCat() || !canTrack) {
+      return;
+    }
+
+    // If RevenueCat was initialized with canTrack=false but now it's true, update it
+    if (initializedUserIdRef.current === authState.user.id && initializedCanTrackRef.current !== canTrack) {
+      initializeRevenueCat(authState.user.id, authState.user.email, canTrack)
+        .then(() => {
+          initializedCanTrackRef.current = canTrack;
+        })
+        .catch((error) => {
+          console.warn('⚠️ Failed to update RevenueCat tracking:', error);
+        });
+    }
+  }, [canTrack, authState.user]); // Update when canTrack or user changes
+
   const signIn = useCallback(async ({ email, password }: SignInCredentials) => {
     try {
       console.log('🎯 Sign in attempt:', email);
@@ -124,9 +169,6 @@ export function useAuth() {
     }
   }, []);
 
-  /**
-   * Sign up with email and password
-   */
   const signUp = useCallback(
     async ({ email, password, fullName }: SignUpCredentials) => {
       try {
@@ -328,6 +370,67 @@ export function useAuth() {
   }, []);
 
   /**
+   * Sign in with magic link (passwordless)
+   * Auto-creates account if it doesn't exist
+   * Goes directly to mobile deep link - no frontend redirect needed
+   */
+  const signInWithMagicLink = useCallback(async ({ email, acceptedTerms }: { email: string; acceptedTerms?: boolean }) => {
+    try {
+      console.log('🎯 Magic link sign in request:', email);
+      setError(null);
+      setAuthState((prev) => ({ ...prev, isLoading: true }));
+
+      // Build deep link URL directly - no frontend redirect needed for mobile
+      const params = new URLSearchParams();
+      if (acceptedTerms) {
+        params.set('terms_accepted', 'true');
+      }
+      
+      const emailRedirectTo = `kortix://auth/callback${params.toString() ? `?${params.toString()}` : ''}`;
+
+      console.log('📱 Mobile magic link redirect URL:', emailRedirectTo);
+
+      const { error: magicLinkError, data } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo,
+          shouldCreateUser: true, // Auto-create account if doesn't exist
+        },
+      });
+
+      if (magicLinkError) {
+        console.error('❌ Supabase rejected redirect URL:', {
+          message: magicLinkError.message,
+          status: magicLinkError.status,
+          attemptedUrl: emailRedirectTo,
+          hint: 'Make sure kortix://auth/callback is in Supabase Dashboard → Auth → Redirect URLs',
+        });
+      }
+
+      if (magicLinkError) {
+        console.error('❌ Magic link error:', magicLinkError.message);
+        setError({ message: magicLinkError.message });
+        setAuthState((prev) => ({ ...prev, isLoading: false }));
+        return { success: false, error: magicLinkError };
+      }
+
+      // If user accepted terms and magic link was sent, update metadata after successful auth
+      // Note: This will be handled when the user clicks the magic link and signs in
+      // For now, we store it in the signup data which will be saved when account is created
+
+      console.log('✅ Magic link email sent');
+      setAuthState((prev) => ({ ...prev, isLoading: false }));
+      return { success: true };
+    } catch (err: any) {
+      console.error('❌ Magic link exception:', err);
+      const error = { message: err.message || 'An unexpected error occurred' };
+      setError(error);
+      setAuthState((prev) => ({ ...prev, isLoading: false }));
+      return { success: false, error };
+    }
+  }, []);
+
+  /**
    * Request password reset email
    */
   const resetPassword = useCallback(async ({ email }: PasswordResetRequest) => {
@@ -355,9 +458,7 @@ export function useAuth() {
     }
   }, []);
 
-  /**
-   * Update password (after reset)
-   */
+
   const updatePassword = useCallback(async (newPassword: string) => {
     try {
       console.log('🎯 Password update attempt');
@@ -395,6 +496,12 @@ export function useAuth() {
    * Always succeeds from UI perspective to prevent stuck states
    */
   const signOut = useCallback(async () => {
+    // Prevent multiple simultaneous sign out attempts
+    if (isSigningOut) {
+      console.log('⚠️ Sign out already in progress, ignoring duplicate call');
+      return { success: false, error: { message: 'Sign out already in progress' } };
+    }
+
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
     
     /**
@@ -453,14 +560,23 @@ export function useAuth() {
 
     try {
       console.log('🎯 Sign out initiated');
+      setIsSigningOut(true);
+      
+      if (shouldUseRevenueCat()) {
+        try {
+          const { logoutRevenueCat } = require('@/lib/billing/revenuecat');
+          await logoutRevenueCat();
+          console.log('✅ RevenueCat logout completed - subscription detached from device');
+        } catch (rcError) {
+          console.warn('⚠️  RevenueCat logout failed (non-critical):', rcError);
+        }
+      }
 
-      // Step 1: Try global sign out (preferred method)
       const { error: globalError } = await supabase.auth.signOut({ scope: 'global' });
 
       if (globalError) {
         console.warn('⚠️  Global sign out failed:', globalError.message);
         
-        // Step 2: Fallback to local-only sign out
         const { error: localError } = await supabase.auth.signOut({ scope: 'local' });
         
         if (localError) {
@@ -468,43 +584,42 @@ export function useAuth() {
         }
       }
 
-      // Step 3: Nuclear option - manually clear all Supabase data
       await clearSupabaseStorage();
 
-      // Step 4: Clear app-specific data
       await clearAppData();
 
-      // Step 5: Clear React Query cache (threads, agents, workers, etc.)
       console.log('🗑️  Clearing React Query cache...');
       queryClient.clear();
       console.log('✅ React Query cache cleared');
 
-      // Step 6: Force React state update
       forceSignOutState();
 
       console.log('✅ Sign out completed successfully - all data cleared');
+      setIsSigningOut(false);
       return { success: true };
 
     } catch (error: any) {
       console.error('❌ Sign out exception:', error);
 
-      // Emergency cleanup - ensure sign out completes
       await clearSupabaseStorage().catch(() => {});
       await clearAppData().catch(() => {});
-      queryClient.clear(); // Also clear React Query cache on error
+      queryClient.clear();
       forceSignOutState();
 
       console.log('✅ Sign out completed (with errors handled) - all data cleared');
-      return { success: true }; // Always return success to prevent UI lock
+      setIsSigningOut(false);
+      return { success: true };
     }
-  }, [queryClient]);
+  }, [queryClient, isSigningOut]);
 
   return {
     ...authState,
     error,
+    isSigningOut,
     signIn,
     signUp,
     signInWithOAuth,
+    signInWithMagicLink,
     resetPassword,
     updatePassword,
     signOut,

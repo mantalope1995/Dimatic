@@ -203,6 +203,10 @@ redis_data
 backend/.test_token_compression.py
 backend/test_token_compression_data.py
 
+# Debug streams output
+backend/debug_streams/
+backend/core/agentpress/debug_streams/
+
 dump.rdb
 
 # CodeWebChat state and logs (auto-added)
@@ -227,3 +231,6 @@ apps/mobile/.env*.local
 apps/mobile/app-example
 # Docker-specific env files
 *.env.docker
+
+# Infra (separate repository)
+infra/

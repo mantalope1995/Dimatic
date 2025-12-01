@@ -29,7 +29,7 @@
     "next": "次へ",
     "upgrade": "アップグレード",
     "basic": "ベーシック",
-    "tryFree": "無料で始める"
+    "tryFree": "始める"
   },
   "settings": {
     "title": "設定",
@@ -38,6 +38,7 @@
       "plan": "プラン",
       "billing": "請求",
       "usage": "使用状況",
+      "referrals": "紹介",
       "knowledgeBase": "ナレッジベース",
       "integrations": "統合",
       "envManager": "環境マネージャー"
@@ -83,6 +84,50 @@
         "cancelDeletionDescription": "アカウントの削除をキャンセルしますか？アカウントとすべてのデータが保持されます。",
         "cancelDeletion": "削除をキャンセル"
       }
+    },
+    "referrals": {
+      "title": "紹介プログラム",
+      "description": "友達に紹介リンクを共有してください。サインアップしてアカウントを作成すると、獲得できます",
+      "creditsPerReferral": "100個の無期限クレジット",
+      "youEarn": "あなたが獲得",
+      "friendGets": "友達が獲得",
+      "maxEarnable": "紹介で獲得できる最大額:",
+      "maxCredits": "$100相当のクレジット",
+      "yourReferralCode": "あなたの紹介コード",
+      "referralLink": "紹介リンク",
+      "shareYourLink": "紹介リンクを共有",
+      "yourStats": "あなたの統計",
+      "enterCodeDescription": "紹介コードを入力してクレジットを獲得",
+      "enterCode": "コードを入力",
+      "refresh": "更新",
+      "copyCode": "コードをコピー",
+      "copyLink": "リンクをコピー",
+      "share": "共有",
+      "stats": {
+        "totalReferrals": "総紹介数",
+        "successful": "成功",
+        "creditsEarned": "獲得クレジット"
+      },
+      "recentReferrals": "最近の紹介",
+      "signupComplete": "サインアップ完了",
+      "pending": "保留中",
+      "noReferrals": "まだ紹介がありません。紹介リンクを共有して始めましょう！",
+      "copied": "コピーしました！",
+      "codeCopied": "紹介コードをクリップボードにコピーしました",
+      "linkCopied": "紹介リンクをクリップボードにコピーしました",
+      "codeRefreshed": "紹介コードを更新しました",
+      "refreshFailed": "紹介コードの更新に失敗しました",
+      "inviteByEmail": "メールで招待",
+      "inviteByEmailDescription": "最大3つのメールアドレスを追加（Enter、Space、またはCommaを押す）",
+      "emailAddress": "メールアドレス",
+      "emailPlaceholder": "メールアドレスを入力（Enter、Space、またはCommaを押す）",
+      "emailsAdded": "メール",
+      "sent": "送信済み",
+      "send": "送信",
+      "sending": "送信中...",
+      "sendAllInvites": "すべての招待を送信",
+      "allSent": "すべて送信済み",
+      "emailSent": "紹介招待を送信しました"
     },
     "billing": {
       "title": "請求とサブスクリプション",
@@ -156,6 +201,9 @@
     "monthlyOn1st": "毎月1日"
   },
   "sidebar": {
+    "referAndEarn": "紹介して獲得",
+    "new": "新規",
+    "upgrade": "アップグレード",
     "chats": "チャット",
     "agents": "エージェント",
     "workers": "ワーカー",
@@ -220,7 +268,7 @@
     "customWorkers": "カスタム Workers",
     "scheduledTriggers": "スケジュールトリガー",
     "appTriggers": "アプリトリガー",
-    "limitsExceeded": "制限に達しました。プランをアップグレードしてもっとチャットしよう。",
+    "limitsExceeded": "チャットの制限に達しました（{current}/{limit}）。プランをアップグレードしてもっとチャットを作成しよう。",
     "agentInitiatedSuccessfully": "エージェントが正常に開始されました",
     "aiAssistantReady": "AIアシスタントがヘルプの準備ができています"
   },
@@ -283,6 +331,85 @@
   "home": {
     "heroPlaceholder": "Workerに完了させたいタスクを説明..."
   },
+  "showcase": {
+    "title": "Kortix: あなたの自律型AIワーカー",
+    "subtitle": "複雑なタスクのために構築され、すべてのために設計されました。シンプルなリクエストからメガ複雑なプロジェクトまで、すべてを処理する究極のAIアシスタント。",
+    "tryItOut": "試してみる",
+    "kortixComputer": "Kortix Computer",
+    "running": "実行中",
+    "workers": {
+      "images": {
+        "title": "画像",
+        "description": "オンデマンドで画像を作成。製品写真からソーシャルグラフィック、完全なイラストまで。スタイル、照明、色、レイアウトを調整したり、既存のビジュアルを迅速な編集とタッチアップで洗練させます。",
+        "capabilities": {
+          "0": "製品写真を生成",
+          "1": "ソーシャルグラフィックを作成",
+          "2": "イラストを作成",
+          "3": "スタイルと照明のバリエーション",
+          "4": "ロゴ/アセット作成",
+          "5": "+ その他多数"
+        },
+        "imageAlt": "成長は線形ではないグラフィック例",
+        "fileType": "image"
+      },
+      "slides": {
+        "title": "スライド",
+        "description": "即座に素晴らしいプレゼンテーションを作成。ピッチデッキからレポート、トレーニング資料まで。テーマ、レイアウト、コンテンツ構造を調整したり、既存のデッキを迅速な編集と更新で洗練させます。",
+        "capabilities": {
+          "0": "ピッチデッキ",
+          "1": "トレーニング資料",
+          "2": "レポートプレゼンテーション",
+          "3": "テーマとレイアウトのバリエーション",
+          "4": "コンテンツの再構築",
+          "5": "+ その他多数"
+        },
+        "imageAlt": "Nexus Enterprise Automation Platformスライド例",
+        "fileType": "PPTX"
+      },
+      "data": {
+        "title": "データ",
+        "description": "生データをインサイトに変換。スプレッドシートからダッシュボード、ビジュアライゼーションまで。データセットをクリーンアップし、チャートを作成し、レポートを構築したり、既存の分析を迅速な更新で洗練させます。",
+        "capabilities": {
+          "0": "ダッシュボード",
+          "1": "ビジュアライゼーション",
+          "2": "データレポート",
+          "3": "データのクリーンアップと整理",
+          "4": "インサイトを生成",
+          "5": "+ その他多数"
+        },
+        "imageAlt": "財務モデルダッシュボード例",
+        "fileType": "プレビュー"
+      },
+      "docs": {
+        "title": "ドキュメント",
+        "description": "ドキュメントを簡単に作成・編集。提案からガイド、コンテンツまで。トーン、構造、フォーマットを調整したり、既存のドキュメントを迅速な書き直しと磨きで洗練させます。",
+        "capabilities": {
+          "0": "提案",
+          "1": "ガイドとマニュアル",
+          "2": "コンテンツ",
+          "3": "トーンとスタイルのバリエーション",
+          "4": "フォーマットと再構築",
+          "5": "+ その他多数"
+        },
+        "imageAlt": "2025年第3四半期エグゼクティブサマリーレポート例",
+        "fileType": "PDF"
+      },
+      "research": {
+        "title": "リサーチ",
+        "description": "トピックを包括的に調査。市場トレンドから競合分析、深い調査まで。ソースを収集し、調査結果を統合したり、既存のリサーチを迅速な更新で洗練させます。",
+        "capabilities": {
+          "0": "市場トレンドを分析",
+          "1": "競合リサーチ",
+          "2": "トピックの深い調査",
+          "3": "ソースを収集",
+          "4": "調査結果を統合",
+          "5": "+ その他多数"
+        },
+        "imageAlt": "詳細な競合プロフィールリサーチ例",
+        "fileType": "PDF"
+      }
+    }
+  },
   "threads": {
     "title": "スレッド",
     "newThread": "新しいスレッド",
@@ -295,6 +422,8 @@
     "credits": "クレジット",
     "popular": "人気",
     "creditsExplained": "クレジットの説明",
+    "creditsExhausted": "+200クレジットが{time}後に追加されます。今すぐアップグレードして使用してください。",
+    "creditsExhaustedRefreshIn": "クレジットを使い果たしました。{time}後に更新されます",
     "trialActive": "トライアル有効",
     "trialBadge": "7日間トライアル",
     "currentPlan": "現在のプラン",
@@ -409,11 +538,38 @@
       "integrations": "100+ 統合",
       "premiumAIModels": "プレミアムAIモデル",
       "prioritySupport": "優先サポート"
+    },
+    "downgradeDialog": {
+      "confirmTitle": "プラン変更の確認",
+      "confirmSubtitle": "ご利用いただきありがとうございました",
+      "confirmDescription": "{planName}プランに変更しようとしています。この変更は現在の請求期間の終了時に適用されます。それまで現在の特典をご利用いただけます。",
+      "continue": "続ける",
+      "keepCurrentPlan": "現在のプランを維持",
+      "feedbackTitle": "改善にご協力ください",
+      "feedbackSubtitle": "あなたのフィードバックがKortixの未来を形作ります",
+      "whatWouldMakeYouStay": "何があれば続けていただけますか？",
+      "feedbackPlaceholder": "Kortixをあなたにとって価値あるものにするために、私たちが変更または追加できることが1つあるとしたら、それは何ですか？",
+      "feedbackFooter": "私たちのチームはすべての回答を読んでいます。あなたの言葉が次に何を構築するかに直接影響します。",
+      "confirmDowngrade": "ダウングレードを確認",
+      "processing": "処理中...",
+      "pleaseSelectReason": "理由を選択してください",
+      "reasons": {
+        "tooExpensive": "私のニーズには高すぎる",
+        "notUsingOften": "Kortixを十分に使用していない",
+        "foundAlternative": "別のソリューションを見つけた",
+        "technicalIssues": "技術的な問題が発生した",
+        "resultsNotGood": "結果が期待に沿わなかった",
+        "other": "その他の理由"
+      }
     }
   },
   "auth": {
+    "haveReferralCode": "紹介コードをお持ちですか？",
+    "referralCode": "紹介コード",
+    "enterCode": "コードを入力",
     "logIntoAccount": "アカウントにログイン",
     "createAccount": "アカウントを作成",
+    "signInOrCreateAccount": "Kortixアカウントにログインまたは作成",
     "continueWithGoogle": "Googleで続ける",
     "continueWithGitHub": "GitHubで続ける",
     "orEmail": "またはメール",
@@ -441,7 +597,22 @@
     "cancel": "キャンセル",
     "pleaseEnterValidEmail": "有効なメールアドレスを入力してください",
     "signInFailed": "ログイン失敗。認証情報を確認してください。",
-    "signUpFailed": "登録に失敗しました。もう一度お試しください。"
+    "signUpFailed": "登録に失敗しました。もう一度お試しください。",
+    "sendMagicLink": "マジックリンクを送信",
+    "sending": "送信中...",
+    "magicLinkSent": "マジックリンクを送信しました",
+    "magicLinkDescription": "メール内のリンクをクリックしてログインしてください。リンクは1時間で期限切れになります。",
+    "magicLinkExplanation": "安全なリンクをメールでお送りします。パスワードは不要です。",
+    "magicLinkExpired": "このリンクは期限切れです",
+    "magicLinkExpiredDescription": "クリックしたマジックリンクは期限切れです。セキュリティ上の理由により、マジックリンクは1時間後に期限切れになります。",
+    "resendMagicLink": "マジックリンクを再送信",
+    "resending": "再送信中...",
+    "byContinuingYouAgree": "続行することで、<privacyPolicy>プライバシーポリシー</privacyPolicy>および<termsOfService>利用規約</termsOfService>に同意したものとみなされます",
+    "openProvider": "{provider}を開く",
+    "didntReceiveEmail": "メールが届きませんでしたか？",
+    "resend": "再送信",
+    "alreadySignedIn": "すでにログインしています。操作は不要です。",
+    "goToDashboard": "ダッシュボードへ"
   },
   "onboarding": {
     "welcome": "ようこそ",

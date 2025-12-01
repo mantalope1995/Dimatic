@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import NextImage from 'next/image';
 import { getPlanIcon } from './plan-utils';
 
 export type TierBadgeSize = 'xxs' | 'xs' | 'sm' | 'md' | 'lg';
@@ -25,29 +24,29 @@ interface TierBadgeProps {
 
 const sizeConfig = {
   xxs: {
-    height: 12,
+    height: 14,
     padding: 'px-1.5 py-0.5',
-    circleSize: 'size-[12px]',
+    circleSize: 'size-[14px]',
   },
   xs: {
-    height: 14,
+    height: 18,
     padding: 'px-2 py-0.5',
-    circleSize: 'size-[16px]',
+    circleSize: 'size-[18px]',
   },
   sm: {
-    height: 16,
+    height: 22,
     padding: 'px-2 py-0.5',
-    circleSize: 'size-[20px]',
-  },
-  md: {
-    height: 20,
-    padding: 'px-2 py-1',
     circleSize: 'size-[24px]',
   },
+  md: {
+    height: 26,
+    padding: 'px-2 py-1',
+    circleSize: 'size-[28px]',
+  },
   lg: {
-    height: 24,
+    height: 32,
     padding: 'px-2.5 py-1',
-    circleSize: 'size-[36px]',
+    circleSize: 'size-[40px]',
   },
 };
 
@@ -88,6 +87,7 @@ export function TierBadge({
 
   // Circle variant - white circle with icon inside (for Credits Display)
   if (variant === 'circle') {
+    const iconSize = Math.round(config.height * 0.6);
     return (
       <div
         className={cn(
@@ -96,12 +96,12 @@ export function TierBadge({
           className
         )}
       >
-        <NextImage
+        {/* Use regular img for SVG icons to avoid Next.js Image aspect ratio warnings */}
+        <img
           src={planIcon}
           alt={planName}
-          width={config.height * 0.6}
-          height={config.height * 0.6}
-          className="w-auto h-auto object-contain"
+          className="object-contain"
+          style={{ width: `${iconSize}px`, height: `${iconSize}px` }}
         />
       </div>
     );
@@ -109,15 +109,14 @@ export function TierBadge({
 
   // Default variant - matches pricing-section.tsx exactly
   // Black background in light mode, transparent in dark mode
+  // Use regular img for SVG icons to avoid Next.js Image aspect ratio warnings
   return (
     <div className="flex items-center">
-      <NextImage
+      <img
         src={planIcon}
         alt={planName}
-        width={config.height}
-        height={config.height}
+        className={cn("object-contain", className)}
         style={{ height: `${config.height}px`, width: 'auto' }}
-        className={cn("w-auto object-contain", className)}
       />
     </div>
   );

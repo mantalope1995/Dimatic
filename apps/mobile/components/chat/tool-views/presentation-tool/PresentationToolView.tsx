@@ -1,20 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, ScrollView, useColorScheme } from 'react-native';
-import { WebView } from 'react-native-webview';
 import { Text } from '@/components/ui/text';
 import { Icon } from '@/components/ui/icon';
-import { 
-  Presentation, 
+import {
+  Presentation,
   Clock,
-  CheckCircle, 
+  CheckCircle,
   AlertTriangle,
   Loader2,
   CheckCircle2
 } from 'lucide-react-native';
 import { cn } from '@/lib/utils';
 import type { ToolViewProps } from '../types';
-import { extractPresentationData } from './_utils';
 import { useThread } from '@/lib/chat/hooks';
+import { PresentationSlideCard } from './PresentationSlideCard';
 
 interface SlideMetadata {
   title: string;
@@ -44,256 +43,352 @@ const constructHtmlPreviewUrl = (sandboxUrl: string, filePath: string): string =
   return `${sandboxUrl}/${encodedPath}`;
 };
 
-export function PresentationToolView({ 
-  toolData, 
+export function PresentationToolView({
+  toolCall,
+  toolResult,
   toolMessage,
   assistantMessage,
-  isStreaming = false 
+  isSuccess = true,
+  isStreaming = false,
+  project
 }: ToolViewProps) {
+  if (!toolCall) {
+    return null;
+  }
+
+  const toolName = toolCall.function_name;
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  
+
   const threadId = toolMessage?.thread_id || assistantMessage?.thread_id;
   const { data: thread } = useThread(threadId);
-  const sandboxUrl = thread?.project?.sandbox?.sandbox_url;
-  
+
+  // Prefer project prop, fallback to thread project
+  const effectiveProject = project || thread?.project;
+  const sandboxUrl = (effectiveProject as any)?.sandbox?.sandbox_url;
+
   const [metadata, setMetadata] = useState<PresentationMetadata | null>(null);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const extractedData = extractPresentationData(toolData);
-  const { title, presentation_name, message, success } = extractedData;
-  
+  const [retryAttempt, setRetryAttempt] = useState(0);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasLoadedRef = useRef(false);
+
+  // Extract presentation info from toolResult.output (matching desktop implementation)
+  let extractedPresentationName: string | undefined;
+  let extractedPresentationPath: string | undefined;
+  let currentSlideNumber: number | undefined;
+  let presentationTitle: string | undefined;
+  let toolExecutionError: string | undefined;
+  let toolMessageText: string | undefined;
+
+  console.log('🎨🎨🎨 [PresentationToolView] RAW TOOL DATA:', {
+    toolName,
+    'toolCall.arguments': toolCall.arguments,
+    'toolResult?.output': toolResult?.output,
+    'typeof output': typeof toolResult?.output
+  });
+
+  if (toolResult?.output) {
+    try {
+      let output = toolResult.output;
+
+      // Handle string output
+      if (typeof output === 'string') {
+        console.log('🎨 [PresentationToolView] Output is STRING, attempting to parse');
+        // Check if the string looks like an error message
+        if (output.startsWith('Error') || output.includes('exec')) {
+          console.error('Tool execution error:', output);
+          toolExecutionError = output;
+        } else {
+          // Try to parse as JSON
+          try {
+            output = JSON.parse(output);
+            console.log('🎨 [PresentationToolView] Successfully parsed string to object:', output);
+          } catch (parseError) {
+            console.error('Failed to parse tool output as JSON:', parseError);
+            console.error('Raw tool output:', output);
+            toolMessageText = output; // Keep as message text
+          }
+        }
+      } else {
+        console.log('🎨 [PresentationToolView] Output is OBJECT:', output);
+      }
+
+      // Only extract data if we have a valid parsed object
+      if (output && typeof output === 'object' && !toolExecutionError) {
+        extractedPresentationName = output.presentation_name;
+        extractedPresentationPath = output.presentation_path;
+        currentSlideNumber = output.slide_number;
+        presentationTitle = output.presentation_title || output.title;
+        toolMessageText = output.message;
+
+        console.log('🎨 [PresentationToolView] EXTRACTED DATA:', {
+          extractedPresentationName,
+          extractedPresentationPath,
+          currentSlideNumber,
+          presentationTitle,
+          toolMessageText
+        });
+      }
+    } catch (e) {
+      console.error('Failed to process tool output:', e);
+      console.error('Tool output type:', typeof toolResult.output);
+      console.error('Tool output value:', toolResult.output);
+      toolExecutionError = `Unexpected error processing tool output: ${String(e)}`;
+    }
+  }
+
+  // Extract from toolCall arguments as fallback
+  let args: Record<string, any> = {};
+  if (toolCall.arguments) {
+    if (typeof toolCall.arguments === 'object' && toolCall.arguments !== null) {
+      args = toolCall.arguments;
+    } else if (typeof toolCall.arguments === 'string') {
+      try {
+        args = JSON.parse(toolCall.arguments);
+      } catch {
+        args = {};
+      }
+    }
+  }
+
+  // Use extracted name or fallback to args
+  const presentation_name = extractedPresentationName || args.presentation_name || args.presentationName || null;
+  const title = presentationTitle || args.title || null;
+  const message = toolMessageText || null;
+  const success = toolResult?.success !== false && isSuccess;
+
   const displayTitle = metadata?.title || title || 'Presentation';
-  
+
+  // Handle list_slides output - extract slides directly from output
+  let slidesFromOutput: any[] = [];
+  if (toolName === 'list_slides' && toolResult?.output && typeof toolResult.output === 'object') {
+    const rawSlides = (toolResult.output as any).slides || [];
+    // Transform raw slides to match expected format
+    slidesFromOutput = rawSlides.map((slide: any) => ({
+      number: slide.slide_number,
+      title: slide.title,
+      filename: slide.filename,
+      file_path: slide.preview_url || slide.file_path,
+      preview_url: slide.preview_url,
+      created_at: slide.created_at
+    }));
+  }
+
   const slides = metadata ? Object.entries(metadata.slides)
     .map(([num, slide]) => ({ number: parseInt(num), ...slide }))
-    .sort((a, b) => a.number - b.number) : [];
-  
+    .sort((a, b) => a.number - b.number) : slidesFromOutput;
+
   const slideCount = slides.length;
 
-  const loadMetadata = useCallback(async () => {
-    if (!presentation_name || !sandboxUrl || isStreaming) return;
-    
+  // Load metadata.json for the presentation with retry logic (matching desktop)
+  const loadMetadata = useCallback(async (retryCount = 0, maxRetries = Infinity) => {
+    // Don't load if we already successfully loaded metadata
+    if (hasLoadedRef.current) {
+      return;
+    }
+
+    // If sandbox URL isn't available yet, wait and don't set loading state
+    if (!presentation_name || !sandboxUrl || isStreaming) {
+      setIsLoadingMetadata(false);
+      return;
+    }
+
     setIsLoadingMetadata(true);
     setError(null);
-    
+    setRetryAttempt(retryCount);
+
     try {
-      const sanitizedName = sanitizeFilename(presentation_name);
+      // Sanitize the presentation name to match backend directory creation
+      const sanitizedPresentationName = sanitizeFilename(presentation_name);
+
       const metadataUrl = constructHtmlPreviewUrl(
         sandboxUrl,
-        `presentations/${sanitizedName}/metadata.json`
+        `presentations/${sanitizedPresentationName}/metadata.json`
       );
-      
+
+      // Add cache-busting parameter to ensure fresh data
       const urlWithCacheBust = `${metadataUrl}?t=${Date.now()}`;
-      
-      console.log('🎨 [PresentationToolView] Loading metadata:', urlWithCacheBust);
-      
+
+      console.log(`🎨 [PresentationToolView] Loading metadata (attempt ${retryCount + 1}):`, urlWithCacheBust);
+
       const response = await fetch(urlWithCacheBust, {
         cache: 'no-cache',
         headers: {
           'Cache-Control': 'no-cache'
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setMetadata(data);
-        console.log('🎨 [PresentationToolView] Loaded metadata:', data);
+        hasLoadedRef.current = true; // Mark as successfully loaded
+        console.log('🎨 [PresentationToolView] Successfully loaded metadata:', data);
+        setIsLoadingMetadata(false);
+
+        // Clear any pending retry timeout on success
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+          retryTimeoutRef.current = null;
+        }
+
+        return; // Success, exit early
       } else {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (err) {
-      console.error('🎨 [PresentationToolView] Error loading metadata:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load presentation');
-    } finally {
-      setIsLoadingMetadata(false);
+      console.error(`🎨 [PresentationToolView] Error loading metadata (attempt ${retryCount + 1}):`, err);
+
+      // Calculate delay with exponential backoff, capped at 10 seconds
+      // For early attempts, use shorter delays. After 5 attempts, use consistent 5 second intervals
+      const delay = retryCount < 5
+        ? Math.min(1000 * Math.pow(2, retryCount), 10000) // Exponential backoff for first 5 attempts
+        : 5000; // Consistent 5 second intervals after that
+
+      console.log(`🎨 [PresentationToolView] Retrying in ${delay}ms... (attempt ${retryCount + 1})`);
+
+      // Keep retrying indefinitely - don't set error state
+      retryTimeoutRef.current = setTimeout(() => {
+        loadMetadata(retryCount + 1, maxRetries);
+      }, delay) as any;
+
+      return; // Keep loading state, don't set error
     }
   }, [presentation_name, sandboxUrl, isStreaming]);
 
   useEffect(() => {
-    if (presentation_name && !isStreaming) {
-      loadMetadata();
+    // Reset loaded flag when presentation name or sandbox URL changes
+    hasLoadedRef.current = false;
+
+    // Clear any existing retry timeout when dependencies change
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
     }
-  }, [presentation_name, isStreaming, loadMetadata]);
+
+    if (presentation_name && sandboxUrl && !isStreaming) {
+      loadMetadata(0);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+    };
+  }, [presentation_name, sandboxUrl, isStreaming, loadMetadata]);
+
+  // For validate_slide, just show success message
+  const isValidateSlide = toolName === 'validate_slide';
+  const validationPassed = toolResult?.output?.validation_passed;
 
   console.log('🎨 [PresentationToolView] Display data:', {
-    toolName: toolData?.toolName,
+    toolName: toolCall?.function_name,
     displayTitle,
     presentation_name,
+    extractedPresentationName,
     hasMetadata: !!metadata,
     slideCount,
     isLoadingMetadata,
-    error
+    retryAttempt,
+    error,
+    sandboxUrl,
+    slidesFromOutput: slidesFromOutput.length,
+    isValidateSlide,
+    validationPassed
   });
 
-  if (isStreaming || (isLoadingMetadata && !metadata)) {
+  // For validate_slide, show simple success/error
+  if (isValidateSlide && !isStreaming) {
     return (
-      <View className="flex flex-col overflow-hidden bg-card">
-        <View className="px-6 py-4 gap-6">
-        <View className="flex-row items-center gap-3">
-          <View className="bg-primary/10 rounded-2xl items-center justify-center" style={{ width: 48, height: 48 }}>
-            <Icon as={Presentation} size={24} className="text-primary" />
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        <View className="px-6 py-8 items-center">
+          <View className={`${validationPassed ? 'bg-green-500/10' : 'bg-red-500/10'} rounded-2xl items-center justify-center mb-4`} style={{ width: 64, height: 64 }}>
+            <Icon as={validationPassed ? CheckCircle2 : AlertTriangle} size={32} className={validationPassed ? 'text-green-600' : 'text-red-600'} />
           </View>
-          <View className="flex-1">
-            <Text className="text-xl font-roobert-semibold text-foreground" numberOfLines={1}>
-              Presentation
+          <Text className="text-base font-roobert-medium text-foreground mb-2 text-center">
+            {validationPassed ? 'Slide Validated' : 'Validation Failed'}
+          </Text>
+          {message && (
+            <Text className="text-sm font-roobert text-muted-foreground text-center">
+              {message}
             </Text>
-          </View>
-          {!isStreaming && (
-            <View className={`flex-row items-center gap-1.5 px-2.5 py-1 rounded-full ${
-              success ? 'bg-primary/10' : 'bg-destructive/10'
-            }`}>
-              <Icon 
-                as={success ? CheckCircle2 : AlertTriangle} 
-                size={12} 
-                className={success ? 'text-primary' : 'text-destructive'} 
-              />
-              <Text className={`text-xs font-roobert-medium ${
-                success ? 'text-primary' : 'text-destructive'
-              }`}>
-                {success ? 'Success' : 'Failed'}
-              </Text>
-            </View>
           )}
         </View>
+      </ScrollView>
+    );
+  }
+
+  // Show loading state while streaming or loading metadata (with retry attempts)
+  if (isStreaming || (isLoadingMetadata && !metadata && slidesFromOutput.length === 0)) {
+    return (
+      <View className="flex-1 items-center justify-center py-12 px-6">
+        <View className="bg-primary/10 rounded-2xl items-center justify-center mb-6" style={{ width: 80, height: 80 }}>
+          <Icon as={Loader2} size={40} className="text-primary animate-pulse" />
         </View>
-        <View className="flex-col items-center justify-center py-12 px-6 flex-1">
-          <View className="w-20 h-20 rounded-full items-center justify-center mb-6 bg-blue-100 dark:bg-blue-800/40">
-            <Icon as={Loader2} size={40} className="text-blue-500 dark:text-blue-400" />
-          </View>
-          <Text className="text-xl font-roobert-semibold mb-2 text-zinc-900 dark:text-zinc-100">
-            Loading Presentation
-          </Text>
-          <Text className="text-sm text-zinc-500 dark:text-zinc-400">
-            Fetching slides...
-          </Text>
-        </View>
+        <Text className="text-xl font-roobert-semibold text-foreground mb-2">
+          {isStreaming ? 'Creating Slide...' : 'Loading Presentation'}
+        </Text>
+        <Text className="text-sm font-roobert text-muted-foreground text-center">
+          {isStreaming
+            ? 'Slide is being created...'
+            : retryAttempt > 0
+              ? `Fetching slides... (attempt ${retryAttempt + 1})`
+              : 'Fetching slides...'}
+        </Text>
       </View>
     );
   }
 
   return (
-    <View className="flex flex-col overflow-hidden bg-card">
-      <View className="px-6 py-4 gap-6">
-        <View className="flex-row items-center gap-3">
-          <View className="flex-row items-center gap-2 flex-1">
-            <View className="bg-primary/10 rounded-2xl items-center justify-center" style={{ width: 48, height: 48 }}>
-              <Icon as={Presentation} size={24} className="text-primary" />
-            </View>
-            <View className="flex-1">
-              <Text className="text-xl font-roobert-semibold text-foreground" numberOfLines={1}>
-                {displayTitle}
-              </Text>
-            </View>
-          </View>
-          {!isStreaming && (
-            <View className={cn(
-              "px-2 py-1 rounded-md flex-row items-center gap-1",
-              success 
-                ? "bg-emerald-100 dark:bg-emerald-900/30" 
-                : "bg-rose-100 dark:bg-rose-900/30"
-            )}>
-              <Icon 
-                as={success ? CheckCircle : AlertTriangle} 
-                size={14} 
-                className={success ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"}
-              />
-              <Text className={cn(
-                "text-xs font-roobert-medium",
-                success 
-                  ? "text-emerald-700 dark:text-emerald-300" 
-                  : "text-rose-700 dark:text-rose-300"
-              )}>
-                {success ? 'Success' : 'Failed'}
-              </Text>
-            </View>
-          )}
-        </View>
-      </View>
-
-      <View className="flex-1">
+    <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <View className="px-6 gap-6">
         {error ? (
-          <View className="flex-col items-center justify-center py-12 px-6">
-            <View className="w-20 h-20 rounded-full items-center justify-center mb-6 bg-rose-100 dark:bg-rose-800/40">
-              <Icon as={AlertTriangle} size={40} className="text-rose-400 dark:text-rose-600" />
+          <View className="py-8 items-center">
+            <View className="bg-destructive/10 rounded-2xl items-center justify-center mb-4" style={{ width: 64, height: 64 }}>
+              <Icon as={AlertTriangle} size={32} className="text-destructive" />
             </View>
-            <Text className="text-xl font-roobert-semibold mb-2 text-zinc-900 dark:text-zinc-100">
+            <Text className="text-base font-roobert-medium text-foreground mb-1">
               Failed to Load Presentation
             </Text>
-            <Text className="text-sm text-zinc-500 dark:text-zinc-400 text-center">
+            <Text className="text-sm font-roobert text-muted-foreground text-center">
               {error}
             </Text>
           </View>
         ) : slideCount === 0 ? (
-          <View className="flex-col items-center justify-center py-12 px-6">
-            <View className="w-20 h-20 rounded-full items-center justify-center mb-6 bg-blue-100 dark:bg-blue-800/40">
-              <Icon as={Presentation} size={40} className="text-blue-400 dark:text-blue-600" />
+          <View className="py-8 items-center">
+            <View className="bg-green-500/10 rounded-2xl items-center justify-center mb-4" style={{ width: 64, height: 64 }}>
+              <Icon as={CheckCircle2} size={32} className="text-green-600" />
             </View>
-            <Text className="text-xl font-roobert-semibold mb-2 text-zinc-900 dark:text-zinc-100">
-              No Slides Found
+            <Text className="text-base font-roobert-medium text-foreground mb-2">
+              {toolName === 'create_slide' ? 'Slide Created Successfully' : 'No Slides Yet'}
             </Text>
-            <Text className="text-sm text-zinc-500 dark:text-zinc-400 text-center">
-              {message || "This presentation doesn't have any slides yet."}
-            </Text>
+            {toolName === 'create_slide' && currentSlideNumber && (
+              <Text className="text-sm font-roobert text-muted-foreground">
+                Slide {currentSlideNumber}
+              </Text>
+            )}
           </View>
         ) : (
-          <ScrollView className="flex-1" contentContainerClassName="p-4">
-            <View className="gap-4">
-              {slides.map((slide) => {
-                const slideUrl = sandboxUrl 
-                  ? constructHtmlPreviewUrl(sandboxUrl, slide.file_path)
-                  : null;
-                const slideUrlWithCacheBust = slideUrl ? `${slideUrl}?t=${Date.now()}` : null;
-                
-                return (
-                  <View 
-                    key={slide.number} 
-                    className="bg-background border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden"
-                  >
-                    <View className="px-3 py-2 bg-muted/20 border-b border-border/40 flex-row items-center justify-between">
-                      <View className="flex-row items-center gap-2 flex-1">
-                        <View className="h-6 px-2 rounded border border-border bg-background items-center justify-center">
-                          <Text className="text-xs font-mono text-foreground">
-                            #{slide.number}
-                          </Text>
-                        </View>
-                        {slide.title && (
-                          <Text className="text-sm text-muted-foreground flex-1" numberOfLines={1}>
-                            {slide.title}
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                    
-                    <View className="bg-muted/30" style={{ aspectRatio: 16/9 }}>
-                      {slideUrlWithCacheBust ? (
-                        <WebView
-                          source={{ uri: slideUrlWithCacheBust }}
-                          scrollEnabled={false}
-                          showsVerticalScrollIndicator={false}
-                          showsHorizontalScrollIndicator={false}
-                          style={{ flex: 1, backgroundColor: 'transparent' }}
-                          originWhitelist={['*']}
-                          javaScriptEnabled={true}
-                          domStorageEnabled={true}
-                        />
-                      ) : (
-                        <View className="flex-1 items-center justify-center">
-                          <Text className="text-sm text-muted-foreground">
-                            Unable to load slide
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          </ScrollView>
+          <View className="gap-4">
+            {slides.map((slide) => (
+              <PresentationSlideCard
+                key={slide.number}
+                slide={slide}
+                sandboxUrl={sandboxUrl}
+                onFullScreenClick={(slideNumber) => {
+                  // TODO: Implement full screen viewer for mobile
+                  console.log('Open slide in full screen:', slideNumber);
+                }}
+                refreshTimestamp={metadata?.updated_at ? new Date(metadata.updated_at).getTime() : undefined}
+              />
+            ))}
+          </View>
         )}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 

@@ -1,13 +1,12 @@
 /**
  * Models API Hooks
  * 
- * React Query hooks for fetching available models.
- * Following the same patterns as useApiQueries.ts
+ * Uses unified account state - models are now part of /billing/account-state
  */
 
-import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
-import { API_URL, getAuthHeaders } from '@/api/config';
-import type { AvailableModelsResponse } from '@/api/types';
+import { useAccountState } from '@/lib/billing';
+import type { AccountState } from '@/lib/billing/api';
+import type { AvailableModelsResponse, Model } from '@/api/types';
 
 // ============================================================================
 // Query Keys
@@ -19,24 +18,36 @@ export const modelKeys = {
 };
 
 // ============================================================================
-// Available Models Hook
+// Available Models Hook - Uses unified account state
 // ============================================================================
 
-export function useAvailableModels(
-  options?: Omit<UseQueryOptions<AvailableModelsResponse, Error>, 'queryKey' | 'queryFn'>
-) {
-  return useQuery({
-    queryKey: modelKeys.available(),
-    queryFn: async () => {
-      const headers = await getAuthHeaders();
-      const res = await fetch(`${API_URL}/billing/available-models`, { headers });
-      if (!res.ok) throw new Error(`Failed to fetch available models: ${res.status}`);
-      return res.json();
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
-    ...options,
+export function useAvailableModels(options?: { enabled?: boolean }) {
+  const { data: accountState, isLoading, error, ...rest } = useAccountState({
+    enabled: options?.enabled,
   });
+  
+  // Transform account state models to match expected Model format
+  const modelsData: AvailableModelsResponse | undefined = accountState ? {
+    models: (accountState.models || []).map((m): Model => ({
+      id: m.id,
+      display_name: m.name,
+      requires_subscription: !m.allowed, // If not allowed, requires subscription
+      is_available: m.allowed,
+      context_window: m.context_window,
+      capabilities: m.capabilities || [],
+      recommended: m.recommended || false,
+      priority: m.priority || 0,
+    })),
+    subscription_tier: accountState.subscription?.tier_key || 'none',
+    total_models: accountState.models?.length || 0,
+  } : undefined;
+  
+  return {
+    data: modelsData,
+    isLoading,
+    error,
+    ...rest,
+  };
 }
 
 

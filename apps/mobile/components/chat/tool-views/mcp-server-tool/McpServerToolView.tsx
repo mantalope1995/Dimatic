@@ -7,8 +7,8 @@ import type { ToolViewProps } from '../types';
 import { extractMcpServerData, getPrimaryAuthScheme } from './_utils';
 import * as Haptics from 'expo-haptics';
 
-export function McpServerToolView({ toolData, isStreaming = false }: ToolViewProps) {
-  const { query, servers, server, message, success } = extractMcpServerData(toolData);
+export function McpServerToolView({ toolCall, toolResult, isStreaming = false }: ToolViewProps) {
+  const { query, servers, server, message, success } = extractMcpServerData({ toolCall, toolResult });
 
   const handleOpenUrl = (url: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -18,8 +18,8 @@ export function McpServerToolView({ toolData, isStreaming = false }: ToolViewPro
   if (isStreaming) {
     return (
       <View className="flex-1 items-center justify-center py-12 px-6">
-        <View className="bg-purple-500/10 rounded-2xl items-center justify-center mb-6" style={{ width: 80, height: 80 }}>
-          <Icon as={Server} size={40} className="text-purple-500 animate-pulse" />
+        <View className="bg-background border-border border rounded-2xl items-center justify-center mb-6" style={{ width: 80, height: 80 }}>
+          <Icon as={Server} size={40} className="text-muted-foreground" />
         </View>
         <Text className="text-xl font-roobert-semibold text-foreground mb-2">
           Searching MCP Servers
@@ -38,7 +38,7 @@ export function McpServerToolView({ toolData, isStreaming = false }: ToolViewPro
   if (servers.length === 0 && !server && !message) {
     return (
       <View className="flex-1 items-center justify-center py-12 px-6">
-        <View className="bg-muted/30 rounded-2xl items-center justify-center mb-4" style={{ width: 80, height: 80 }}>
+        <View className="bg-background border-border border rounded-2xl items-center justify-center mb-6" style={{ width: 80, height: 80 }}>
           <Icon as={Server} size={40} className="text-muted-foreground" />
         </View>
         <Text className="text-lg font-roobert-semibold text-foreground mb-2">
@@ -57,37 +57,9 @@ export function McpServerToolView({ toolData, isStreaming = false }: ToolViewPro
 
   return (
     <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-      <View className="px-6 py-4 gap-6">
-        <View className="flex-row items-center gap-3">
-          <View className="bg-purple-500/10 rounded-2xl items-center justify-center" style={{ width: 48, height: 48 }}>
-            <Icon as={Server} size={24} className="text-purple-500" />
-          </View>
-          <View className="flex-1">
-            <Text className="text-xs font-roobert-medium text-foreground/50 uppercase tracking-wider mb-1">
-              MCP Servers
-            </Text>
-            <Text className="text-xl font-roobert-semibold text-foreground">
-              {servers.length} {servers.length === 1 ? 'Server' : 'Servers'}
-            </Text>
-          </View>
-          <View className={`flex-row items-center gap-1.5 px-2.5 py-1 rounded-full ${
-            success ? 'bg-primary/10' : 'bg-destructive/10'
-          }`}>
-            <Icon 
-              as={success ? CheckCircle2 : AlertCircle} 
-              size={12} 
-              className={success ? 'text-primary' : 'text-destructive'} 
-            />
-            <Text className={`text-xs font-roobert-medium ${
-              success ? 'text-primary' : 'text-destructive'
-            }`}>
-              {success ? 'Found' : 'Failed'}
-            </Text>
-          </View>
-        </View>
-
+      <View className="px-6 gap-6">
         {message && (
-          <View className="bg-muted/50 rounded-xl p-4 border border-border">
+          <View className="bg-card border border-border rounded-2xl p-4">
             <Text className="text-sm font-roobert text-foreground">
               {message}
             </Text>
@@ -110,7 +82,7 @@ export function McpServerToolView({ toolData, isStreaming = false }: ToolViewPro
                     {server.name}
                   </Text>
                   {server.auth_schemes?.includes('OAUTH2') && (
-                    <Icon as={Sparkles} size={16} className="text-emerald-500" />
+                    <Icon as={Sparkles} size={16} className="text-primary" />
                   )}
                 </View>
                 <Text className="text-xs font-roobert-mono text-muted-foreground">
@@ -126,8 +98,8 @@ export function McpServerToolView({ toolData, isStreaming = false }: ToolViewPro
             )}
 
             <View className="flex-row items-center gap-2">
-              <Icon as={Shield} size={14} className="text-muted-foreground" />
-              <Text className="text-xs font-roobert text-muted-foreground">
+              <Icon as={Shield} size={14} className="text-foreground/60" />
+              <Text className="text-xs font-roobert text-foreground/60">
                 {getPrimaryAuthScheme(server.auth_schemes)}
               </Text>
             </View>
@@ -135,7 +107,7 @@ export function McpServerToolView({ toolData, isStreaming = false }: ToolViewPro
             {server.tags && server.tags.length > 0 && (
               <View className="flex-row flex-wrap gap-1.5">
                 {server.tags.slice(0, 4).map((tag, idx) => (
-                  <View key={idx} className="bg-muted/50 px-2 py-1 rounded">
+                  <View key={idx} className="bg-card border border-border px-3 py-1 rounded-full">
                     <Text className="text-xs font-roobert text-foreground">
                       {tag}
                     </Text>
@@ -150,7 +122,7 @@ export function McpServerToolView({ toolData, isStreaming = false }: ToolViewPro
           <View className="gap-3">
             {servers.map((srv, idx) => {
               const hasOAuth = srv.auth_schemes?.includes('OAUTH2');
-              
+
               return (
                 <View key={idx} className="bg-card border border-border rounded-xl p-4 gap-3">
                   <View className="flex-row items-start gap-3">
@@ -161,8 +133,8 @@ export function McpServerToolView({ toolData, isStreaming = false }: ToolViewPro
                         resizeMode="contain"
                       />
                     ) : (
-                      <View className="bg-muted rounded-lg items-center justify-center" style={{ width: 40, height: 40 }}>
-                        <Icon as={Server} size={20} className="text-muted-foreground" />
+                      <View className="bg-background border border-border rounded-lg items-center justify-center" style={{ width: 40, height: 40 }}>
+                        <Icon as={Server} size={20} className="text-foreground/60" />
                       </View>
                     )}
 
@@ -172,14 +144,14 @@ export function McpServerToolView({ toolData, isStreaming = false }: ToolViewPro
                           {srv.name}
                         </Text>
                         {hasOAuth && (
-                          <Icon as={Sparkles} size={14} className="text-emerald-500" />
+                          <Icon as={Sparkles} size={14} className="text-primary" />
                         )}
                       </View>
-                      
+
                       <Text className="text-xs font-roobert-mono text-muted-foreground" numberOfLines={1}>
                         {srv.toolkit_slug}
                       </Text>
-                      
+
                       {srv.description && (
                         <Text className="text-sm font-roobert text-foreground/70" numberOfLines={2}>
                           {srv.description}
@@ -187,9 +159,9 @@ export function McpServerToolView({ toolData, isStreaming = false }: ToolViewPro
                       )}
 
                       <View className="flex-row items-center gap-2">
-                        <View className="flex-row items-center gap-1.5 bg-muted/30 px-2 py-1 rounded">
-                          <Icon as={Shield} size={10} className="text-muted-foreground" />
-                          <Text className="text-xs font-roobert text-muted-foreground">
+                        <View className="flex-row items-center gap-1.5 bg-background border border-border px-3 py-1 rounded-full">
+                          <Icon as={Shield} size={10} className="text-foreground/60" />
+                          <Text className="text-xs font-roobert text-foreground/60">
                             {getPrimaryAuthScheme(srv.auth_schemes)}
                           </Text>
                         </View>
