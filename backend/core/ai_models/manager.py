@@ -18,8 +18,15 @@ class ModelManager:
         - Registry model IDs (kortix/basic) → returns as-is
         - Model aliases → resolves to registry ID
         - LiteLLM model IDs (Bedrock ARNs) → reverse lookup to registry ID (e.g. kortix/basic)
+        - GLM-4.6 aliases → auto-resolution
         """
         # logger.debug(f"resolve_model_id called with: '{model_id}' (type: {type(model_id)})")
+        
+        # Auto-resolution for GLM-4.6
+        if model_id and "glm-4.6" in model_id.lower():
+            resolved_model_name = "openai-compatible/glm-4.6"
+            logger.debug(f"Auto-resolved GLM-4.6 model: '{model_id}' -> '{resolved_model_name}'")
+            return resolved_model_name
         
         # First try direct registry lookup
         resolved = self.registry.resolve_model_id(model_id)

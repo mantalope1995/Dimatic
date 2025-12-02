@@ -54,6 +54,7 @@ def setup_api_keys() -> None:
         "MORPH",
         "GEMINI",
         "OPENAI_COMPATIBLE",
+        "Z_AI",
     ]
     
     for provider in providers:
@@ -89,6 +90,10 @@ def setup_provider_router(openai_compatible_api_key: str = None, openai_compatib
     config_openai_key = getattr(config, 'OPENAI_COMPATIBLE_API_KEY', None) if config else None
     config_openai_base = getattr(config, 'OPENAI_COMPATIBLE_API_BASE', None) if config else None
     
+    # Get Z AI config values
+    config_z_ai_key = getattr(config, 'Z_AI_API_KEY', None) if config else None
+    config_z_ai_base = getattr(config, 'Z_AI_API_BASE', None) if config else None
+    
     model_list = [
         {
             "model_name": "openai-compatible/*", # support OpenAI-Compatible LLM provider
@@ -96,6 +101,14 @@ def setup_provider_router(openai_compatible_api_key: str = None, openai_compatib
                 "model": "openai/*",
                 "api_key": openai_compatible_api_key or config_openai_key,
                 "api_base": openai_compatible_api_base or config_openai_base,
+            },
+        },
+        {
+            "model_name": "z_ai/*", # Z AI provider for GLM-4.6
+            "litellm_params": {
+                "model": "openai/*",
+                "api_key": config_z_ai_key,
+                "api_base": config_z_ai_base or "https://api.z.ai/api/coding/paas/v4",
             },
         },
         {
@@ -191,6 +204,32 @@ def _configure_openai_compatible(params: Dict[str, Any], model_name: str, api_ke
     setup_provider_router(api_key, api_base)
     logger.debug(f"Configured OpenAI-compatible provider with custom API base")
 
+def _configure_z_ai_glm46(params: Dict[str, Any], model_name: str, api_key: Optional[str], api_base: Optional[str]) -> None:
+    """Configure Z AI GLM-4.6 provider setup."""
+    # Check if this is a GLM-4.6 model (either kortix/basic or kortix/power)
+    if model_name not in ("kortix/basic", "kortix/power") and "glm-4.6" not in model_name.lower():
+        return
+    
+    # Get config values safely
+    config_z_ai_key = getattr(config, 'Z_AI_API_KEY', None) if config else None
+    config_z_ai_base = getattr(config, 'Z_AI_API_BASE', None) if config else None
+    
+    # Use provided parameters or fall back to config
+    final_api_key = api_key or config_z_ai_key
+    final_api_base = api_base or config_z_ai_base or "https://api.z.ai/api/coding/paas/v4"
+    
+    if not final_api_key:
+        raise LLMError(
+            "Z_AI_API_KEY is required for GLM-4.6 model. Please set it in your backend/.env file or environment variables. "
+            "You can get an API key from https://z.ai/"
+        )
+    
+    # Update params with Z AI configuration
+    params["api_key"] = final_api_key
+    params["api_base"] = final_api_base
+    
+    logger.debug(f"Configured Z AI GLM-4.6 provider with API base: {final_api_base}")
+
 def _add_tools_config(params: Dict[str, Any], tools: Optional[List[Dict[str, Any]]], tool_choice: str) -> None:
     """Add tools configuration to parameters."""
     if tools is None:
@@ -279,6 +318,7 @@ async def make_llm_api_call(
     
     # Apply additional configurations
     _configure_openai_compatible(params, model_name, api_key, api_base)
+    _configure_z_ai_glm46(params, model_name, api_key, api_base)
     _add_tools_config(params, tools, tool_choice)
     
     # Final safeguard: Re-apply stop sequences

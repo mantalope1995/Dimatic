@@ -7,7 +7,10 @@ from core.utils.logger import logger
 # CRITICAL: Production and Staging must ALWAYS use Bedrock, never Anthropic API directly
 SHOULD_USE_ANTHROPIC = config.ENV_MODE == EnvMode.LOCAL and bool(config.ANTHROPIC_API_KEY)
 
-# Actual model IDs for LiteLLM
+# GLM-4.6 model ID for LiteLLM
+_GLM_46_MODEL_ID = "openai-compatible/glm-4.6"
+
+# Legacy model IDs (kept for compatibility but now map to GLM-4.6)
 _BASIC_MODEL_ID = "anthropic/claude-sonnet-4-5-20250929" if SHOULD_USE_ANTHROPIC else "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/few7z4l830xh"
 _POWER_MODEL_ID = "anthropic/claude-sonnet-4-5-20250929" if SHOULD_USE_ANTHROPIC else "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/few7z4l830xh"
 
@@ -26,66 +29,60 @@ class ModelRegistry:
         self._aliases: Dict[str, str] = {}
         self._initialize_models()
     
-    # KORTIX BASIC & POWER – Same underlying model, different configs
+    # KORTIX BASIC & POWER – Now both use GLM-4.6 from Z AI
     def _initialize_models(self):
-        # Kortix Basic
+        # Kortix Basic - uses GLM-4.6
         self.register(Model(
             id="kortix/basic",
             name="Kortix Basic",
-            provider=ModelProvider.ANTHROPIC,
-            aliases=["kortix-basic", "Kortix Basic"],
-            context_window=1_000_000,
+            provider=ModelProvider.Z_AI,
+            aliases=["kortix-basic", "Kortix Basic", "glm-4.6", "GLM-4.6"],
+            context_window=200_000,
+            max_output_tokens=128_000,
             capabilities=[
                 ModelCapability.CHAT,
                 ModelCapability.FUNCTION_CALLING,
-                ModelCapability.VISION,
+                ModelCapability.STRUCTURED_OUTPUT,
             ],
             pricing=ModelPricing(
-                input_cost_per_million_tokens=1.00,
-                output_cost_per_million_tokens=5.00,
-                cached_read_cost_per_million_tokens=0.10,
-                cache_write_5m_cost_per_million_tokens=1.25,
-                cache_write_1h_cost_per_million_tokens=2.00
+                input_cost_per_million_tokens=1.20,
+                output_cost_per_million_tokens=4.40
             ),
             tier_availability=["free", "paid"],
             priority=102,
             recommended=True,
             enabled=True,
             config=ModelConfig(
-                extra_headers={
-                    "anthropic-beta": "context-1m-2025-08-07,fine-grained-tool-streaming-2025-05-14,token-efficient-tools-2025-02-19" 
-                },
+                api_base="https://api.z.ai/api/coding/paas/v4",
+                extra_headers={}
             )
         ))
         
-        # Kortix Power - extended context & thinking
+        # Kortix Power - uses GLM-4.6 with thinking capability
         self.register(Model(
             id="kortix/power",
             name="Kortix POWER Mode",
-            provider=ModelProvider.ANTHROPIC,
-            aliases=["kortix-power", "Kortix POWER Mode", "Kortix Power"],
-            context_window=1_000_000,
+            provider=ModelProvider.Z_AI,
+            aliases=["kortix-power", "Kortix POWER Mode", "Kortix Power", "glm-4.6-thinking"],
+            context_window=200_000,
+            max_output_tokens=128_000,
             capabilities=[
                 ModelCapability.CHAT,
                 ModelCapability.FUNCTION_CALLING,
-                ModelCapability.VISION,
+                ModelCapability.STRUCTURED_OUTPUT,
                 ModelCapability.THINKING,
             ],
             pricing=ModelPricing(
-                input_cost_per_million_tokens=1.00,
-                output_cost_per_million_tokens=5.00,
-                cached_read_cost_per_million_tokens=0.10,
-                cache_write_5m_cost_per_million_tokens=1.25,
-                cache_write_1h_cost_per_million_tokens=2.00
+                input_cost_per_million_tokens=1.20,
+                output_cost_per_million_tokens=4.40
             ),
             tier_availability=["paid"],
             priority=101,
             recommended=True,
             enabled=True,
             config=ModelConfig(
-                extra_headers={
-                    "anthropic-beta": "context-1m-2025-08-07,fine-grained-tool-streaming-2025-05-14,token-efficient-tools-2025-02-19" 
-                },
+                api_base="https://api.z.ai/api/coding/paas/v4",
+                extra_headers={}
             )
         ))
 
@@ -393,18 +390,18 @@ class ModelRegistry:
     def get_litellm_model_id(self, model_id: str) -> str:
         """Get the actual model ID to pass to LiteLLM.
         
-        Resolves kortix/basic and kortix/power to actual provider model IDs.
+        Resolves kortix/basic and kortix/power to GLM-4.6 model ID.
         """
-        # Map kortix model IDs to actual LiteLLM model IDs
+        # Map both kortix model IDs to GLM-4.6
         if model_id in ("kortix/basic", "kortix/power"):
-            return _BASIC_MODEL_ID  # Both use the same underlying model
+            return _GLM_46_MODEL_ID  # Both now use GLM-4.6
         
         # For other models, check if it's an alias and resolve
         model = self.get(model_id)
         if model:
             # Check if this model's ID needs resolution
             if model.id in ("kortix/basic", "kortix/power"):
-                return _BASIC_MODEL_ID
+                return _GLM_46_MODEL_ID
             return model.id
         
         # Return as-is if not found (let LiteLLM handle it)
