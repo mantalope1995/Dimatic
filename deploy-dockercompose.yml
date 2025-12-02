@@ -85,6 +85,8 @@ services:
         - MAILTRAP_API_TOKEN=${MAILTRAP_API_TOKEN}
         - MAILTRAP_SENDER_EMAIL=${MAILTRAP_SENDER_EMAIL}
         - MAILTRAP_SENDER_NAME=${MAILTRAP_SENDER_NAME}
+        - Z_AI_API_KEY=${Z_AI_API_KEY:-}
+        - Z_AI_API_BASE=${Z_AI_API_BASE:-https://api.z.ai/api/coding/paas/v4}
     environment:
       - ENV_MODE=${ENV_MODE}
       - SUPABASE_URL=${SUPABASE_URL}
@@ -136,6 +138,8 @@ services:
       - MAILTRAP_API_TOKEN=${MAILTRAP_API_TOKEN}
       - MAILTRAP_SENDER_EMAIL=${MAILTRAP_SENDER_EMAIL}
       - MAILTRAP_SENDER_NAME=${MAILTRAP_SENDER_NAME}
+      - Z_AI_API_KEY=${Z_AI_API_KEY:-}
+      - Z_AI_API_BASE=${Z_AI_API_BASE:-https://api.z.ai/api/coding/paas/v4}
     depends_on:
       redis:
         condition: service_healthy
@@ -202,6 +206,8 @@ services:
         - MAILTRAP_API_TOKEN=${MAILTRAP_API_TOKEN}
         - MAILTRAP_SENDER_EMAIL=${MAILTRAP_SENDER_EMAIL}
         - MAILTRAP_SENDER_NAME=${MAILTRAP_SENDER_NAME}
+        - Z_AI_API_KEY=${Z_AI_API_KEY:-}
+        - Z_AI_API_BASE=${Z_AI_API_BASE:-https://api.z.ai/api/coding/paas/v4}
     command: uv run dramatiq --skip-logging --processes 4 --threads 4 run_agent_background
     environment:
       - ENV_MODE=${ENV_MODE}
@@ -254,6 +260,8 @@ services:
       - MAILTRAP_API_TOKEN=${MAILTRAP_API_TOKEN}
       - MAILTRAP_SENDER_EMAIL=${MAILTRAP_SENDER_EMAIL}
       - MAILTRAP_SENDER_NAME=${MAILTRAP_SENDER_NAME}
+      - Z_AI_API_KEY=${Z_AI_API_KEY:-}
+      - Z_AI_API_BASE=${Z_AI_API_BASE:-https://api.z.ai/api/coding/paas/v4}
     depends_on:
       redis:
         condition: service_healthy
