@@ -2,49 +2,38 @@
 LLM API interface for making calls to various language models.
 
 This module provides a unified interface for making API calls to different LLM providers
-using LiteLLM with simplified error handling and clean parameter management.
+(OpenAI, Anthropic, Groq, xAI, etc.) using LiteLLM. It includes support for:
+- Streaming responses
+- Tool calls and function calling
+- Retry logic with exponential backoff
+- Model-specific configurations
+- Comprehensive error handling and logging
 """
 
 from typing import Union, Dict, Any, Optional, AsyncGenerator, List
 import os
-import json
-import asyncio
 import litellm
 from litellm.router import Router
 from litellm.files.main import ModelResponse
 from core.utils.logger import logger
 from core.utils.config import config
-from core.agentpress.error_processor import ErrorProcessor
-from pathlib import Path
-from datetime import datetime, timezone
 
-# Configure LiteLLM
-# os.environ['LITELLM_LOG'] = 'DEBUG'
-# litellm.set_verbose = True  # Enable verbose logging
+# litellm.set_verbose=True
+# Let LiteLLM auto-adjust params and drop unsupported ones (e.g., GPT-5 temperature!=1)
 litellm.modify_params = True
 litellm.drop_params = True
 
-# CRITICAL: Disable all LiteLLM internal retries to prevent infinite loops on 400 errors
-# We handle retries at our own layer (auto-continue) with proper error checking
-litellm.num_retries = 0
-
-# Enable additional debug logging
-# import logging
-# litellm_logger = logging.getLogger("LiteLLM")
-# litellm_logger.setLevel(logging.DEBUG)
+# Constants
+MAX_RETRIES = 3
 provider_router = None
 
 
 class LLMError(Exception):
-    """Exception for LLM-related errors."""
+    """Base exception for LLM-related errors."""
     pass
 
 def setup_api_keys() -> None:
     """Set up API keys from environment variables."""
-    if not config:
-        logger.warning("Config not loaded - skipping API key setup")
-        return
-        
     providers = [
         "OPENAI",
         "ANTHROPIC",
@@ -56,59 +45,43 @@ def setup_api_keys() -> None:
         "OPENAI_COMPATIBLE",
         "Z_AI",
     ]
-    
     for provider in providers:
-        try:
-            key = getattr(config, f"{provider}_API_KEY", None)
-            if key:
-                # logger.debug(f"API key set for provider: {provider}")
-                pass
-            else:
-                logger.debug(f"No API key found for provider: {provider} (this is normal if not using this provider)")
-        except AttributeError as e:
-            logger.debug(f"Could not access {provider}_API_KEY: {e}")
+        key = getattr(config, f"{provider}_API_KEY", None)
+        if key:
+            logger.debug(f"API key set for provider: {provider}")
+        else:
+            logger.warning(f"No API key found for provider: {provider}")
 
     # Set up OpenRouter API base if not already set
-    if hasattr(config, 'OPENROUTER_API_KEY') and hasattr(config, 'OPENROUTER_API_BASE'):
-        if config.OPENROUTER_API_KEY and config.OPENROUTER_API_BASE:
-            os.environ["OPENROUTER_API_BASE"] = config.OPENROUTER_API_BASE
-            # logger.debug(f"Set OPENROUTER_API_BASE to {config.OPENROUTER_API_BASE}")
+    if config.OPENROUTER_API_KEY and config.OPENROUTER_API_BASE:
+        os.environ["OPENROUTER_API_BASE"] = config.OPENROUTER_API_BASE
+        logger.debug(f"Set OPENROUTER_API_BASE to {config.OPENROUTER_API_BASE}")
 
-    # Set up AWS Bedrock bearer token authentication
-    if hasattr(config, 'AWS_BEARER_TOKEN_BEDROCK'):
-        bedrock_token = config.AWS_BEARER_TOKEN_BEDROCK
-        if bedrock_token:
-            os.environ["AWS_BEARER_TOKEN_BEDROCK"] = bedrock_token
-            logger.debug("AWS Bedrock bearer token configured")
-        else:
-            logger.debug("AWS_BEARER_TOKEN_BEDROCK not configured - Bedrock models will not be available")
+
+    # Set up AWS Bedrock credentials
+    aws_access_key = config.AWS_ACCESS_KEY_ID
+    aws_secret_key = config.AWS_SECRET_ACCESS_KEY
+    aws_region = config.AWS_REGION_NAME
+
+    if aws_access_key and aws_secret_key and aws_region:
+        logger.debug(f"AWS credentials set for Bedrock in region: {aws_region}")
+        # Configure LiteLLM to use AWS credentials
+        os.environ["AWS_ACCESS_KEY_ID"] = aws_access_key
+        os.environ["AWS_SECRET_ACCESS_KEY"] = aws_secret_key
+        os.environ["AWS_REGION_NAME"] = aws_region
+    else:
+        logger.warning(f"Missing AWS credentials for Bedrock integration - access_key: {bool(aws_access_key)}, secret_key: {bool(aws_secret_key)}, region: {aws_region}")
+
 
 def setup_provider_router(openai_compatible_api_key: str = None, openai_compatible_api_base: str = None):
     global provider_router
-    
-    # Get config values safely
-    config_openai_key = getattr(config, 'OPENAI_COMPATIBLE_API_KEY', None) if config else None
-    config_openai_base = getattr(config, 'OPENAI_COMPATIBLE_API_BASE', None) if config else None
-    
-    # Get Z AI config values
-    config_z_ai_key = getattr(config, 'Z_AI_API_KEY', None) if config else None
-    config_z_ai_base = getattr(config, 'Z_AI_API_BASE', None) if config else None
-    
     model_list = [
         {
             "model_name": "openai-compatible/*", # support OpenAI-Compatible LLM provider
             "litellm_params": {
                 "model": "openai/*",
-                "api_key": openai_compatible_api_key or config_openai_key,
-                "api_base": openai_compatible_api_base or config_openai_base,
-            },
-        },
-        {
-            "model_name": "z_ai/*", # Z AI provider for GLM-4.6
-            "litellm_params": {
-                "model": "openai/*",
-                "api_key": config_z_ai_key,
-                "api_base": config_z_ai_base or "https://api.z.ai/api/coding/paas/v4",
+                "api_key": openai_compatible_api_key or config.OPENAI_COMPATIBLE_API_KEY,
+                "api_base": openai_compatible_api_base or config.OPENAI_COMPATIBLE_API_BASE,
             },
         },
         {
@@ -118,117 +91,155 @@ def setup_provider_router(openai_compatible_api_key: str = None, openai_compatib
             },
         },
     ]
-    
-    fallbacks = [
-        # MAP-tagged Haiku 4.5 (default) -> Sonnet 4 -> Sonnet 4.5
-        {
-            "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/heol2zyy5v48": [
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/tyj1ks3nj9qf",
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/few7z4l830xh",
-            ]
-        },
-        # MAP-tagged Sonnet 4.5 -> Sonnet 4 -> Haiku 4.5
-        {
-            "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/few7z4l830xh": [
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/tyj1ks3nj9qf",
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/heol2zyy5v48",
-            ]
-        },
-        # MAP-tagged Sonnet 4 -> Haiku 4.5
-        {
-            "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/tyj1ks3nj9qf": [
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/heol2zyy5v48",
-            ]
-        }
-    ]
-    
-    # Context window fallbacks: When context window is exceeded, fallback to models with larger context windows
-    # Order: Smaller context models -> Larger context models
-    # Note: All Bedrock models here have 1M context, but this allows LiteLLM to handle the error gracefully
-    context_window_fallbacks = [
-        # Haiku 4.5 (200k) -> Sonnet 4 (1M) -> Sonnet 4.5 (1M)
-        {
-            "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/heol2zyy5v48": [
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/tyj1ks3nj9qf",
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/few7z4l830xh",
-            ]
-        },
-        # Sonnet 4.5 (1M) -> Sonnet 4 (1M) - both have same context, but allows retry
-        {
-            "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/few7z4l830xh": [
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/tyj1ks3nj9qf",
-            ]
-        },
-        # Sonnet 4 (1M) -> Sonnet 4.5 (1M) - both have same context, but allows retry
-        {
-            "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/tyj1ks3nj9qf": [
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/few7z4l830xh",
-            ]
-        }
-    ]
-    
-    # Configure Router with specific retry settings:
-    # - num_retries=0: Disable router-level retries - we handle errors at our layer
-    # - fallbacks: ONLY for rate limits and overloaded errors, NOT for 400 errors
-    # - context_window_fallbacks: Automatically fallback to models with larger context windows when context is exceeded
-    # CRITICAL: 400 Bad Request errors must NOT retry or fallback - they're permanent failures
-    # EXCEPTION: ContextWindowExceededError is a special case where fallback to larger context models is appropriate
-    provider_router = Router(
-        model_list=model_list,
-        num_retries=0,  # CRITICAL: Disable all router-level retries to prevent infinite loops
-        fallbacks=fallbacks,
-        context_window_fallbacks=context_window_fallbacks,  # Handle context window exceeded errors
-        # Only use fallbacks for rate limits (429) and server errors (5xx), NOT client errors (4xx)
-        # context_window_fallbacks are separate and only triggered by context length issues
-    )
-    
-    logger.info(f"Configured LiteLLM Router with {len(fallbacks)} Bedrock-only fallback rules")
+    provider_router = Router(model_list=model_list)
 
-def _configure_openai_compatible(params: Dict[str, Any], model_name: str, api_key: Optional[str], api_base: Optional[str]) -> None:
-    """Configure OpenAI-compatible provider setup."""
-    if not model_name.startswith("openai-compatible/"):
+
+def get_openrouter_fallback(model_name: str) -> Optional[str]:
+    """Get OpenRouter fallback model for a given model name."""
+    # Skip if already using OpenRouter
+    if model_name.startswith("openrouter/"):
+        return None
+    
+    # Map models to their OpenRouter equivalents
+    fallback_mapping = {
+        "anthropic/claude-3-7-sonnet-latest": "openrouter/anthropic/claude-3.7-sonnet",
+        "anthropic/claude-sonnet-4-20250514": "openrouter/anthropic/claude-sonnet-4",
+        "xai/grok-4": "openrouter/x-ai/grok-4",
+        "gemini/gemini-2.5-pro": "openrouter/google/gemini-2.5-pro",
+    }
+    
+    # Check for exact match first
+    if model_name in fallback_mapping:
+        return fallback_mapping[model_name]
+    
+    # Check for partial matches (e.g., bedrock models)
+    for key, value in fallback_mapping.items():
+        if key in model_name:
+            return value
+    
+    # Default fallbacks by provider
+    if "claude" in model_name.lower() or "anthropic" in model_name.lower():
+        return "openrouter/anthropic/claude-sonnet-4"
+    elif "xai" in model_name.lower() or "grok" in model_name.lower():
+        return "openrouter/x-ai/grok-4"
+    
+    return None
+
+def _configure_token_limits(params: Dict[str, Any], model_name: str, max_tokens: Optional[int]) -> None:
+    """Configure token limits based on model type."""
+    if max_tokens is None:
         return
     
-    # Get config values safely
-    config_openai_key = getattr(config, 'OPENAI_COMPATIBLE_API_KEY', None) if config else None
-    config_openai_base = getattr(config, 'OPENAI_COMPATIBLE_API_BASE', None) if config else None
-    
-    # Check if have required config either from parameters or environment
-    if (not api_key and not config_openai_key) or (
-        not api_base and not config_openai_base
-    ):
-        raise LLMError(
-            "OPENAI_COMPATIBLE_API_KEY and OPENAI_COMPATIBLE_API_BASE is required for openai-compatible models. If just updated the environment variables, wait a few minutes or restart the service to ensure they are loaded."
-        )
-    
-    setup_provider_router(api_key, api_base)
-    logger.debug(f"Configured OpenAI-compatible provider with custom API base")
-
-def _configure_z_ai_glm46(params: Dict[str, Any], model_name: str, api_key: Optional[str], api_base: Optional[str]) -> None:
-    """Configure Z AI GLM-4.6 provider setup."""
-    # Check if this is a GLM-4.6 model (either kortix/basic or kortix/power)
-    if model_name not in ("kortix/basic", "kortix/power") and "glm-4.6" not in model_name.lower():
+    if model_name.startswith("bedrock/") and "claude-3-7" in model_name:
+        # For Claude 3.7 in Bedrock, do not set max_tokens or max_tokens_to_sample
+        # as it causes errors with inference profiles
+        logger.debug(f"Skipping max_tokens for Claude 3.7 model: {model_name}")
         return
     
-    # Get config values safely
-    config_z_ai_key = getattr(config, 'Z_AI_API_KEY', None) if config else None
-    config_z_ai_base = getattr(config, 'Z_AI_API_BASE', None) if config else None
+    is_openai_o_series = 'o1' in model_name
+    is_openai_gpt5 = 'gpt-5' in model_name
+    param_name = "max_completion_tokens" if (is_openai_o_series or is_openai_gpt5) else "max_tokens"
+    params[param_name] = max_tokens
+
+def _configure_anthropic(params: Dict[str, Any], model_name: str, messages: List[Dict[str, Any]]) -> None:
+    """Configure Anthropic-specific parameters."""
+    if not ("claude" in model_name.lower() or "anthropic" in model_name.lower()):
+        return
     
-    # Use provided parameters or fall back to config
-    final_api_key = api_key or config_z_ai_key
-    final_api_base = api_base or config_z_ai_base or "https://api.z.ai/api/coding/paas/v4"
+    # Include both prompt caching and extended output beta features
+    params["extra_headers"] = {
+        "anthropic-beta": "prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15"
+    }
+    logger.debug(f"Added Anthropic-specific headers for prompt caching and extended output")
+
+def _configure_openrouter(params: Dict[str, Any], model_name: str) -> None:
+    """Configure OpenRouter-specific parameters."""
+    if not model_name.startswith("openrouter/"):
+        return
     
-    if not final_api_key:
-        raise LLMError(
-            "Z_AI_API_KEY is required for GLM-4.6 model. Please set it in your backend/.env file or environment variables. "
-            "You can get an API key from https://z.ai/"
-        )
+    logger.debug(f"Preparing OpenRouter parameters for model: {model_name}")
+
+    # Add optional site URL and app name from config
+    site_url = config.OR_SITE_URL
+    app_name = config.OR_APP_NAME
+    if site_url or app_name:
+        extra_headers = params.get("extra_headers", {})
+        if site_url:
+            extra_headers["HTTP-Referer"] = site_url
+        if app_name:
+            extra_headers["X-Title"] = app_name
+        params["extra_headers"] = extra_headers
+        logger.debug(f"Added OpenRouter site URL and app name to headers")
+
+def _configure_bedrock(params: Dict[str, Any], model_name: str, model_id: Optional[str]) -> None:
+    """Configure Bedrock-specific parameters."""
+    if not model_name.startswith("bedrock/"):
+        return
     
-    # Update params with Z AI configuration
-    params["api_key"] = final_api_key
-    params["api_base"] = final_api_base
+    logger.debug(f"Preparing AWS Bedrock parameters for model: {model_name}")
+
+    # Auto-set model_id for Claude 3.7 Sonnet if not provided
+    if not model_id and "anthropic.claude-3-7-sonnet" in model_name:
+        params["model_id"] = "arn:aws:bedrock:us-west-2:935064898258:inference-profile/us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        logger.debug(f"Auto-set model_id for Claude 3.7 Sonnet: {params['model_id']}")
+
+def _configure_openai_gpt5(params: Dict[str, Any], model_name: str) -> None:
+    """Configure OpenAI GPT-5 specific parameters."""
+    if "gpt-5" not in model_name:
+        return
     
-    logger.debug(f"Configured Z AI GLM-4.6 provider with API base: {final_api_base}")
+
+    # Drop unsupported temperature param (only default 1 allowed)
+    if "temperature" in params and params["temperature"] != 1:
+        params.pop("temperature", None)
+
+    # Request priority service tier when calling OpenAI directly
+
+    # Pass via both top-level and extra_body for LiteLLM compatibility
+    if not model_name.startswith("openrouter/"):
+        params["service_tier"] = "priority"
+        extra_body = params.get("extra_body", {})
+        if "service_tier" not in extra_body:
+            extra_body["service_tier"] = "priority"
+        params["extra_body"] = extra_body
+
+def _configure_kimi_k2(params: Dict[str, Any], model_name: str) -> None:
+    """Configure Kimi K2-specific parameters."""
+    is_kimi_k2 = "kimi-k2" in model_name.lower() or model_name.startswith("moonshotai/kimi-k2")
+    if not is_kimi_k2:
+        return
+    
+    params["provider"] = {
+        "order": ["groq", "moonshotai"] #, "groq", "together/fp8", "novita/fp8", "baseten/fp8", 
+    }
+
+def _configure_thinking(params: Dict[str, Any], model_name: str, enable_thinking: Optional[bool], reasoning_effort: Optional[str]) -> None:
+    """Configure reasoning/thinking parameters for supported models."""
+    if not enable_thinking:
+        return
+    
+
+    effort_level = reasoning_effort or 'low'
+    is_anthropic = "anthropic" in model_name.lower() or "claude" in model_name.lower()
+    is_xai = "xai" in model_name.lower() or model_name.startswith("xai/")
+    
+    if is_anthropic:
+        params["reasoning_effort"] = effort_level
+        params["temperature"] = 1.0  # Required by Anthropic when reasoning_effort is used
+        logger.info(f"Anthropic thinking enabled with reasoning_effort='{effort_level}'")
+    elif is_xai:
+        params["reasoning_effort"] = effort_level
+        logger.info(f"xAI thinking enabled with reasoning_effort='{effort_level}'")
+
+def _add_fallback_model(params: Dict[str, Any], model_name: str, messages: List[Dict[str, Any]]) -> None:
+    """Add fallback model to the parameters."""
+    fallback_model = get_openrouter_fallback(model_name)
+    if fallback_model:
+        params["fallbacks"] = [{
+            "model": fallback_model,
+            "messages": messages,
+        }]
+        logger.debug(f"Added OpenRouter fallback for model: {model_name} to {fallback_model}")
 
 def _add_tools_config(params: Dict[str, Any], tools: Optional[List[Dict[str, Any]]], tool_choice: str) -> None:
     """Add tools configuration to parameters."""
@@ -239,7 +250,96 @@ def _add_tools_config(params: Dict[str, Any], tools: Optional[List[Dict[str, Any
         "tools": tools,
         "tool_choice": tool_choice
     })
-    # logger.debug(f"Added {len(tools)} tools to API parameters")
+    logger.debug(f"Added {len(tools)} tools to API parameters")
+
+def prepare_params(
+    messages: List[Dict[str, Any]],
+    model_name: str,
+    temperature: float = 0,
+    max_tokens: Optional[int] = None,
+    response_format: Optional[Any] = None,
+    tools: Optional[List[Dict[str, Any]]] = None,
+    tool_choice: str = "auto",
+    api_key: Optional[str] = None,
+    api_base: Optional[str] = None,
+    stream: bool = False,
+    top_p: Optional[float] = None,
+    model_id: Optional[str] = None,
+    enable_thinking: Optional[bool] = False,
+    reasoning_effort: Optional[str] = "low",
+) -> Dict[str, Any]:
+    from core.ai_models import model_manager
+    resolved_model_name = model_manager.resolve_model_id(model_name)
+    logger.debug(f"Model resolution: '{model_name}' -> '{resolved_model_name}'")
+    
+    # If model wasn't resolved but it's glm-4.6, treat it as openai-compatible
+    if resolved_model_name is None and "glm-4.6" in model_name.lower():
+        resolved_model_name = "openai-compatible/glm-4.6"
+        logger.debug(f"Auto-resolved GLM-4.6 model: '{model_name}' -> '{resolved_model_name}'")
+    
+    params = {
+        "model": resolved_model_name,
+        "messages": messages,
+        "temperature": temperature,
+        "response_format": response_format,
+        "top_p": top_p,
+        "stream": stream,
+        "num_retries": MAX_RETRIES,
+    }
+
+    if api_key:
+        params["api_key"] = api_key
+    if api_base:
+        params["api_base"] = api_base
+    if model_id:
+        params["model_id"] = model_id
+
+    # Check both the original and resolved model names for openai-compatible prefix
+    if (model_name.startswith("openai-compatible/") or 
+        (resolved_model_name and resolved_model_name.startswith("openai-compatible/"))):
+        # Special handling for Z AI GLM-4.6 model
+        if "glm-4.6" in model_name.lower() or (resolved_model_name and "glm-4.6" in resolved_model_name.lower()):
+            # Use Z AI specific configuration
+            if not api_key:
+                api_key = getattr(config, "Z_AI_API_KEY", None)
+            if not api_base:
+                api_base = getattr(config, "Z_AI_API_BASE", "https://api.z.ai/api/coding/paas/v4")
+            
+            if not api_key:
+                raise LLMError(
+                    "Z_AI_API_KEY is required for GLM-4.6 model. Please set it in your backend/.env file or environment variables. "
+                    "You can get an API key from https://z.ai/"
+                )
+        else:
+            # Check if have required config either from parameters or environment
+            if (not api_key and not config.OPENAI_COMPATIBLE_API_KEY) or (
+                not api_base and not config.OPENAI_COMPATIBLE_API_BASE
+            ):
+                raise LLMError(
+                    "OPENAI_COMPATIBLE_API_KEY and OPENAI_COMPATIBLE_API_BASE is required for openai-compatible models. If just updated the environment variables,  wait a few minutes or restart the service to ensure they are loaded."
+                )
+        
+        setup_provider_router(api_key, api_base)
+
+    # Handle token limits
+    _configure_token_limits(params, resolved_model_name, max_tokens)
+    # Add tools if provided
+    _add_tools_config(params, tools, tool_choice)
+    # Add Anthropic-specific parameters
+    _configure_anthropic(params, resolved_model_name, params["messages"])
+    # Add OpenRouter-specific parameters
+    _configure_openrouter(params, resolved_model_name)
+    # Add Bedrock-specific parameters
+    _configure_bedrock(params, resolved_model_name, model_id)
+    
+    _add_fallback_model(params, resolved_model_name, messages)
+    # Add OpenAI GPT-5 specific parameters
+    _configure_openai_gpt5(params, resolved_model_name)
+    # Add Kimi K2-specific parameters
+    _configure_kimi_k2(params, resolved_model_name)
+    _configure_thinking(params, resolved_model_name, enable_thinking, reasoning_effort)
+
+    return params
 
 async def make_llm_api_call(
     messages: List[Dict[str, Any]],
@@ -251,150 +351,118 @@ async def make_llm_api_call(
     tool_choice: str = "auto",
     api_key: Optional[str] = None,
     api_base: Optional[str] = None,
-    stream: bool = True,  # Always stream for better UX
+    stream: bool = False,
     top_p: Optional[float] = None,
     model_id: Optional[str] = None,
-    headers: Optional[Dict[str, str]] = None,
-    extra_headers: Optional[Dict[str, str]] = None,
-    stop: Optional[List[str]] = None,
+    enable_thinking: Optional[bool] = False,
+    reasoning_effort: Optional[str] = "low",
 ) -> Union[Dict[str, Any], AsyncGenerator, ModelResponse]:
-    """Make an API call to a language model using LiteLLM.
-    
-    Args:
-        messages: List of message dictionaries
-        model_name: Name of the model to use
-        response_format: Optional response format specification
-        temperature: Temperature for sampling (0-1)
-        max_tokens: Maximum tokens to generate
-        tools: Optional list of tool definitions
-        tool_choice: Tool choice strategy ("auto", "required", "none")
-        api_key: Optional API key override
-        api_base: Optional API base URL override
-        stream: Whether to stream the response
-        top_p: Optional top_p for sampling
-        model_id: Optional model ID for tracking
-        headers: Optional headers to send with request
-        extra_headers: Optional extra headers to send with request
-        stop: Optional list of stop sequences
     """
-    logger.info(f"Making LLM API call to model: {model_name} with {len(messages)} messages")
+    Make an API call to a language model using LiteLLM.
+
+    Args:
+        messages: List of message dictionaries for the conversation
+        model_name: Name of the model to use (e.g., "gpt-4", "claude-3", "openrouter/openai/gpt-4", "bedrock/anthropic.claude-3-sonnet-20240229-v1:0")
+        response_format: Desired format for the response
+        temperature: Sampling temperature (0-1)
+        max_tokens: Maximum tokens in the response
+        tools: List of tool definitions for function calling
+        tool_choice: How to select tools ("auto" or "none")
+        api_key: Override default API key
+        api_base: Override default API base URL
+        stream: Whether to stream the response
+        top_p: Top-p sampling parameter
+        model_id: Optional ARN for Bedrock inference profiles
+        enable_thinking: Whether to enable thinking
+        reasoning_effort: Level of reasoning effort
+
+    Returns:
+        Union[Dict[str, Any], AsyncGenerator]: API response or stream
+
+    Raises:
+        LLMRetryError: If API call fails after retries
+        LLMError: For other API-related errors
+    """
+    # debug <timestamp>.json messages
+    logger.debug(f"Making LLM API call to model: {model_name} (Thinking: {enable_thinking}, Effort: {reasoning_effort})")
+    logger.debug(f"📡 API Call: Using model {model_name}")
+
+    logger.info(f"📥 Received {len(messages)} messages for LLM call")
+    for i, msg in enumerate(messages):
+        role = msg.get('role', 'unknown')
+        content = msg.get('content', '')
+        if isinstance(content, list) and content:
+            has_cache = 'cache_control' in content[0] if isinstance(content[0], dict) else False
+            content_len = len(str(content[0].get('text', ''))) if isinstance(content[0], dict) else 0
+            logger.info(f"  Input msg {i}: role={role}, has_cache={has_cache}, length={content_len}")
     
-    # Prepare parameters using centralized model configuration
-    from core.ai_models import model_manager
-    resolved_model_name = model_manager.resolve_model_id(model_name) or model_name
+    params = prepare_params(
+        messages=messages,
+        model_name=model_name,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        response_format=response_format,
+        tools=tools,
+        tool_choice=tool_choice,
+        api_key=api_key,
+        api_base=api_base,
+        stream=stream,
+        top_p=top_p,
+        model_id=model_id,
+        enable_thinking=enable_thinking,
+        reasoning_effort=reasoning_effort,
+    )
+    # Debug: Log what we're sending to LiteLLM
+    if 'messages' in params:
+        logger.info(f"📨 Sending to LiteLLM: {len(params['messages'])} messages")
+        for i, msg in enumerate(params['messages'][:3]):  # Only log first 3 to avoid spam
+            role = msg.get('role', 'unknown')
+            content = msg.get('content', '')
+            if isinstance(content, list) and content:
+                has_cache = 'cache_control' in content[0] if isinstance(content[0], dict) else False
+                logger.info(f"  Final msg {i}: role={role}, has_cache={has_cache}")
+                # Log the actual cache_control value if present
+                if has_cache:
+                    logger.info(f"    cache_control value: {content[0].get('cache_control')}")
     
-    # Only pass headers/extra_headers if they are not None to avoid overriding model config
-    override_params = {
-        "messages": messages,
-        "temperature": temperature,
-        "response_format": response_format,
-        "top_p": top_p,
-        "stream": stream,
-        "api_key": api_key,
-        "api_base": api_base,
-        "stop": stop
-    }
-    
-    # Only add headers if they are provided (not None)
-    if headers is not None:
-        override_params["headers"] = headers
-    if extra_headers is not None:
-        override_params["extra_headers"] = extra_headers
-    
-    params = model_manager.get_litellm_params(resolved_model_name, **override_params)
-    
-    # Ensure stop sequences are in final params
-    if stop is not None:
-        params["stop"] = stop
-        logger.info(f"🛑 Stop sequences configured: {stop}")
-    else:
-        params.pop("stop", None)
-    
-    if model_id:
-        params["model_id"] = model_id
-    
-    if stream:
-        params["stream_options"] = {"include_usage": True}
-    
-    # Apply additional configurations
-    _configure_openai_compatible(params, model_name, api_key, api_base)
-    _configure_z_ai_glm46(params, model_name, api_key, api_base)
-    _add_tools_config(params, tools, tool_choice)
-    
-    # Final safeguard: Re-apply stop sequences
-    if stop is not None:
-        params["stop"] = stop
+    # Log the headers being sent
+    if 'extra_headers' in params:
+        logger.info(f"📮 Headers to LiteLLM: {params['extra_headers']}")
     
     try:
-        # Save debug input if enabled via config
-        if config and config.DEBUG_SAVE_LLM_IO:
-            try:
-                debug_dir = Path("debug_streams")
-                debug_dir.mkdir(exist_ok=True)
-                timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
-                debug_file = debug_dir / f"input_{timestamp}.json"
-        
-                # Save the exact params going to LiteLLM
-                debug_data = {
-                    "timestamp": timestamp,
-                    "model": params.get("model"),
-                    "messages": params.get("messages"),
-                    "temperature": params.get("temperature"),
-                    "max_tokens": params.get("max_tokens"),
-                    "stop": params.get("stop"),
-                    "stream": params.get("stream"),
-                    "tools": params.get("tools"),
-                    "tool_choice": params.get("tool_choice"),
-                }
-                
-                with open(debug_file, 'w', encoding='utf-8') as f:
-                    json.dump(debug_data, f, indent=2, ensure_ascii=False)
-                    
-                logger.info(f"📁 Saved LLM input to: {debug_file}")
-            except Exception as e:
-                logger.warning(f"⚠️ Error saving debug input: {e}")
-        
         response = await provider_router.acompletion(**params)
+        logger.debug(f"Successfully received API response from {model_name}")
         
-        # For streaming responses, we need to handle errors that occur during iteration
-        if hasattr(response, '__aiter__') and stream:
-            return _wrap_streaming_response(response)
+        # Check if streaming
+        is_streaming = params.get('stream', False)
+        
+        if not is_streaming and hasattr(response, 'usage'):
+            usage = response.usage
+            cache_creation = getattr(usage, 'cache_creation_input_tokens', 0)
+            cache_read = getattr(usage, 'cache_read_input_tokens', 0)
+            total_tokens = getattr(usage, 'prompt_tokens', 0)
+            
+            if cache_creation > 0 or cache_read > 0:
+                logger.info(f"🎯 CACHE METRICS: creation={cache_creation}, read={cache_read}, total={total_tokens}")
+            else:
+                logger.warning(f"⚠️ NO CACHE USED: total_tokens={total_tokens}")
+        elif is_streaming:
+            logger.info(f"📡 Streaming response - cache metrics will be in final chunk")
         
         return response
-        
-    except Exception as e:
-        # Use ErrorProcessor to handle the error consistently
-        processed_error = ErrorProcessor.process_llm_error(e, context={"model": model_name})
-        ErrorProcessor.log_error(processed_error)
-        raise LLMError(processed_error.message)
 
-async def _wrap_streaming_response(response) -> AsyncGenerator:
-    """Wrap streaming response to handle errors during iteration."""
-    try:
-        async for chunk in response:
-            yield chunk
     except Exception as e:
-        # Convert streaming errors to processed errors
-        processed_error = ErrorProcessor.process_llm_error(e)
-        ErrorProcessor.log_error(processed_error)
-        raise LLMError(processed_error.message)
+        error_msg = str(e)
+        # Provide more specific error messages for common issues
+        if "Z_AI_API_KEY" in error_msg:
+            logger.error(f"GLM-4.6 configuration error: {error_msg}")
+            raise LLMError(error_msg)  # Re-raise with the detailed message
+        elif "OPENAI_COMPATIBLE" in error_msg:
+            logger.error(f"OpenAI-compatible model configuration error: {error_msg}")
+            raise LLMError(error_msg)
+        else:
+            logger.error(f"Unexpected error during API call: {error_msg}", exc_info=True)
+            raise LLMError(f"API call failed: {error_msg}")
 
 setup_api_keys()
 setup_provider_router()
-
-
-if __name__ == "__main__":
-    from litellm import completion
-    import os
-
-    setup_api_keys()
-
-    response = completion(
-        model="bedrock/anthropic.claude-sonnet-4-20250115-v1:0",
-        messages=[{"role": "user", "content": "Hello! Testing 1M context window."}],
-        max_tokens=100,
-        extra_headers={
-            "anthropic-beta": "context-1m-2025-08-07"  # 👈 Enable 1M context
-        }
-    )
-

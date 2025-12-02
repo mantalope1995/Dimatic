@@ -1,12 +1,11 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Optional, Dict, Any
 from enum import Enum
 
 
 class ModelProvider(Enum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
-    BEDROCK = "bedrock"
     OPENROUTER = "openrouter"
     GOOGLE = "google"
     XAI = "xai"
@@ -27,9 +26,6 @@ class ModelCapability(Enum):
 class ModelPricing:
     input_cost_per_million_tokens: float
     output_cost_per_million_tokens: float
-    cached_read_cost_per_million_tokens: Optional[float] = None  # Cache hits & refreshes
-    cache_write_5m_cost_per_million_tokens: Optional[float] = None  # 5-minute cache writes
-    cache_write_1h_cost_per_million_tokens: Optional[float] = None  # 1-hour cache writes
     
     @property
     def input_cost_per_token(self) -> float:
@@ -38,45 +34,6 @@ class ModelPricing:
     @property
     def output_cost_per_token(self) -> float:
         return self.output_cost_per_million_tokens / 1_000_000
-    
-    @property
-    def cached_read_cost_per_token(self) -> float:
-        if self.cached_read_cost_per_million_tokens is None:
-            return self.input_cost_per_token  # Fallback to regular input price if not specified
-        return self.cached_read_cost_per_million_tokens / 1_000_000
-    
-    @property
-    def cache_write_5m_cost_per_token(self) -> float:
-        if self.cache_write_5m_cost_per_million_tokens is None:
-            return self.input_cost_per_token  # Fallback to regular input price if not specified
-        return self.cache_write_5m_cost_per_million_tokens / 1_000_000
-    
-    @property
-    def cache_write_1h_cost_per_token(self) -> float:
-        if self.cache_write_1h_cost_per_million_tokens is None:
-            return self.input_cost_per_token  # Fallback to regular input price if not specified
-        return self.cache_write_1h_cost_per_million_tokens / 1_000_000
-
-
-@dataclass
-class ModelConfig:
-    """Essential model configuration - provider settings and API configuration only."""
-    
-    # === Provider & API Configuration ===
-    api_base: Optional[str] = None
-    api_version: Optional[str] = None
-    base_url: Optional[str] = None  # Alternative to api_base
-    deployment_id: Optional[str] = None  # Azure
-    timeout: Optional[Union[float, int]] = None
-    num_retries: Optional[int] = None
-    
-    # === Headers (Provider-Specific) ===
-    headers: Optional[Dict[str, str]] = None
-    extra_headers: Optional[Dict[str, str]] = None
-    
-    # === Bedrock-Specific Configuration ===
-    performanceConfig: Optional[Dict[str, str]] = None  # e.g., {"latency": "optimized"}
-    
 
 
 @dataclass
@@ -96,10 +53,10 @@ class Model:
     priority: int = 0
     recommended: bool = False
     
-    # NEW: Centralized model configuration
-    config: Optional[ModelConfig] = None
-    
-    def __post_init__(self):        
+    def __post_init__(self):
+        if self.max_output_tokens is None:
+            self.max_output_tokens = min(self.context_window // 4, 32_000)
+        
         if ModelCapability.CHAT not in self.capabilities:
             self.capabilities.insert(0, ModelCapability.CHAT)
     
@@ -125,56 +82,6 @@ class Model:
     def is_free_tier(self) -> bool:
         return "free" in self.tier_availability
     
-    def get_litellm_params(self, **override_params) -> Dict[str, Any]:
-        """Get complete LiteLLM parameters for this model, including all configuration."""
-        # Start with intelligent defaults
-        params = {
-            "model": self.id,
-            "num_retries": 5,
-        }
-        
-    
-        # Apply model-specific configuration if available
-        if self.config:
-            # Provider & API configuration parameters
-            api_params = [
-                'api_base', 'api_version', 'base_url', 'deployment_id', 
-                'timeout', 'num_retries'
-            ]
-            
-            # Apply configured parameters
-            for param_name in api_params:
-                param_value = getattr(self.config, param_name, None)
-                if param_value is not None:
-                    params[param_name] = param_value
-            
-            if self.config.headers:
-                params["headers"] = self.config.headers.copy()
-            if self.config.extra_headers:
-                params["extra_headers"] = self.config.extra_headers.copy()
-            if self.config.performanceConfig:
-                params["performanceConfig"] = self.config.performanceConfig.copy()
-        
-        
-        # Apply any runtime overrides
-        for key, value in override_params.items():
-            if value is not None:
-                # Handle headers and extra_headers merging separately
-                if key == "headers" and "headers" in params:
-                    if isinstance(params["headers"], dict) and isinstance(value, dict):
-                        params["headers"].update(value)
-                    else:
-                        params[key] = value
-                elif key == "extra_headers" and "extra_headers" in params:
-                    if isinstance(params["extra_headers"], dict) and isinstance(value, dict):
-                        params["extra_headers"].update(value)
-                    else:
-                        params[key] = value
-                else:
-                    params[key] = value
-        
-        return params
-    
     def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
@@ -187,9 +94,6 @@ class Model:
             "pricing": {
                 "input_cost_per_million_tokens": self.pricing.input_cost_per_million_tokens,
                 "output_cost_per_million_tokens": self.pricing.output_cost_per_million_tokens,
-                "cached_read_cost_per_million_tokens": self.pricing.cached_read_cost_per_million_tokens,
-                "cache_write_5m_cost_per_million_tokens": self.pricing.cache_write_5m_cost_per_million_tokens,
-                "cache_write_1h_cost_per_million_tokens": self.pricing.cache_write_1h_cost_per_million_tokens,
             } if self.pricing else None,
             "enabled": self.enabled,
             "beta": self.beta,

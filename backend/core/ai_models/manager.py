@@ -2,7 +2,7 @@ from typing import Optional, List, Dict, Any, Tuple
 from .registry import registry
 from .ai_models import Model, ModelCapability
 from core.utils.logger import logger
-from .registry import PREMIUM_MODEL_ID, FREE_MODEL_ID
+from .registry import DEFAULT_PREMIUM_MODEL, DEFAULT_FREE_MODEL
 
 class ModelManager:
     def __init__(self):
@@ -12,32 +12,16 @@ class ModelManager:
         return self.registry.get(model_id)
     
     def resolve_model_id(self, model_id: str) -> str:
-        """Resolve a model ID to its registry ID.
+        logger.debug(f"resolve_model_id called with: '{model_id}' (type: {type(model_id)})")
         
-        Handles:
-        - Registry model IDs (kortix/basic) → returns as-is
-        - Model aliases → resolves to registry ID
-        - LiteLLM model IDs (Bedrock ARNs) → reverse lookup to registry ID (e.g. kortix/basic)
-        - GLM-4.6 aliases → auto-resolution
-        """
-        # logger.debug(f"resolve_model_id called with: '{model_id}' (type: {type(model_id)})")
-        
-        # Auto-resolution for GLM-4.6
-        if model_id and "glm-4.6" in model_id.lower():
-            resolved_model_name = "openai-compatible/glm-4.6"
-            logger.debug(f"Auto-resolved GLM-4.6 model: '{model_id}' -> '{resolved_model_name}'")
-            return resolved_model_name
-        
-        # First try direct registry lookup
         resolved = self.registry.resolve_model_id(model_id)
         if resolved:
+            logger.debug(f"Resolved model '{model_id}' to '{resolved}'")
             return resolved
         
-        # Try reverse lookup from LiteLLM model ID (e.g. Bedrock ARN → kortix/basic)
-        reverse_resolved = self.registry.resolve_from_litellm_id(model_id)
-        if reverse_resolved != model_id:
-            return reverse_resolved
-            
+        # Silently return the original model_id if we can't resolve it
+        # This avoids spamming logs with warnings for unknown models
+        logger.debug(f"Could not resolve model ID: '{model_id}', returning as-is")
         return model_id
     
     def validate_model(self, model_id: str) -> Tuple[bool, str]:
@@ -66,33 +50,17 @@ class ModelManager:
         output_cost = output_tokens * model.pricing.output_cost_per_token
         total_cost = input_cost + output_cost
         
-        # logger.debug(
-        #     f"Cost calculation for {model.name}: "
-        #     f"{input_tokens} input tokens (${input_cost:.6f}) + "
-        #     f"{output_tokens} output tokens (${output_cost:.6f}) = "
-        #     f"${total_cost:.6f}"
-        # )
+        logger.debug(
+            f"Cost calculation for {model.name}: "
+            f"{input_tokens} input tokens (${input_cost:.6f}) + "
+            f"{output_tokens} output tokens (${output_cost:.6f}) = "
+            f"${total_cost:.6f}"
+        )
         
         return total_cost
     
     def get_models_for_tier(self, tier: str) -> List[Model]:
         return self.registry.get_by_tier(tier, enabled_only=True)
-    
-    def get_litellm_params(self, model_id: str, **override_params) -> Dict[str, Any]:
-        """Get complete LiteLLM parameters for a model from the registry."""
-        model = self.get_model(model_id)
-        if not model:
-            return {
-                "model": model_id,
-                "num_retries": 5,
-                **override_params
-            }
-        
-        # Get config from model, then override the model ID with the actual LiteLLM model ID
-        params = model.get_litellm_params(**override_params)
-        params["model"] = self.registry.get_litellm_model_id(model_id)
-        
-        return params
     
     def get_models_with_capability(self, capability: ModelCapability) -> List[Model]:
         return self.registry.get_by_capability(capability, enabled_only=True)
@@ -195,18 +163,18 @@ class ModelManager:
         tier: Optional[str] = None,
         include_disabled: bool = False
     ) -> List[Dict[str, Any]]:
-        # logger.debug(f"list_available_models called with tier='{tier}', include_disabled={include_disabled}")
+        logger.debug(f"list_available_models called with tier='{tier}', include_disabled={include_disabled}")
         
         if tier:
             models = self.registry.get_by_tier(tier, enabled_only=not include_disabled)
-            # logger.debug(f"Found {len(models)} models for tier '{tier}'")
+            logger.debug(f"Found {len(models)} models for tier '{tier}'")
         else:
             models = self.registry.get_all(enabled_only=not include_disabled)
-            # logger.debug(f"Found {len(models)} total models")
+            logger.debug(f"Found {len(models)} total models")
         
         if models:
             model_names = [m.name for m in models]
-            # logger.debug(f"Models: {model_names}")
+            logger.debug(f"Models: {model_names}")
         else:
             logger.warning(f"No models found for tier '{tier}' - this might indicate a configuration issue")
         
@@ -224,12 +192,11 @@ class ModelManager:
         try:
             from core.utils.config import config, EnvMode
             if config.ENV_MODE == EnvMode.LOCAL:
-                return PREMIUM_MODEL_ID
+                return DEFAULT_PREMIUM_MODEL
                 
-            from core.billing.subscriptions import subscription_service
+            from core.services.billing import get_user_subscription, SUBSCRIPTION_TIERS
             
-            subscription_info = await subscription_service.get_subscription(user_id)
-            subscription = subscription_info.get('subscription')
+            subscription = await get_user_subscription(user_id)
             
             is_paid_tier = False
             if subscription:
@@ -239,21 +206,20 @@ class ModelManager:
                 else:
                     price_id = subscription.get('price_id')
                 
-                # Check if this is a paid tier by looking at the tier info
-                tier_info = subscription_info.get('tier', {})
-                if tier_info and tier_info.get('name') != 'free' and tier_info.get('name') != 'none':
+                tier_info = SUBSCRIPTION_TIERS.get(price_id)
+                if tier_info and tier_info['name'] != 'free':
                     is_paid_tier = True
             
             if is_paid_tier:
-                # logger.debug(f"Setting Default Premium Model for paid user {user_id}")
-                return PREMIUM_MODEL_ID
+                logger.debug(f"Setting Claude Sonnet 4 as default for paid user {user_id}")
+                return DEFAULT_PREMIUM_MODEL
             else:
-                # logger.debug(f"Setting Default Free Model for free user {user_id}")
-                return FREE_MODEL_ID
+                logger.debug(f"Setting Kimi K2 as default for free user {user_id}")
+                return DEFAULT_FREE_MODEL
                 
         except Exception as e:
             logger.warning(f"Failed to determine user tier for {user_id}: {e}")
-            return FREE_MODEL_ID
+            return DEFAULT_FREE_MODEL
 
 
 model_manager = ModelManager() 
