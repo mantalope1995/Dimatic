@@ -109,22 +109,22 @@ def setup_provider_router(openai_compatible_api_key: str = None, openai_compatib
     fallbacks = [
         # MAP-tagged Haiku 4.5 (default) -> Sonnet 4 -> Sonnet 4.5
         {
-            "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/heol2zyy5v48": [
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/tyj1ks3nj9qf",
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/few7z4l830xh",
+            "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/sl6nzclx7bjt": [
+                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/tyj1ks3nj9qf",
+                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/v2qyiec7heax",
             ]
         },
         # MAP-tagged Sonnet 4.5 -> Sonnet 4 -> Haiku 4.5
         {
-            "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/few7z4l830xh": [
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/tyj1ks3nj9qf",
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/heol2zyy5v48",
+            "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/v2qyiec7heax": [
+                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/tyj1ks3nj9qf",
+                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/sl6nzclx7bjt",
             ]
         },
         # MAP-tagged Sonnet 4 -> Haiku 4.5
         {
-            "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/tyj1ks3nj9qf": [
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/heol2zyy5v48",
+            "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/tyj1ks3nj9qf": [
+                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/sl6nzclx7bjt",
             ]
         }
     ]
@@ -135,21 +135,21 @@ def setup_provider_router(openai_compatible_api_key: str = None, openai_compatib
     context_window_fallbacks = [
         # Haiku 4.5 (200k) -> Sonnet 4 (1M) -> Sonnet 4.5 (1M)
         {
-            "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/heol2zyy5v48": [
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/tyj1ks3nj9qf",
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/few7z4l830xh",
+            "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/sl6nzclx7bjt": [
+                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/tyj1ks3nj9qf",
+                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/v2qyiec7heax",
             ]
         },
         # Sonnet 4.5 (1M) -> Sonnet 4 (1M) - both have same context, but allows retry
         {
-            "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/few7z4l830xh": [
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/tyj1ks3nj9qf",
+            "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/v2qyiec7heax": [
+                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/tyj1ks3nj9qf",
             ]
         },
         # Sonnet 4 (1M) -> Sonnet 4.5 (1M) - both have same context, but allows retry
         {
-            "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/tyj1ks3nj9qf": [
-                "bedrock/converse/arn:aws:bedrock:us-west-2:935064898258:application-inference-profile/few7z4l830xh",
+            "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/tyj1ks3nj9qf": [
+                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/v2qyiec7heax",
             ]
         }
     ]

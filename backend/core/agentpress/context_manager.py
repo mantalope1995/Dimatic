@@ -42,7 +42,7 @@ def _get_bedrock_client_singleton():
     if _bedrock_client is None:
         try:
             import boto3
-            _bedrock_client = boto3.client('bedrock-runtime', region_name='us-west-2')
+            _bedrock_client = boto3.client('bedrock-runtime', region_name='ap-southeast-2')
         except Exception as e:
             logger.debug(f"Could not initialize Bedrock client: {e}")
     return _bedrock_client

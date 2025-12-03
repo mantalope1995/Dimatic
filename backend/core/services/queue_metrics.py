@@ -27,7 +27,7 @@ def _get_cloudwatch_client():
     if _cloudwatch_client is None:
         try:
             import boto3
-            _cloudwatch_client = boto3.client('cloudwatch', region_name='us-west-2')
+            _cloudwatch_client = boto3.client('cloudwatch', region_name='ap-southeast-2')
         except Exception as e:
             logger.warning(f"Failed to initialize CloudWatch client: {e}")
             return None
