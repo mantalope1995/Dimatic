@@ -39,9 +39,9 @@ export const metadata: Metadata = {
   },
   description: siteMetadata.description,
   keywords: siteMetadata.keywords,
-  authors: [{ name: 'Kortix Team', url: 'https://kortix.com' }],
-  creator: 'Kortix Team',
-  publisher: 'Kortix Team',
+  authors: [{ name: 'Dimatic Team', url: 'https://dimatic.com.au' }],
+  creator: 'Dimatic Team',
+  publisher: 'Dimatic Team',
   applicationName: siteMetadata.name,
   robots: {
     index: true,
@@ -74,8 +74,8 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: siteMetadata.title,
     description: siteMetadata.description,
-    creator: '@kortix',
-    site: '@kortix',
+    creator: '@dimatic',
+    site: '@dimatic',
     images: ['/banner.png'],
   },
   icons: {
@@ -113,10 +113,10 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://eu.i.posthog.com" />
         
         {/* Static SEO meta tags - rendered in initial HTML */}
-        <title>Kortix: Your Autonomous AI Worker</title>
+        <title>dimatic: Your Autonomous AI Worker</title>
         <meta name="description" content="Built for complex tasks, designed for everything. The ultimate AI assistant that handles it all—from simple requests to mega-complex projects." />
-        <meta name="keywords" content="Kortix, Autonomous AI Worker, AI Worker, Generalist AI, Open Source AI, Autonomous Agent, Complex Tasks, AI Assistant" />
-        <meta property="og:title" content="Kortix: Your Autonomous AI Worker" />
+        <meta name="keywords" content="dimatic, Autonomous AI Worker, AI Worker, Generalist AI, Open Source AI, Autonomous Agent, Complex Tasks, AI Assistant" />
+        <meta property="og:title" content="dimatic: Your Autonomous AI Worker" />
         <meta property="og:description" content="Built for complex tasks, designed for everything. The ultimate AI assistant that handles it all—from simple requests to mega-complex projects." />
         <meta property="og:image" content="https://kortix.com/banner.png" />
         <meta property="og:url" content="https://kortix.com" />
@@ -127,7 +127,7 @@ export default function RootLayout({
         <meta name="twitter:description" content="Built for complex tasks, designed for everything. The ultimate AI assistant that handles it all—from simple requests to mega-complex projects." />
         <meta name="twitter:image" content="https://kortix.com/banner.png" />
         <meta name="twitter:site" content="@kortix" />
-        <link rel="canonical" href="https://kortix.com" />
+        <link rel="canonical" href="https://dimatic.com.au" />
 
         <Script id="facebook-pixel" strategy="lazyOnload">
           {`
@@ -161,15 +161,15 @@ export default function RootLayout({
               '@context': 'https://schema.org',
               '@type': 'Organization',
               name: siteMetadata.name,
-              alternateName: ['Suna', 'Kortix AI', 'Kortix: Your Autonomous AI Worker'],
+              alternateName: ['Suna', 'Dimatic AI', 'Dimatic: Your Autonomous AI Worker'],
               url: siteMetadata.url,
               logo: `${siteMetadata.url}/favicon.png`,
               description: siteMetadata.description,
               foundingDate: '2024',
               sameAs: [
-                'https://github.com/Kortix-ai/Suna',
-                'https://x.com/kortix',
-                'https://linkedin.com/company/kortix',
+                'https://github.com/Dimatic-ai/Dimatic',
+                'https://x.com/dimatic',
+                'https://linkedin.com/company/dimatic',
               ],
               contactPoint: {
                 '@type': 'ContactPoint',

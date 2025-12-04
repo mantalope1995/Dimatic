@@ -319,8 +319,8 @@ class Configuration:
     OPENROUTER_API_BASE: Optional[str] = "https://openrouter.ai/api/v1"
     OPENAI_COMPATIBLE_API_KEY: Optional[str] = None
     OPENAI_COMPATIBLE_API_BASE: Optional[str] = None
-    OR_SITE_URL: Optional[str] = "https://kortix.ai"
-    OR_APP_NAME: Optional[str] = "Kortix AI"
+    OR_SITE_URL: Optional[str] = "https://dimatic.com.au"
+    OR_APP_NAME: Optional[str] = "Dimatic"
     
     # Frontend URL configuration
     FRONTEND_URL_ENV: Optional[str] = None
@@ -513,9 +513,9 @@ class Configuration:
         Get the frontend URL based on environment.
         
         Returns:
-        - Production: 'https://kortix.com' (or FRONTEND_URL_ENV if set)
-        - Staging: 'https://staging.kortix.com' (or FRONTEND_URL_ENV if set)
-        - Local: FRONTEND_URL_ENV or 'http://localhost:3000'
+        - Production: 'https://dimatic.com.au' (or FRONTEND_URL_ENV if set)
+        - Staging: 'https://dimatic.com.au' (or FRONTEND_URL_ENV if set)
+        - Local: FRONTEND_URL_ENV or 'https://dimatic.com.au'
         """
         # Check for environment variable override first
         if self.FRONTEND_URL_ENV:
@@ -523,12 +523,12 @@ class Configuration:
         
         # Environment-based defaults
         if self.ENV_MODE == EnvMode.PRODUCTION:
-            return 'https://kortix.com'
+            return 'https://dimatic.com.au'
         elif self.ENV_MODE == EnvMode.STAGING:
-            return 'http://localhost:3000'
+            return 'https://dimatic.com.au'
             # return 'https://staging.suna.so'
         else:
-            return 'http://localhost:3000'
+            return 'https://dimatic.com.au'
     
     def _generate_admin_api_key(self) -> str:
         """Generate a secure admin API key for Kortix administrative functions."""

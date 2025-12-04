@@ -5,11 +5,11 @@ import { pricingTiers, type PricingTier } from '@/lib/pricing-config';
 export type { PricingTier } from '@/lib/pricing-config';
 
 export const siteConfig = {
-  name: 'Kortix: Your Autonomous AI Worker',
-  description: 'Built for complex tasks, designed for everything. The ultimate AI assistant that handles it all—from simple requests to mega-complex projects.',
+  name: 'Dimatic - Stop guessing, start knowing.',
+  description: 'Built for complex tasks, designed for everything. The ultimate AI assistant that handles it all—from simple requests to complex projects.',
   cta: 'Start Free',
-  url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-  keywords: ['Kortix', 'Autonomous AI Worker', 'AI Worker', 'Generalist AI', 'Open Source AI', 'Autonomous Agent', 'Complex Tasks', 'AI Assistant'],
+  url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3015',
+  keywords: ['Dimatic', 'Autonomous AI Worker', 'AI Worker', 'Generalist AI', 'Open Source AI', 'Autonomous Agent', 'Complex Tasks', 'AI Assistant'],
   links: {
     email: 'support@kortix.com',
     twitter: 'https://x.com/kortix',
@@ -64,11 +64,11 @@ export const siteConfig = {
   cloudPricingItems: pricingTiers,
   footerLinks: [
     {
-      title: 'Kortix',
+      title: 'Dimatic',
       links: [
-        { id: 1, title: 'About', url: 'https://kortix.com' },
-        { id: 3, title: 'Contact', url: 'mailto:hey@kortix.com' },
-        { id: 4, title: 'Careers', url: 'https://kortix.com/careers' },
+        { id: 1, title: 'About', url: 'https://dimatic.com.au' },
+        { id: 3, title: 'Contact', url: 'mailto:hey@dimatic.com.au' },
+        { id: 4, title: 'Careers', url: 'https://dimatic.com.au/careers' },
       ],
     },
     {

@@ -1,8 +1,8 @@
 export const siteConfig = {
-  name: 'Kortix',
-  url: 'https://kortix.com',
-  description: 'Kortix the Super Mega Giga Worker – A generalist AI Worker that is able to autonomously tackle complex tasks, browse the web, write and execute code, manage files, conduct research, automate workflows, and accomplish real-world objectives through natural conversation.',
-  tagline: 'The Super Mega Giga AI Worker',
+  name: 'Dimatic',
+  url: 'https://dimatic.com.au',
+  description: 'Dimatic',
+  tagline: 'Stop guessing, start knowing.',
   features: [
     'Autonomous task execution',
     'Browser automation & web scraping',
@@ -12,10 +12,10 @@ export const siteConfig = {
     'Multi-step problem solving',
   ],
   links: {
-    twitter: 'https://x.com/kortix',
-    github: 'https://github.com/kortix-ai/',
-    linkedin: 'https://www.linkedin.com/company/kortix/',
-    discord: 'https://discord.gg/kortix',
+    twitter: 'https://x.com/dimatic',
+    github: 'https://github.com/dimatic-ai/',
+    linkedin: 'https://www.linkedin.com/company/dimatic/',
+    discord: 'https://discord.gg/dimatic',
   },
 };
 

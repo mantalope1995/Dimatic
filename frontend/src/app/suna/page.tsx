@@ -4,18 +4,18 @@ import { ArrowRight, Github } from 'lucide-react';
 import Image from 'next/image';
 
 export const metadata: Metadata = {
-  title: 'Suna is now Kortix | Kortix Suna - Open Source AI Worker',
-  description: 'Suna has rebranded to Kortix. Kortix (formerly Suna) is the same powerful open source AI assistant and generalist AI worker you know and love, now with a new name and bigger vision.',
+  title: 'Dimatic',
+  description: 'Dimatic - Stop guessing, start knowing.',
   keywords: [
     'Suna',
-    'Kortix Suna',
+    'Dimatic Suna',
     'Suna AI',
     'Suna assistant',
     'Suna.so',
     'where is Suna',
-    'Kortix',
+    'Dimatic',
     'Suna rebrand',
-    'Suna is now Kortix',
+    'Suna is now Dimatic',
     'AI assistant',
     'open source AI',
     'generalist AI worker',
@@ -23,28 +23,28 @@ export const metadata: Metadata = {
     'autonomous AI',
   ],
   openGraph: {
-    title: 'Suna is now Kortix',
-    description: 'Kortix (formerly Suna) - Same powerful open source AI worker, new name.',
+    title: 'Dimatic',
+    description: 'Dimatic - Stop guessing, start knowing.',
     type: 'website',
-    url: 'https://kortix.com/suna',
-    siteName: 'Kortix',
+    url: 'https://dimatic.com.au/suna',
+    siteName: 'Dimatic',
     images: [
       {
         url: '/banner.png',
         width: 1200,
         height: 630,
-        alt: 'Kortix - Formerly Suna',
+        alt: 'Dimatic - Formerly Suna',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Suna is now Kortix',
-    description: 'Kortix (formerly Suna) - Same powerful open source AI worker, new name.',
+    title: 'Dimatic',
+    description: 'Dimatic - Stop guessing, start knowing.',
     images: ['/banner.png'],
   },
   alternates: {
-    canonical: 'https://kortix.com/suna',
+    canonical: 'https://dimatic.com.au/',
   },
   robots: {
     index: true,
@@ -138,7 +138,7 @@ export default function SunaPage() {
 
               {/* Main Heading */}
               <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-medium tracking-tighter text-balance text-center">
-                Suna is now Kortix
+                Dimatic
               </h1>
 
               {/* Subheading */}
@@ -153,11 +153,11 @@ export default function SunaPage() {
                 href="/"
                 className="flex h-12 items-center justify-center w-full sm:w-auto px-8 text-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm font-medium"
               >
-                Go to Kortix
+                Go to Dimatic
                 <ArrowRight className="ml-2 size-4" />
               </Link>
               <a
-                href="https://github.com/kortix-ai/suna"
+                href="https://github.com/dimatic-ai/dimatic"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex h-12 items-center justify-center w-full sm:w-auto px-8 text-center rounded-full border border-border bg-background hover:bg-accent/50 transition-all font-medium"
@@ -218,7 +218,7 @@ export default function SunaPage() {
               <div className="relative w-full h-full" style={{ isolation: 'isolate' }}>
                 <Image
                   src="/wordmark.svg"
-                  alt="Kortix"
+                  alt="Dimatic"
                   fill
                   className="object-contain dark:invert opacity-10"
                   priority
@@ -250,11 +250,7 @@ export default function SunaPage() {
           {/* SEO Footer Text */}
           <div className="relative z-10 text-center max-w-2xl mx-auto pb-20 pt-12 border-t border-border/50">
             <p className="text-sm text-muted-foreground/60 leading-relaxed font-medium">
-              Looking for Suna? You've found us. Kortix is the evolution of Suna — the same open
-              source AI assistant and generalist AI worker, now with a name that better represents
-              our vision. For users searching for "Suna AI", "Suna assistant", "Suna.so", "where is
-              Suna", or "Kortix Suna" — this is the official continuation of the Suna project under
-              the Kortix brand.
+              Dimatic.
             </p>
           </div>
         </div>
