@@ -58,7 +58,7 @@ import { useUpdateAgent, useAgents } from '@/hooks/agents/use-agents';
 import { useUpdateAgentMCPs } from '@/hooks/agents/use-update-agent-mcps';
 import { useExportAgent } from '@/hooks/agents/use-agent-export-import';
 import { ExpandableMarkdownEditor } from '@/components/ui/expandable-markdown-editor';
-import { AgentModelSelector } from './config/model-selector';
+// import { AgentModelSelector } from './config/model-selector'; // Removed for Minimax-m2 migration
 import { GranularToolConfiguration } from './tools/granular-tool-configuration';
 import { AgentMCPConfiguration } from './agent-mcp-configuration';
 import { AgentKnowledgeBaseManager } from './knowledge-base/agent-kb-tree';
@@ -126,7 +126,6 @@ export function AgentConfigurationDialog({
   const [formData, setFormData] = useState({
     name: '',
     system_prompt: '',
-    model: undefined as string | undefined,
     agentpress_tools: {} as Record<string, any>,
     configured_mcps: [] as any[],
     custom_mcps: [] as any[],
@@ -157,7 +156,6 @@ export function AgentConfigurationDialog({
     const newFormData = {
       name: configSource.name || '',
       system_prompt: configSource.system_prompt || '',
-      model: configSource.model || undefined,
       agentpress_tools: configSource.agentpress_tools || {},
       configured_mcps: configSource.configured_mcps || [],
       custom_mcps: configSource.custom_mcps || [],
@@ -194,7 +192,6 @@ export function AgentConfigurationDialog({
         agentpress_tools: formData.agentpress_tools,
       };
 
-      if (formData.model !== undefined && formData.model !== null) updateData.model = formData.model;
       if (formData.icon_name !== undefined) updateData.icon_name = formData.icon_name;
       if (formData.icon_color !== undefined) updateData.icon_color = formData.icon_color;
       if (formData.icon_background !== undefined) updateData.icon_background = formData.icon_background;
@@ -268,10 +265,6 @@ export function AgentConfigurationDialog({
     }
 
     setFormData(prev => ({ ...prev, system_prompt: value }));
-  };
-
-  const handleModelChange = (model: string) => {
-    setFormData(prev => ({ ...prev, model: model || undefined }));
   };
 
   const handleToolsChange = (tools: Record<string, boolean | { enabled: boolean; description: string }>) => {

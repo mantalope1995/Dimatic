@@ -39,10 +39,19 @@ This implementation plan breaks down the development of the Kortix AI agent plat
 
 - [ ] 4. Implement database models and migrations
   - Create SQLAlchemy models for all tables (threads, agent_runs, messages, projects, etc.)
-  - Implement database migration scripts
+  - Implement database migration scripts to add AgentCore columns to existing tables
   - Set up connection pooling and query optimization
   - Create database helper utilities
-  - _Requirements: 14.2, 14.3, 14.4_
+  - _Requirements: 14.2, 14.3, 14.4, 16.4_
+
+- [ ] 4A. Remove Dramatiq/Redis worker infrastructure
+  - Remove Dramatiq worker configuration and dependencies
+  - Remove Redis queue setup and monitoring
+  - Remove worker health check endpoints
+  - Remove run_agent_background.py worker entry point
+  - Update docker-compose to remove Redis service dependency
+  - AgentCore Runtime replaces all worker functionality with auto-scaling
+  - _Requirements: 1.6, 1.7, 19.5_
 
 - [ ] 5. Checkpoint - Verify foundation
   - Ensure all tests pass, ask the user if questions arise.
@@ -245,6 +254,31 @@ This implementation plan breaks down the development of the Kortix AI agent plat
   - Log cleanup operations for auditing
   - _Requirements: 4.5_
 
+- [ ] 20A. Implement Long-Term Memory (LTM) strategies
+  - Configure Summary Memory Strategy for automatic session summarization
+  - Configure User Preference Strategy for learning user preferences across sessions
+  - Configure Semantic Memory Strategy for fact extraction and recall
+  - Implement tenant-isolated namespaces using account_id prefix pattern
+  - Use composite actor_id format: `{account_id}:{user_id}` for isolation
+  - _Requirements: 4A.1, 4A.2, 4A.3, 4A.4, 4A.5, 4A.6_
+
+- [ ] 20A.1 Write property test for LTM tenant isolation
+  - **Property 28: LTM Tenant Isolation**
+  - Verify LTM data is namespaced by account_id
+  - Verify cross-tenant queries return no results
+  - **Validates: Requirements 4A.4, 4A.5**
+
+- [ ] 20B. Implement semantic search for conversation history
+  - Configure AgentCore Memory semantic search with top_k and relevance_score
+  - Replace KB-fusion conversation search with Memory semantic search
+  - Implement tenant-scoped retrieval configs
+  - _Requirements: 4B.1, 4B.2, 4B.3, 4B.4_
+
+- [ ] 20B.1 Write property test for semantic search tenant isolation
+  - **Property 29: Semantic Search Tenant Isolation**
+  - Verify semantic search only returns tenant's own data
+  - **Validates: Requirements 4B.3**
+
 - [ ] 21. Checkpoint - Verify Memory integration
   - Ensure all tests pass, ask the user if questions arise.
 
@@ -305,55 +339,58 @@ This implementation plan breaks down the development of the Kortix AI agent plat
 
 - [ ] 26. Implement AgentCore Gateway Adapter
   - Create AgentCoreGatewayAdapter class
-  - Implement deploy_mcp_server method
-  - Implement invoke_mcp_tool method with credential handling
-  - Implement update_gateway_config and delete_gateway_deployment methods
-  - Store gateway_deployment_id in database
-  - _Requirements: 5.1, 5.2, 5.4, 5.5_
+  - Implement create_gateway method for per-tenant Gateway creation with semantic search enabled
+  - Implement add_mcp_target method for native MCP server targets (no Lambda proxy needed)
+  - Implement add_openapi_target method for REST APIs
+  - Implement add_lambda_target method for custom tools
+  - Implement invoke_tool method with OAuth2 token handling
+  - Implement list_targets and delete_target methods
+  - Store Gateway credentials in Secrets Manager
+  - Enable semantic search by default for tool discovery
+  - _Requirements: 5.1, 5.2, 5.4, 5.5, 5C.1, 5C.2_
+
+- [ ] 26.2 Write property test for Gateway semantic search
+  - **Property 30: Gateway Semantic Search Tenant Isolation**
+  - Verify semantic search only returns tools available to requesting tenant
+  - **Validates: Requirements 5C.3, 5C.4**
 
 - [ ] 26.1 Write property test for Gateway deployment routing
   - **Property 9: Gateway Deployment Routing**
   - **Validates: Requirements 5.1**
 
-- [ ] 27. Implement MCP-to-Gateway conversion
-  - Create MCPToGatewayAdapter class
-  - Implement convert_mcp_to_gateway_target method
-  - Support HTTP/REST MCP servers via OpenAPI targets
-  - Implement Lambda proxy for SSE MCP servers
-  - Implement Lambda proxy for WebSocket MCP servers
-  - _Requirements: 5.1, 5.4_
-
-- [ ] 28. Implement MCP Configuration Service
+- [ ] 27. Implement MCP Configuration Service
   - Create MCPConfigurationService class
-  - Implement configure_agent_mcps method
-  - Deploy MCP servers to Gateway on configuration
-  - Store deployment records in gateway_deployments table
+  - Implement ensure_tenant_gateway method (create Gateway if not exists)
+  - Implement configure_agent_mcps method using native MCP targets
+  - Add MCP servers directly as `mcpServer` target type (no Lambda proxies)
+  - Store target records in gateway_deployments table
   - Handle configuration failures gracefully
   - _Requirements: 5.1, 5.4, 5.5_
 
-- [ ] 29. Update MCPToolWrapper to use Gateway
-  - Modify MCPToolWrapper to route calls through AgentCore Gateway
-  - Retrieve credentials from Secrets Manager
+- [ ] 28. Update MCPToolWrapper to use Gateway
+  - Modify MCPToolWrapper to route calls through AgentCore Gateway MCP endpoint
+  - Implement OAuth2 token retrieval and caching from Gateway Cognito
+  - Use Gateway's native MCP protocol support (no custom proxies)
   - Maintain existing tool interface for backward compatibility
   - Handle Gateway unavailability gracefully
   - _Requirements: 5.2, 9.2, 13.5_
 
-- [ ] 29.1 Write integration tests for MCP tool invocation
-  - Test MCP tool calls through Gateway
-  - Test credential retrieval and usage
+- [ ] 28.1 Write integration tests for MCP tool invocation
+  - Test MCP tool calls through Gateway native MCP endpoint
+  - Test OAuth2 token retrieval and caching
   - Test error handling for Gateway failures
   - Test fallback behavior
   - _Requirements: 5.2, 9.5_
 
-- [ ] 30. Implement frontend MCP catalog UI
+- [ ] 29. Implement frontend MCP catalog UI
   - Create MCP catalog browsing interface
-  - Implement search and filtering
-  - Implement OAuth flow UI using AWS Cognito
+  - Implement search and filtering using Gateway's semantic search
+  - Implement OAuth flow UI using Gateway's built-in Cognito
   - Display connected integrations from Secrets Manager
   - Implement credential revocation
   - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5_
 
-- [ ] 31. Checkpoint - Verify MCP integration
+- [ ] 30. Checkpoint - Verify MCP integration
   - Ensure all tests pass, ask the user if questions arise.
 
 ---
@@ -717,10 +754,26 @@ This implementation plan breaks down the development of the Kortix AI agent plat
 
 This implementation plan provides a comprehensive, phased approach to building the Kortix AI agent platform on AWS AgentCore while maintaining 100% feature parity with the existing platform. The plan includes:
 
-- **77 tasks** organized into **12 phases**
-- **27 property-based tests** for correctness validation
+- **83 tasks** organized into **12 phases**
+- **30 property-based tests** for correctness validation
 - **Multiple integration and unit tests** for comprehensive coverage
 - **7 checkpoints** for validation and go/no-go decisions
 - **Clear requirement traceability** for every task
 
 The phased approach allows for incremental development with frequent validation, ensuring that each component is working correctly before moving to the next phase.
+
+**Key Simplifications & Easy Wins:**
+
+1. **Native Gateway MCP Support** - Phase 5 leverages AgentCore Gateway's native MCP server target support, eliminating custom Lambda proxies.
+
+2. **Long-Term Memory (LTM) Strategies** - Phase 4 adds automatic session summarization, user preference learning, and fact extraction with tenant-isolated namespaces.
+
+3. **Semantic Search** - AgentCore Memory's built-in vector search replaces KB-fusion for conversation history, with tenant-scoped retrieval configs.
+
+4. **Gateway Semantic Search** - Tool discovery uses Gateway's semantic matching, helping agents find the right tool from many options.
+
+5. **Auto-Scaling Without Infrastructure** - Phase 0 removes Dramatiq workers, Redis queues, and worker health monitoring entirely. AgentCore Runtime handles all scaling automatically.
+
+6. **Built-in OAuth2** - Gateway's Cognito integration simplifies MCP authentication without custom OAuth flow implementation.
+
+**Multi-Tenant Security:** All easy wins include tenant isolation via account_id namespacing, composite actor_ids, and scoped retrieval configs to ensure no cross-tenant data leakage.

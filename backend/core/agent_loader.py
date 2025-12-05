@@ -415,7 +415,8 @@ class AgentLoader:
             static_config = load_static_suna_config()
         
         agent.system_prompt = static_config['system_prompt']
-        agent.model = static_config['model']
+        # Always override model to Minimax-m2 (Requirements 1.4, 9.5)
+        agent.model = "minimax/minimax-m2"
         agent.agentpress_tools = static_config['agentpress_tools']
         agent.centrally_managed = static_config['centrally_managed']
         agent.restrictions = static_config['restrictions']
@@ -501,7 +502,8 @@ class AgentLoader:
                 tools = config.get('tools', {})
                 
                 agent.system_prompt = config.get('system_prompt', '')
-                agent.model = config.get('model')
+                # Always override model to Minimax-m2 (Requirements 1.4, 9.5)
+                agent.model = "minimax/minimax-m2"
                 agent.configured_mcps = tools.get('mcp', [])
                 agent.custom_mcps = tools.get('custom_mcp', [])
                 
@@ -512,7 +514,8 @@ class AgentLoader:
             else:
                 # Old format compatibility
                 agent.system_prompt = version_dict.get('system_prompt', '')
-                agent.model = version_dict.get('model')
+                # Always override model to Minimax-m2 (Requirements 1.4, 9.5)
+                agent.model = "minimax/minimax-m2"
                 agent.configured_mcps = version_dict.get('configured_mcps', [])
                 agent.custom_mcps = version_dict.get('custom_mcps', [])
                 
@@ -539,7 +542,8 @@ class AgentLoader:
         from core.config_helper import _get_default_agentpress_tools, _extract_agentpress_tools_for_run
         
         agent.system_prompt = 'You are a helpful AI assistant.'
-        agent.model = None
+        # Always use Minimax-m2 as the model (Requirements 1.4, 9.5)
+        agent.model = "minimax/minimax-m2"
         agent.configured_mcps = []
         agent.custom_mcps = []
         agent.agentpress_tools = _extract_agentpress_tools_for_run(_get_default_agentpress_tools())
@@ -608,7 +612,8 @@ class AgentLoader:
         from core.config_helper import _extract_agentpress_tools_for_run
         
         agent.system_prompt = config.get('system_prompt', '')
-        agent.model = config.get('model')
+        # Always override model to Minimax-m2 (Requirements 1.4, 9.5)
+        agent.model = "minimax/minimax-m2"
         agent.configured_mcps = tools.get('mcp', [])
         agent.custom_mcps = tools.get('custom_mcp', [])
         agent.agentpress_tools = _extract_agentpress_tools_for_run(tools.get('agentpress', {}))

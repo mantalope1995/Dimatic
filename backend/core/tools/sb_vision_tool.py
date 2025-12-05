@@ -17,6 +17,7 @@ from reportlab.graphics import renderPM
 import tempfile
 import requests
 from core.utils.config import config
+from core.mcp_module.mcp_service import mcp_service
 
 # Add common image MIME types if mimetypes module is limited
 mimetypes.add_type("image/webp", ".webp")
@@ -125,6 +126,39 @@ class SandboxVisionTool(SandboxToolsBase):
                 
         except Exception as e:
             raise Exception(f"Sandbox browser-based SVG conversion failed: {str(e)}")
+    
+    async def _call_understand_image_mcp(self, image_url: str) -> str:
+        """Call understand_image MCP server for image analysis.
+        
+        Args:
+            image_url: Public URL of the image to analyze
+            
+        Returns:
+            Analysis text from the MCP server
+            
+        Raises:
+            Exception: If MCP server call fails
+        """
+        try:
+            # Call the understand_image MCP tool
+            result = await mcp_service.execute_tool(
+                tool_name="understand_image",
+                arguments={"image_url": image_url}
+            )
+            
+            if result.success:
+                # Extract analysis text from result
+                analysis = result.result
+                if isinstance(analysis, str):
+                    return analysis
+                else:
+                    return str(analysis)
+            else:
+                error_msg = result.error or "Unknown MCP error"
+                raise Exception(f"MCP server returned error: {error_msg}")
+                
+        except Exception as e:
+            raise Exception(f"Failed to analyze image via understand_image MCP: {str(e)}")
     
     async def compress_image(self, image_bytes: bytes, mime_type: str, file_path: str) -> Tuple[bytes, str]:
         """Compress an image to reduce its size while maintaining reasonable quality.
@@ -414,6 +448,15 @@ Images remain in the sandbox and can be loaded again anytime. SVG files are auto
             except Exception as upload_error:
                 print(f"[LoadImage] Failed to upload to cloud storage: {upload_error}")
                 return self.fail_response(f"Failed to upload image to cloud storage: {str(upload_error)}")
+            
+            # Call understand_image MCP for analysis
+            try:
+                analysis = await self._call_understand_image_mcp(public_url)
+                print(f"[LoadImage] Received analysis from understand_image MCP")
+            except Exception as mcp_error:
+                print(f"[LoadImage] Warning: MCP analysis failed: {mcp_error}")
+                # Continue without analysis - image will still be loaded into context
+                analysis = None
 
             # Check current image count in context (enforce 3-image limit)
             current_image_count = await self._count_images_in_context()
@@ -425,10 +468,15 @@ Images remain in the sandbox and can be loaded again anytime. SVG files are auto
             
             # Add the image to the thread as an image_context message with multi-modal content
             # This allows the LLM to actually "see" the image
+            # Include analysis from understand_image MCP if available
+            text_content = f"[Image loaded from '{cleaned_path}']"
+            if analysis:
+                text_content += f"\n\nImage Analysis: {analysis}"
+            
             message_content = {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": f"[Image loaded from '{cleaned_path}']"},
+                    {"type": "text", "text": text_content},
                     {"type": "image_url", "image_url": {"url": public_url}}
                 ]
             }
@@ -442,17 +490,23 @@ Images remain in the sandbox and can be loaded again anytime. SVG files are auto
                     "file_path": cleaned_path,
                     "mime_type": compressed_mime_type,
                     "original_size": original_size,
-                    "compressed_size": len(compressed_bytes)
+                    "compressed_size": len(compressed_bytes),
+                    "has_mcp_analysis": analysis is not None
                 }
             )
             
             print(f"[LoadImage] Added image to context. Current count: {current_image_count + 1}/3")
             
             # Return structured output
+            message = f"Successfully loaded image '{cleaned_path}' into context (reduced from {original_size/1024:.1f}KB to {len(compressed_bytes)/1024:.1f}KB). Image {current_image_count + 1}/3 in context."
+            if analysis:
+                message += " Image analysis included."
+            
             result_data = {
-                "message": f"Successfully loaded image '{cleaned_path}' into context (reduced from {original_size/1024:.1f}KB to {len(compressed_bytes)/1024:.1f}KB). Image {current_image_count + 1}/3 in context.",
+                "message": message,
                 "file_path": cleaned_path,
-                "image_url": public_url
+                "image_url": public_url,
+                "analysis": analysis
             }
             
             return self.success_response(result_data)

@@ -9,7 +9,19 @@ else:
     default_level = "DEBUG" 
     # default_level = "INFO"
 
-LOGGING_LEVEL = logging.getLevelNamesMapping().get(
+# Python 3.9 compatible level mapping
+LEVEL_NAMES = {
+    'CRITICAL': logging.CRITICAL,
+    'FATAL': logging.FATAL,
+    'ERROR': logging.ERROR,
+    'WARN': logging.WARNING,
+    'WARNING': logging.WARNING,
+    'INFO': logging.INFO,
+    'DEBUG': logging.DEBUG,
+    'NOTSET': logging.NOTSET,
+}
+
+LOGGING_LEVEL = LEVEL_NAMES.get(
     os.getenv("LOGGING_LEVEL", default_level).upper(), 
     logging.DEBUG  
 )

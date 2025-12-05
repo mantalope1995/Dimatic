@@ -372,6 +372,7 @@ class ResponseProcessor:
                                 "prompt_tokens": getattr(chunk.usage, 'prompt_tokens', None),
                                 "completion_tokens": getattr(chunk.usage, 'completion_tokens', None),
                                 "total_tokens": getattr(chunk.usage, 'total_tokens', None),
+                                "thinking_tokens": getattr(chunk.usage, 'thinking_tokens', 0),
                                 "cached_tokens": getattr(chunk.usage.prompt_tokens_details, 'cached_tokens', None) if hasattr(chunk.usage, 'prompt_tokens_details') else None,
                                 "cache_creation_tokens": getattr(chunk.usage, 'cache_creation_input_tokens', None),
                             }
@@ -624,6 +625,7 @@ class ResponseProcessor:
                             "prompt_tokens": getattr(final_llm_response.usage, 'prompt_tokens', None),
                             "completion_tokens": getattr(final_llm_response.usage, 'completion_tokens', None),
                             "total_tokens": getattr(final_llm_response.usage, 'total_tokens', None),
+                            "thinking_tokens": getattr(final_llm_response.usage, 'thinking_tokens', 0),
                             "cached_tokens": getattr(final_llm_response.usage.prompt_tokens_details, 'cached_tokens', None) if hasattr(final_llm_response.usage, 'prompt_tokens_details') else None,
                             "cache_creation_tokens": getattr(final_llm_response.usage, 'cache_creation_input_tokens', None),
                         }

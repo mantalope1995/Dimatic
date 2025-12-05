@@ -28,7 +28,35 @@ class ModelRegistry:
     
     # KORTIX BASIC & POWER – Same underlying model, different configs
     def _initialize_models(self):
-        # Kortix Basic
+        # Minimax-m2 - Primary model with thinking capability
+        self.register(Model(
+            id="minimax/minimax-m2",
+            name="Minimax-m2",
+            provider=ModelProvider.MINIMAX,
+            aliases=["minimax-m2", "Minimax-m2", "minimax-m2-interleaved"],
+            context_window=200_000,
+            capabilities=[
+                ModelCapability.CHAT,
+                ModelCapability.FUNCTION_CALLING,
+                ModelCapability.THINKING,
+            ],
+            pricing=ModelPricing(
+                input_cost_per_million_tokens=0.60,
+                output_cost_per_million_tokens=2.20,
+            ),
+            tier_availability=["free", "paid"],
+            priority=100,
+            recommended=True,
+            enabled=True,
+            config=ModelConfig(
+                api_base="https://api.minimax.chat/v1",
+                extra_headers={
+                    "anthropic-version": "2023-06-01",
+                }
+            )
+        ))
+        
+        # Kortix Basic - DISABLED
         self.register(Model(
             id="kortix/basic",
             name="Kortix Basic",
@@ -49,8 +77,8 @@ class ModelRegistry:
             ),
             tier_availability=["free", "paid"],
             priority=102,
-            recommended=True,
-            enabled=True,
+            recommended=False,
+            enabled=False,
             config=ModelConfig(
                 extra_headers={
                     "anthropic-beta": "context-1m-2025-08-07,fine-grained-tool-streaming-2025-05-14,token-efficient-tools-2025-02-19" 
@@ -58,7 +86,7 @@ class ModelRegistry:
             )
         ))
         
-        # Kortix Power - extended context & thinking
+        # Kortix Power - DISABLED
         self.register(Model(
             id="kortix/power",
             name="Kortix POWER Mode",
@@ -80,8 +108,8 @@ class ModelRegistry:
             ),
             tier_availability=["paid"],
             priority=101,
-            recommended=True,
-            enabled=True,
+            recommended=False,
+            enabled=False,
             config=ModelConfig(
                 extra_headers={
                     "anthropic-beta": "context-1m-2025-08-07,fine-grained-tool-streaming-2025-05-14,token-efficient-tools-2025-02-19" 

@@ -166,7 +166,8 @@ class AgentCreationTool(Tool):
                 
                 version_service = await get_version_service()
                 
-                default_model = await model_manager.get_default_model_for_user(client, account_id)
+                # Always use Minimax-m2 as the model (Requirements 1.2)
+                default_model = "minimax/minimax-m2"
                 
                 version = await version_service.create_version(
                     agent_id=agent_id,

@@ -322,6 +322,10 @@ class Configuration:
     OR_SITE_URL: Optional[str] = "https://dimatic.com.au"
     OR_APP_NAME: Optional[str] = "Dimatic"
     
+    # Minimax API configuration
+    MINIMAX_API_KEY: Optional[str] = None
+    MINIMAX_API_BASE: Optional[str] = "https://api.minimax.chat/v1"
+    
     # Frontend URL configuration
     FRONTEND_URL_ENV: Optional[str] = None
     

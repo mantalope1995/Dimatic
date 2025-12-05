@@ -2,7 +2,9 @@
 
 ## Introduction
 
-This document outlines the requirements for building the Kortix AI agent platform using AWS Bedrock AgentCore as the foundation. This is a greenfield project with no existing user data. The platform will leverage AgentCore's serverless runtime, managed infrastructure, and integrated primitives (Memory, Browser, Code Interpreter, Gateway) to provide a scalable, multi-tenant AI agent platform.
+This document outlines the requirements for migrating the Kortix AI agent platform to use AWS Bedrock AgentCore as the foundation. The existing Supabase database schema will be extended with AgentCore-specific columns, but there is no production user data to migrate. The platform will leverage AgentCore's serverless runtime, managed infrastructure, and integrated primitives (Memory, Browser, Code Interpreter, Gateway) to provide a scalable, multi-tenant AI agent platform.
+
+**Migration Context:** The existing codebase uses Supabase (PostgreSQL) with established tables for threads, messages, agents, projects, etc. This migration adds AgentCore integration columns to existing tables rather than creating a new schema from scratch. Since there are no production users, data migration is not required.
 
 ## Glossary
 
@@ -31,6 +33,8 @@ This document outlines the requirements for building the Kortix AI agent platfor
 3. WHEN an agent run completes THEN the system SHALL capture execution results and persist them to the database
 4. WHEN an agent run fails THEN the system SHALL capture error details and update the run status appropriately
 5. WHEN the system starts up THEN the system SHALL only require AgentCore SDK configuration
+6. WHEN the system is deployed THEN the system SHALL NOT require Dramatiq workers, Redis queues, or worker health monitoring
+7. WHEN tenant isolation is needed THEN AgentCore Runtime SHALL provide execution isolation per tenant without custom implementation
 
 ### Requirement 2
 
@@ -68,6 +72,30 @@ This document outlines the requirements for building the Kortix AI agent platfor
 4. WHEN semantic search is needed THEN AgentCore Memory SHALL provide vector-based retrieval of relevant context
 5. WHEN a thread is deleted THEN the system SHALL clean up the associated AgentCore Memory resource
 
+### Requirement 4A
+
+**User Story:** As a platform operator, I want to use AgentCore Memory Long-Term Memory (LTM) strategies, so that agents can provide personalized experiences across sessions.
+
+#### Acceptance Criteria
+
+1. WHEN a Memory resource is created THEN the system SHALL configure Summary Memory Strategy for automatic session summarization
+2. WHEN a Memory resource is created THEN the system SHALL configure User Preference Strategy for learning user preferences
+3. WHEN a Memory resource is created THEN the system SHALL configure Semantic Memory Strategy for fact extraction and recall
+4. WHEN LTM strategies store data THEN the system SHALL namespace data by tenant account_id to ensure isolation
+5. WHEN LTM retrieval is performed THEN the system SHALL only return data belonging to the requesting tenant
+6. WHEN user preferences are learned THEN the system SHALL associate them with the specific user's actor_id within the tenant
+
+### Requirement 4B
+
+**User Story:** As a platform operator, I want to use AgentCore Memory semantic search for conversation history, so that I can replace custom vector search infrastructure.
+
+#### Acceptance Criteria
+
+1. WHEN conversation context is needed THEN the system SHALL use AgentCore Memory's built-in semantic search
+2. WHEN semantic search is configured THEN the system SHALL set appropriate top_k and relevance_score thresholds
+3. WHEN semantic search returns results THEN the system SHALL filter results to only the requesting tenant's data
+4. WHEN KB-fusion functionality is needed for conversations THEN the system SHALL use AgentCore Memory instead
+
 ### Requirement 5
 
 **User Story:** As a platform operator, I want to use AgentCore Gateway for MCP integration, so that I can provide AWS-native API connectivity for external services.
@@ -98,11 +126,22 @@ This document outlines the requirements for building the Kortix AI agent platfor
 
 #### Acceptance Criteria
 
-1. WHEN users need to connect third-party services THEN the system SHALL use AWS Cognito or custom OAuth flows
+1. WHEN users need to connect third-party services THEN the system SHALL use Gateway's built-in Cognito OAuth2 authentication
 2. WHEN API credentials are stored THEN the system SHALL use AWS Secrets Manager for secure credential storage
-3. WHEN OAuth tokens need refresh THEN the system SHALL implement token refresh logic using AWS Lambda
+3. WHEN OAuth tokens need refresh THEN Gateway SHALL handle token refresh automatically via Cognito
 4. WHEN multiple users share an integration THEN the system SHALL manage per-user credentials in AWS Secrets Manager with appropriate access controls
 5. WHEN credentials are accessed by agents THEN AgentCore Identity SHALL provide secure credential retrieval during execution
+
+### Requirement 5C
+
+**User Story:** As a platform operator, I want to use Gateway's semantic search for tool discovery, so that agents can find the right tool from many available options.
+
+#### Acceptance Criteria
+
+1. WHEN a Gateway is created THEN the system SHALL enable semantic search by default
+2. WHEN an agent needs to select a tool THEN Gateway SHALL provide semantic matching against tool descriptions
+3. WHEN multiple MCP servers are configured THEN Gateway semantic search SHALL help route to the appropriate tool
+4. WHEN tool discovery is performed THEN the system SHALL only return tools available to the requesting tenant
 
 ### Requirement 6
 
@@ -228,15 +267,16 @@ This document outlines the requirements for building the Kortix AI agent platfor
 
 ### Requirement 16
 
-**User Story:** As a platform operator, I want to initialize AgentCore-compatible storage for new data, so that all data is stored correctly from the start.
+**User Story:** As a platform operator, I want to extend the existing database schema with AgentCore columns, so that the platform integrates with AgentCore services while preserving the existing data model.
 
 #### Acceptance Criteria
 
 1. WHEN the system starts THEN the system SHALL use AgentCore Memory for all new conversation threads
 2. WHEN files are uploaded THEN the system SHALL store them in S3 with AgentCore-compatible paths
 3. WHEN new threads are created THEN the system SHALL initialize AgentCore Memory resources immediately
-4. WHEN the system is deployed THEN the system SHALL NOT require any data migration from legacy systems
+4. WHEN the system is deployed THEN the system SHALL add AgentCore columns to existing Supabase tables via migrations
 5. WHEN storage is initialized THEN the system SHALL verify connectivity to all AgentCore services
+6. WHEN database migrations run THEN the system SHALL NOT require user data migration (no production users exist)
 
 ### Requirement 17
 

@@ -227,7 +227,8 @@ async def update_agent(
             print(f"[DEBUG] update_agent: Prepared update_data with icon fields - icon_name={update_data.get('icon_name')}, icon_color={update_data.get('icon_color')}, icon_background={update_data.get('icon_background')}")
         
         current_system_prompt = agent_data.system_prompt if agent_data.system_prompt is not None else current_version_data.get('system_prompt', '')
-        current_model = agent_data.model if agent_data.model is not None else current_version_data.get('model')
+        # Always use Minimax-m2 as the model (Requirements 1.4)
+        current_model = "minimax/minimax-m2"
 
         if agent_data.configured_mcps is not None:
             if agent_data.replace_mcps:
@@ -593,7 +594,8 @@ async def create_agent(
             agentpress_tools = agent_data.agentpress_tools if agent_data.agentpress_tools else _get_default_agentpress_tools()
             agentpress_tools = ensure_core_tools_enabled(agentpress_tools)
             
-            default_model = await model_manager.get_default_model_for_user(client, user_id)
+            # Always use Minimax-m2 as the model (Requirements 1.2)
+            default_model = "minimax/minimax-m2"
             
             version = await version_service.create_version(
                 agent_id=agent['agent_id'],

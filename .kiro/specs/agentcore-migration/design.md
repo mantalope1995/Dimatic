@@ -391,6 +391,125 @@ class AgentCoreMemoryAdapter:
 - Implement fallback to database for legacy threads
 - Use semantic search for context retrieval
 
+### 2A. Long-Term Memory (LTM) Strategies
+
+**Purpose:** Enable personalized agent experiences across sessions with tenant isolation
+
+**LTM Strategy Configuration:**
+```python
+LTM_STRATEGIES = [
+    {
+        "summaryMemoryStrategy": {
+            "name": "SessionSummarizer",
+            "namespaces": ["/summaries/{actorId}/{sessionId}"]
+        }
+    },
+    {
+        "userPreferenceMemoryStrategy": {
+            "name": "PreferenceLearner",
+            "namespaces": ["/preferences/{actorId}"]
+        }
+    },
+    {
+        "semanticMemoryStrategy": {
+            "name": "FactExtractor",
+            "namespaces": ["/facts/{actorId}"]
+        }
+    }
+]
+```
+
+**Multi-Tenant Isolation:**
+```python
+class TenantIsolatedMemoryConfig:
+    """Memory configuration with tenant isolation"""
+    
+    def create_memory_config(
+        self,
+        account_id: str,
+        user_id: str,
+        session_id: str
+    ) -> AgentCoreMemoryConfig:
+        """
+        Create memory config with tenant-scoped namespaces
+        
+        Namespace pattern: /{account_id}/{user_id}/{data_type}
+        This ensures:
+        - Tenant data is isolated by account_id prefix
+        - User data is isolated within tenant by user_id
+        - No cross-tenant data leakage possible
+        """
+        return AgentCoreMemoryConfig(
+            memory_id=self._get_tenant_memory_id(account_id),
+            session_id=session_id,
+            actor_id=f"{account_id}:{user_id}",  # Composite actor ID
+            retrieval_config={
+                f"/preferences/{account_id}:{user_id}": RetrievalConfig(
+                    top_k=5,
+                    relevance_score=0.7
+                ),
+                f"/facts/{account_id}:{user_id}": RetrievalConfig(
+                    top_k=10,
+                    relevance_score=0.5
+                )
+            }
+        )
+```
+
+**Security Considerations:**
+- Each tenant gets a separate Memory resource (memory_id per account_id)
+- Actor IDs are prefixed with account_id to prevent cross-tenant queries
+- Namespace patterns include account_id for data isolation
+- Retrieval configs are scoped to tenant-specific namespaces
+
+### 2B. Semantic Search Configuration
+
+**Purpose:** Replace KB-fusion for conversation search with AgentCore Memory's built-in vector search
+
+**Interface:**
+```python
+class SemanticSearchConfig:
+    """Configuration for AgentCore Memory semantic search"""
+    
+    def configure_retrieval(
+        self,
+        account_id: str,
+        user_id: str,
+        search_type: str = "conversation"
+    ) -> dict:
+        """
+        Configure semantic search with tenant isolation
+        
+        search_type options:
+        - "conversation": Search conversation history
+        - "preferences": Search user preferences
+        - "facts": Search extracted facts
+        """
+        actor_id = f"{account_id}:{user_id}"
+        
+        configs = {
+            "conversation": {
+                f"/messages/{actor_id}": RetrievalConfig(
+                    top_k=20,
+                    relevance_score=0.3
+                )
+            },
+            "preferences": {
+                f"/preferences/{actor_id}": RetrievalConfig(
+                    top_k=5,
+                    relevance_score=0.7
+                )
+            },
+            "facts": {
+                f"/facts/{actor_id}": RetrievalConfig(
+                    top_k=10,
+                    relevance_score=0.5
+                )
+            }
+        }
+        return configs.get(search_type, configs["conversation"])
+```
+
 ### 3. AgentCore Code Interpreter Integration
 
 **Purpose:** Replace Daytona/E2B sandboxes with AgentCore Code Interpreter
@@ -530,57 +649,119 @@ class AgentCoreBrowserAdapter:
 
 **Purpose:** Replace Composio with AgentCore Gateway for MCP integration
 
+AgentCore Gateway natively supports four target types:
+1. **Lambda** - Custom business logic
+2. **OpenAPI** - External REST APIs with OpenAPI specs
+3. **Smithy Model** - AWS services (DynamoDB, S3, etc.)
+4. **MCP Server** - Native MCP-compatible services (no proxy needed)
+
 **Interface:**
 ```python
 class AgentCoreGatewayAdapter:
-    """Adapter for AgentCore Gateway"""
+    """Adapter for AgentCore Gateway with native MCP support"""
     
-    async def deploy_mcp_server(
+    async def create_gateway(
         self,
-        mcp_config: dict,
-        account_id: str
-    ) -> str:
+        account_id: str,
+        name: str,
+        enable_semantic_search: bool = True
+    ) -> dict:
         """
-        Deploy MCP server to AgentCore Gateway
-        Returns: gateway_deployment_id
+        Create AgentCore Gateway for tenant
+        Returns: {gateway_arn, gateway_url, gateway_id, client_id, client_secret}
         """
         pass
     
-    async def invoke_mcp_tool(
+    async def add_mcp_target(
         self,
-        gateway_deployment_id: str,
-        tool_name: str,
-        parameters: dict,
+        gateway_arn: str,
+        gateway_url: str,
+        role_arn: str,
+        name: str,
+        mcp_server_url: str,
         credentials: Optional[dict] = None
+    ) -> str:
+        """
+        Add MCP server as native Gateway target (no Lambda proxy needed)
+        Returns: target_id
+        """
+        pass
+    
+    async def add_openapi_target(
+        self,
+        gateway_arn: str,
+        gateway_url: str,
+        role_arn: str,
+        name: str,
+        openapi_spec_url: str,
+        credentials: Optional[dict] = None
+    ) -> str:
+        """
+        Add OpenAPI service as Gateway target
+        Returns: target_id
+        """
+        pass
+    
+    async def add_lambda_target(
+        self,
+        gateway_arn: str,
+        gateway_url: str,
+        role_arn: str,
+        name: str,
+        lambda_arn: str,
+        tool_schema: dict
+    ) -> str:
+        """
+        Add Lambda function as Gateway target for custom tools
+        Returns: target_id
+        """
+        pass
+    
+    async def invoke_tool(
+        self,
+        gateway_url: str,
+        oauth_token: str,
+        tool_name: str,
+        parameters: dict
     ) -> dict:
         """
-        Invoke MCP tool via Gateway
+        Invoke tool via Gateway MCP endpoint
         Returns: tool result
         """
         pass
     
-    async def update_gateway_config(
+    async def list_targets(
         self,
-        gateway_deployment_id: str,
-        config: dict
-    ) -> bool:
-        """Update Gateway configuration"""
+        gateway_name: str
+    ) -> List[dict]:
+        """List all targets for a Gateway"""
         pass
     
-    async def delete_gateway_deployment(
+    async def delete_target(
         self,
-        gateway_deployment_id: str
+        gateway_name: str,
+        target_name: str
     ) -> bool:
-        """Delete Gateway deployment"""
+        """Delete Gateway target"""
+        pass
+    
+    async def delete_gateway(
+        self,
+        gateway_name: str,
+        force: bool = False
+    ) -> bool:
+        """Delete Gateway and all targets"""
         pass
 ```
 
 **Implementation Details:**
-- Deploy MCP servers as Gateway targets
-- Store gateway_deployment_id in agent configuration
-- Route MCP tool calls through Gateway
-- Handle authentication via AWS Secrets Manager
-- Implement per-tenant Gateway deployments
+- Create one Gateway per tenant with Cognito OAuth2 authentication
+- Add MCP servers directly as native `mcpServer` targets (no Lambda proxies)
+- Add REST APIs as `openApiSchema` targets
+- Add custom tools as `lambda` targets
+- Gateway handles authentication, rate limiting, and monitoring automatically
+- Store gateway credentials in Secrets Manager
+- Use Gateway's built-in semantic search for tool discovery
 
 ### 6. AWS Secrets Manager Integration
 
@@ -1415,75 +1596,79 @@ def test_environment_configuration(agent_run, environment):
 ### MCP Protocol Support in AgentCore Gateway
 
 **Gateway Capabilities:**
-- AgentCore Gateway supports OpenAPI, Smithy, and Lambda targets
-- MCP protocol can be wrapped as OpenAPI endpoints
-- Gateway handles authentication, rate limiting, and monitoring
+- AgentCore Gateway natively supports MCP servers as a target type
+- No Lambda proxies needed for SSE or WebSocket MCP servers
+- Gateway handles authentication, rate limiting, and monitoring automatically
+- Built-in OAuth2 via Cognito for secure access
 
-**MCP-to-Gateway Adapter:**
+**Native MCP Target Configuration:**
 ```python
-class MCPToGatewayAdapter:
-    """Converts MCP server definitions to Gateway targets"""
+class MCPTargetManager:
+    """Manages MCP servers as native Gateway targets"""
     
-    async def convert_mcp_to_gateway_target(
+    async def add_mcp_server(
         self,
+        gateway_arn: str,
+        gateway_url: str,
+        role_arn: str,
         mcp_config: dict
-    ) -> dict:
+    ) -> str:
         """
-        Convert MCP server configuration to Gateway target
+        Add MCP server directly as Gateway target
         
-        MCP Types Supported:
-        - SSE (Server-Sent Events)
-        - HTTP/REST
-        - WebSocket (via Lambda proxy)
+        Gateway natively supports:
+        - SSE (Server-Sent Events) MCP servers
+        - HTTP/REST MCP servers
+        - WebSocket MCP servers
         
-        Returns: Gateway target configuration
+        No Lambda proxy required - Gateway handles all protocols natively.
+        
+        Returns: target_id
         """
-        mcp_type = mcp_config.get('type', 'sse')
+        # Use agentcore CLI or SDK to create target
+        target_payload = {
+            "endpoint": mcp_config['url'],
+            "protocol": mcp_config.get('protocol', 'sse')
+        }
         
-        if mcp_type == 'sse':
-            return self._convert_sse_to_gateway(mcp_config)
-        elif mcp_type == 'http':
-            return self._convert_http_to_gateway(mcp_config)
-        elif mcp_type == 'websocket':
-            return self._convert_websocket_to_lambda(mcp_config)
-        else:
-            raise ValueError(f"Unsupported MCP type: {mcp_type}")
+        credentials = None
+        if mcp_config.get('authentication'):
+            credentials = self._build_credentials(mcp_config['authentication'])
+        
+        return await self._create_gateway_target(
+            gateway_arn=gateway_arn,
+            gateway_url=gateway_url,
+            role_arn=role_arn,
+            name=mcp_config['name'],
+            target_type="mcpServer",
+            target_payload=target_payload,
+            credentials=credentials
+        )
     
-    def _convert_sse_to_gateway(self, mcp_config: dict) -> dict:
-        """
-        Convert SSE MCP server to Gateway target
+    def _build_credentials(self, auth_config: dict) -> dict:
+        """Build credentials for MCP server authentication"""
+        auth_type = auth_config.get('type')
         
-        Strategy:
-        1. Deploy Lambda function as SSE proxy
-        2. Lambda maintains SSE connection to MCP server
-        3. Gateway routes requests to Lambda
-        4. Lambda streams responses back
-        """
-        return {
-            "type": "lambda",
-            "function_name": f"mcp-sse-proxy-{mcp_config['name']}",
-            "handler": "mcp_sse_proxy.handler",
-            "environment": {
-                "MCP_SERVER_URL": mcp_config['url'],
-                "MCP_SERVER_TYPE": "sse"
+        if auth_type == 'api_key':
+            return {
+                "api_key": auth_config['api_key'],
+                "credential_location": auth_config.get('location', 'header'),
+                "credential_parameter_name": auth_config.get('header_name', 'Authorization')
             }
-        }
-    
-    def _convert_http_to_gateway(self, mcp_config: dict) -> dict:
-        """
-        Convert HTTP MCP server to Gateway target
-        
-        Strategy:
-        1. Use Gateway's OpenAPI target type
-        2. Map MCP tools to OpenAPI operations
-        3. Gateway handles HTTP directly
-        """
-        return {
-            "type": "openapi",
-            "spec_url": mcp_config.get('openapi_spec_url'),
-            "base_url": mcp_config['url']
-        }
-```
+        elif auth_type == 'oauth2':
+            return {
+                "oauth2_provider_config": {
+                    "customOauth2ProviderConfig": {
+                        "oauthDiscovery": {
+                            "discoveryUrl": auth_config['discovery_url']
+                        },
+                        "clientId": auth_config['client_id'],
+                        "clientSecret": auth_config['client_secret']
+                    }
+                },
+                "scopes": auth_config.get('scopes', [])
+            }
+        return None
 
 ### MCP Configuration Management
 
@@ -1491,7 +1676,49 @@ class MCPToGatewayAdapter:
 
 ```python
 class MCPConfigurationService:
-    """Service to manage MCP configurations and Gateway deployments"""
+    """Service to manage MCP configurations and Gateway targets"""
+    
+    def __init__(self):
+        self.gateway_adapter = AgentCoreGatewayAdapter()
+        self.catalog_service = MCPCatalogService()
+        self.secrets_adapter = SecretsManagerAdapter()
+    
+    async def ensure_tenant_gateway(
+        self,
+        account_id: str
+    ) -> dict:
+        """
+        Ensure tenant has a Gateway, create if not exists
+        
+        Returns: {gateway_arn, gateway_url, role_arn, client_id, client_secret}
+        """
+        # Check if gateway exists for tenant
+        existing = await self._get_tenant_gateway(account_id)
+        if existing:
+            return existing
+        
+        # Create new gateway for tenant
+        gateway_name = f"kortix-{account_id}"
+        gateway_info = await self.gateway_adapter.create_gateway(
+            account_id=account_id,
+            name=gateway_name,
+            enable_semantic_search=True
+        )
+        
+        # Store gateway credentials in Secrets Manager
+        await self.secrets_adapter.store_credential(
+            account_id=account_id,
+            service_name="agentcore_gateway",
+            credential_data={
+                "gateway_arn": gateway_info["gateway_arn"],
+                "gateway_url": gateway_info["gateway_url"],
+                "role_arn": gateway_info["role_arn"],
+                "client_id": gateway_info["client_id"],
+                "client_secret": gateway_info["client_secret"]
+            }
+        )
+        
+        return gateway_info
     
     async def configure_agent_mcps(
         self,
@@ -1500,25 +1727,27 @@ class MCPConfigurationService:
         mcp_configs: List[dict]
     ) -> dict:
         """
-        Configure MCP servers for an agent
+        Configure MCP servers for an agent as native Gateway targets
         
         Returns: {
             "configured_count": int,
             "failed_count": int,
-            "gateway_deployments": List[str]
+            "target_ids": List[str]
         }
         """
+        # Ensure tenant has a gateway
+        gateway_info = await self.ensure_tenant_gateway(account_id)
+        
         results = {
             "configured_count": 0,
             "failed_count": 0,
-            "gateway_deployments": []
+            "target_ids": []
         }
         
-        # Configure catalog MCPs
         for mcp in mcp_configs:
             try:
-                gateway_id = await self._configure_mcp(mcp, account_id)
-                results["gateway_deployments"].append(gateway_id)
+                target_id = await self._add_mcp_target(mcp, gateway_info, account_id)
+                results["target_ids"].append(target_id)
                 results["configured_count"] += 1
             except Exception as e:
                 logger.error(f"Failed to configure MCP {mcp['name']}: {e}")
@@ -1526,36 +1755,42 @@ class MCPConfigurationService:
         
         return results
     
-    async def _configure_mcp(
+    async def _add_mcp_target(
         self,
         mcp_config: dict,
+        gateway_info: dict,
         account_id: str
     ) -> str:
-        """Configure an MCP server and deploy to Gateway"""
+        """Add MCP server as native Gateway target"""
         # Get MCP definition from catalog
         server_id = mcp_config.get('server_id')
         catalog_entry = await self.catalog_service.get_server_details(server_id)
         
-        # Convert to Gateway target
-        gateway_config = await self.mcp_adapter.convert_mcp_to_gateway_target(
-            catalog_entry
+        # Retrieve credentials if needed
+        credentials = None
+        if catalog_entry.get('authentication'):
+            credentials = await self._get_mcp_credentials(
+                account_id, server_id, catalog_entry['authentication']
+            )
+        
+        # Add as native MCP target (no Lambda proxy needed)
+        target_id = await self.gateway_adapter.add_mcp_target(
+            gateway_arn=gateway_info["gateway_arn"],
+            gateway_url=gateway_info["gateway_url"],
+            role_arn=gateway_info["role_arn"],
+            name=catalog_entry["name"],
+            mcp_server_url=catalog_entry["url"],
+            credentials=credentials
         )
         
-        # Deploy to Gateway
-        gateway_id = await self.gateway_adapter.deploy_mcp_server(
-            gateway_config,
-            account_id
-        )
-        
-        # Store deployment record
-        await self.store_gateway_deployment(
+        # Store target record
+        await self._store_target_record(
             account_id=account_id,
             server_id=server_id,
-            gateway_deployment_id=gateway_id,
-            config=gateway_config
+            target_id=target_id
         )
         
-        return gateway_id
+        return target_id
 ```
 
 ### MCP Catalog Seeding
@@ -1613,10 +1848,10 @@ async def seed_mcp_catalog():
 **Features to Replicate:**
 
 1. **Embedded MCP List** → DynamoDB Catalog ✅
-2. **OAuth Handling** → Cognito + Lambda ✅
+2. **OAuth Handling** → Gateway's built-in Cognito OAuth2 ✅
 3. **Credential Storage** → Secrets Manager ✅
 4. **MCP Server Discovery** → Catalog API ✅
-5. **Tool Filtering** → Gateway configuration ✅
+5. **Tool Filtering** → Gateway semantic search ✅
 
 **Additional Considerations:**
 
@@ -1624,40 +1859,42 @@ async def seed_mcp_catalog():
 - System supports standard MCP server configurations
 - Users can configure MCP servers from the catalog
 - Custom MCP servers can be added by administrators
-- All configurations deploy to AgentCore Gateway
+- All MCP servers added as native Gateway targets (no proxies)
 
 ### Confidence Assessment
 
 **High Confidence (8/10):**
-- AgentCore Gateway can handle HTTP/REST MCP servers via OpenAPI targets
-- OAuth flows are well-supported by Cognito + Lambda
+- AgentCore Gateway natively supports MCP servers as a target type
+- SSE, HTTP, and WebSocket MCP servers work without Lambda proxies
+- OAuth flows are built into Gateway via Cognito
 - Secrets Manager provides robust credential storage
 - DynamoDB catalog is straightforward
+- Gateway handles rate limiting and monitoring automatically
 
-**Medium Confidence (6/10):**
-- SSE MCP servers require Lambda proxy (adds complexity)
-- WebSocket MCP servers need custom Lambda implementation
+**Medium Confidence (7/10):**
 - Initial catalog seeding needs manual curation
 - MCP protocol version compatibility needs testing
+- Per-tenant Gateway costs need monitoring
 
 **Risks & Mitigations:**
 
-1. **Risk:** SSE streaming performance through Lambda
-   **Mitigation:** Test Lambda SSE proxy early, consider API Gateway WebSocket as alternative
-
-2. **Risk:** MCP protocol version compatibility
+1. **Risk:** MCP protocol version compatibility
    **Mitigation:** Test with major MCP servers, document supported protocol versions
 
-3. **Risk:** Gateway cost at scale
-   **Mitigation:** Monitor Gateway usage, implement caching, optimize request patterns
+2. **Risk:** Gateway cost at scale
+   **Mitigation:** Monitor Gateway usage per tenant, implement usage quotas
 
-4. **Risk:** Limited MCP catalog at launch
+3. **Risk:** Limited MCP catalog at launch
    **Mitigation:** Start with 10-15 popular integrations, allow custom MCP server URLs
 
+4. **Risk:** Gateway cold start latency
+   **Mitigation:** Keep Gateway warm with periodic health checks
+
 **Recommendation:**
-The MCP integration plan is solid for HTTP-based MCP servers (majority of use cases). For SSE/WebSocket servers, we should:
-1. Build and test Lambda proxy early in implementation
-2. Start with HTTP-based MCP servers for initial launch
-3. Add SSE/WebSocket support in Phase 2 based on user demand
-4. Provide clear documentation for custom MCP server configuration
+The MCP integration plan leverages AgentCore Gateway's native MCP support, eliminating the need for custom Lambda proxies. This significantly reduces complexity and improves reliability. Key implementation steps:
+1. Create one Gateway per tenant with semantic search enabled
+2. Add MCP servers as native `mcpServer` targets
+3. Use Gateway's built-in OAuth2 for authentication
+4. Store tenant Gateway credentials in Secrets Manager
+5. Provide catalog UI for MCP server discovery and configuration
 

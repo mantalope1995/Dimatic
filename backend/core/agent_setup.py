@@ -219,7 +219,8 @@ async def setup_agent_from_chat(
         try:
             version_service = await _get_version_service()
             agentpress_tools = ensure_core_tools_enabled(_get_default_agentpress_tools())
-            default_model = await model_manager.get_default_model_for_user(client, user_id)
+            # Always use Minimax-m2 as the model (Requirements 1.2)
+            default_model = "minimax/minimax-m2"
             
             version = await version_service.create_version(
                 agent_id=agent_id,
