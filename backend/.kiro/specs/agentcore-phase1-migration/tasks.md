@@ -1,0 +1,228 @@
+# Implementation Plan
+
+- [ ] 1. Update AgentCore Configuration for Australia Region
+  - [ ] 1.1 Update config.py to enforce ap-southeast-2 region
+    - Modify `AgentCoreConfig` to override any region setting to "ap-southeast-2"
+    - Add warning log when non-Australia region is specified
+    - Update `get_agentcore_config()` to enforce region
+    - _Requirements: 1.1, 1.3, 9.4_
+  - [ ] 1.2 Write property test for region enforcement
+    - **Property 1: Region Enforcement**
+    - **Validates: Requirements 1.1, 1.3, 9.4**
+  - [ ] 1.3 Add new configuration options
+    - Add `code_interpreter_session_timeout_seconds` (default 900)
+    - Add `browser_session_timeout_seconds` (default 900)
+    - Add `browser_recording_enabled` and `browser_recording_s3_bucket`
+    - Add retry configuration options
+    - _Requirements: 21.1, 21.2, 23.1_
+  - [ ] 1.4 Write property test for timeout validation
+    - **Property 13: Session Timeout Validation**
+    - **Validates: Requirements 21.1, 21.2, 21.4**
+
+- [ ] 2. Implement Data Models with Serialization
+  - [ ] 2.1 Create session data models
+    - Implement `CodeInterpreterSession` dataclass with to_dict/from_dict
+    - Implement `BrowserSession` dataclass with to_dict/from_dict
+    - Implement `SessionStatus` enum
+    - _Requirements: 10.2, 11.1, 11.2_
+  - [ ] 2.2 Write property test for session round-trip serialization
+    - **Property 3: Session State Round-Trip Serialization**
+    - **Validates: Requirements 11.1, 11.2, 11.3**
+  - [ ] 2.3 Create result data models
+    - Implement `CodeExecutionResult` dataclass with to_dict/from_dict
+    - Implement `ShellCommandResult` dataclass with to_dict/from_dict
+    - _Requirements: 2.2, 2.3, 12.1, 12.2_
+  - [ ] 2.4 Write property test for code execution result round-trip
+    - **Property 4: Code Execution Result Round-Trip Serialization**
+    - **Validates: Requirements 12.1, 12.2, 12.3**
+  - [ ] 2.5 Create browser result data models
+    - Implement `NavigationResult` dataclass with to_dict/from_dict
+    - Implement `ActionResult` dataclass with to_dict/from_dict
+    - Implement `ExtractionResult` dataclass with to_dict/from_dict
+    - Implement `ScreenshotResult` dataclass with to_dict/from_dict
+    - _Requirements: 4.2, 5.4, 6.2, 7.2, 13.1, 13.2_
+  - [ ] 2.6 Write property test for browser result round-trip
+    - **Property 5: Browser Result Round-Trip Serialization**
+    - **Validates: Requirements 13.1, 13.2, 13.3**
+
+- [ ] 3. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 4. Implement Error Handling and Retry Logic
+  - [ ] 4.1 Create error hierarchy
+    - Implement `AgentCoreError` base exception
+    - Implement `AgentCoreConfigurationError`, `AgentCoreSessionError`
+    - Implement `AgentCoreExecutionError`, `AgentCoreBrowserError`
+    - Implement `AgentCoreRetryableError`, `AgentCoreNonRetryableError`
+    - _Requirements: 2.5, 3.4, 4.3, 5.5, 6.3, 7.3_
+  - [ ] 4.2 Implement retry logic with exponential backoff
+    - Create `with_retry()` async function
+    - Implement `is_retryable()` error classification
+    - Configure retry delays and max attempts
+    - _Requirements: 15.1, 15.2, 15.3_
+  - [ ] 4.3 Write property tests for retry logic
+    - **Property 9: Retry Logic for Retryable Errors**
+    - **Property 10: Retry Logic Max Retries Exceeded**
+    - **Property 11: Retry Logic for Non-Retryable Errors**
+    - **Validates: Requirements 15.1, 15.2, 15.3**
+  - [ ] 4.4 Implement sensitive data redaction for logging
+    - Create `redact_sensitive_data()` function
+    - Redact AWS credentials, API keys, passwords
+    - _Requirements: 16.4_
+  - [ ] 4.5 Write property test for sensitive data redaction
+    - **Property 12: Sensitive Data Redaction**
+    - **Validates: Requirements 16.4**
+
+- [ ] 5. Implement AgentCore Code Interpreter Adapter
+  - [ ] 5.1 Create AgentCoreCodeInterpreterAdapter class
+    - Initialize with ap-southeast-2 region
+    - Wrap `bedrock_agentcore.tools.code_interpreter_client.CodeInterpreter`
+    - Implement `_get_client()` method
+    - _Requirements: 2.1, 19.1_
+  - [ ] 5.2 Implement session management methods
+    - Implement `start_session()` using SDK `client.start()`
+    - Implement `stop_session()` using SDK `client.stop()`
+    - Implement `get_session()` using SDK `client.get_session()`
+    - _Requirements: 10.1, 10.4, 21.1_
+  - [ ] 5.3 Write property test for session timestamp
+    - **Property 15: Session Created Timestamp**
+    - **Validates: Requirements 18.1**
+  - [ ] 5.4 Implement code execution methods
+    - Implement `invoke()` using SDK `client.invoke(method, params)`
+    - Implement `execute_code()` wrapper for 'executeCode' method
+    - Handle streaming responses
+    - _Requirements: 2.2, 2.4, 22.1, 22.2_
+  - [ ] 5.5 Write property test for result structure
+    - **Property 6: Code Execution Result Structure Completeness**
+    - **Validates: Requirements 2.2, 2.3, 2.5, 3.4**
+  - [ ] 5.6 Implement file operations
+    - Implement file upload using invoke
+    - Implement file download using invoke
+    - Implement file listing using invoke('listFiles')
+    - _Requirements: 3.1, 3.2, 3.3_
+
+- [ ] 6. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 7. Implement AgentCore Browser Adapter
+  - [ ] 7.1 Create AgentCoreBrowserAdapter class
+    - Initialize with ap-southeast-2 region
+    - Wrap `bedrock_agentcore.tools.browser_client.BrowserClient`
+    - Implement `_get_client()` method
+    - _Requirements: 4.1, 19.2_
+  - [ ] 7.2 Implement session management methods
+    - Implement `start_session()` using SDK `client.start()`
+    - Implement `stop_session()` using SDK `client.stop()`
+    - Configure viewport and timeout
+    - _Requirements: 4.4, 10.1, 21.2_
+  - [ ] 7.3 Implement WebSocket connection methods
+    - Implement `generate_ws_headers()` using SDK method
+    - Implement `connect_playwright()` for CDP connection
+    - _Requirements: 20.1, 20.2_
+  - [ ] 7.4 Write property test for WebSocket URL generation
+    - **Property 16: WebSocket URL Generation**
+    - **Validates: Requirements 20.1**
+  - [ ] 7.5 Implement navigation and actions
+    - Implement `navigate()` using Playwright page.goto()
+    - Implement `act()` for natural language actions (if supported)
+    - Implement `extract_content()` for content extraction
+    - _Requirements: 4.2, 5.1, 6.1_
+  - [ ] 7.6 Write property test for browser result structure
+    - **Property 7: Browser Result Structure Completeness**
+    - **Validates: Requirements 4.2, 4.3, 5.4, 5.5, 6.2, 6.3, 7.2, 7.3, 20.3**
+  - [ ] 7.7 Implement screenshot capture
+    - Implement `take_screenshot()` using Playwright
+    - Upload screenshot to S3 and return URL
+    - _Requirements: 7.1, 7.2_
+  - [ ] 7.8 Implement live view URL generation
+    - Implement `generate_live_view_url()` using SDK method
+    - _Requirements: 23.3_
+  - [ ] 7.9 Write property test for recording-enabled sessions
+    - **Property 17: Recording-Enabled Session S3 Path**
+    - **Validates: Requirements 23.3**
+
+- [ ] 8. Implement Variable Substitution
+  - [ ] 8.1 Create variable substitution utility
+    - Implement `substitute_variables()` function
+    - Handle %variable_name% pattern replacement
+    - Preserve unmatched placeholders
+    - _Requirements: 5.2_
+  - [ ] 8.2 Write property test for variable substitution
+    - **Property 8: Variable Substitution Correctness**
+    - **Validates: Requirements 5.2**
+
+- [ ] 9. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 10. Update SandboxToolsBase for Backend Selection
+  - [ ] 10.1 Add backend selection logic
+    - Implement `_use_agentcore()` method checking config flags
+    - Update `_ensure_sandbox()` to select backend
+    - _Requirements: 8.1, 8.2, 8.3, 9.1, 9.2_
+  - [ ] 10.2 Write property test for backend selection
+    - **Property 2: Backend Selection Consistency**
+    - **Validates: Requirements 8.1, 8.2, 8.3, 9.1, 9.2**
+  - [ ] 10.3 Implement AgentCore session management in tool base
+    - Implement `_ensure_agentcore_session()` method
+    - Store session metadata in project record
+    - Handle session reuse
+    - _Requirements: 10.1, 10.2, 10.3_
+  - [ ] 10.4 Implement fallback logic
+    - Add fallback to Daytona when AgentCore fails
+    - Check `AGENTCORE_FALLBACK_TO_LEGACY_SANDBOX` config
+    - _Requirements: 9.3_
+
+- [ ] 11. Update BrowserTool for AgentCore
+  - [ ] 11.1 Refactor BrowserTool to use AgentCore adapter
+    - Replace Stagehand API calls with AgentCore Browser
+    - Update `_execute_stagehand_api()` to use adapter
+    - Maintain same tool interface
+    - _Requirements: 8.2_
+  - [ ] 11.2 Update browser action methods
+    - Update `browser_navigate_to()` to use adapter
+    - Update `browser_act()` to use adapter
+    - Update `browser_extract_content()` to use adapter
+    - Update `browser_screenshot()` to use adapter
+    - _Requirements: 4.1, 5.1, 6.1, 7.1_
+
+- [ ] 12. Update Shell Tool for AgentCore
+  - [ ] 12.1 Refactor SandboxShellTool to use AgentCore adapter
+    - Update `execute_command()` to use Code Interpreter
+    - Handle blocking vs non-blocking execution
+    - _Requirements: 14.1, 14.2_
+  - [ ] 12.2 Write property test for non-blocking session ID
+    - **Property 14: Non-Blocking Command Session Identifier**
+    - **Validates: Requirements 14.2**
+  - [ ] 12.3 Update session management methods
+    - Update `check_command_output()` for AgentCore
+    - Update `terminate_command()` for AgentCore
+    - Update `list_commands()` for AgentCore
+    - _Requirements: 14.3, 14.4, 14.5_
+
+- [ ] 13. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 14. Update Environment Configuration
+  - [ ] 14.1 Update .env.example with AgentCore settings
+    - Add AGENTCORE_AWS_REGION=ap-southeast-2
+    - Add AGENTCORE_CODE_INTERPRETER_ENABLED
+    - Add AGENTCORE_BROWSER_ENABLED
+    - Add AGENTCORE_S3_BUCKET_NAME
+    - Add AGENTCORE_CODE_INTERPRETER_EXECUTION_ROLE_ARN
+    - Add AGENTCORE_BROWSER_EXECUTION_ROLE_ARN
+    - Add timeout and retry configuration
+    - _Requirements: 9.1, 9.2, 9.3, 9.4, 19.1, 19.2_
+  - [ ] 14.2 Update pyproject.toml with dependencies
+    - Add bedrock-agentcore SDK dependency
+    - Add playwright dependency
+    - Add nest-asyncio dependency (for Playwright async support)
+    - _Requirements: 2.1, 4.1_
+  - [ ] 14.3 Document IAM permissions requirements
+    - Document Code Interpreter IAM policy requirements
+    - Document Browser IAM policy requirements
+    - Document S3 permissions for screenshots and recordings
+    - Add trust policy for bedrock-agentcore.amazonaws.com
+    - _Requirements: 19.1, 19.2, 19.3, 19.4_
+
+- [ ] 15. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
