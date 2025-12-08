@@ -88,7 +88,7 @@
     "openEmailApp": "Open email app",
     "goToSignIn": "Go to sign in",
     "verifyEmailInstructions": "Click the link in the email to verify your account, then sign in.",
-    "welcomeTitle": "Hire Kortix for",
+    "welcomeTitle": "Dimatic for",
     "rotatingPhrases": {
       "presentations": "presentations",
       "writing": "writing",
@@ -113,21 +113,21 @@
       "passwordTooShort": "Password must be at least 8 characters"
     },
     "drawer": {
-      "defaultTitle": "Welcome to Kortix",
-      "defaultMessage": "The AI Super Mega Giga app.",
-      "signInToChat": "Welcome to Kortix",
-      "signInToChatMessage": "The AI Super Mega Giga app.",
-      "signUpUnlock": "Welcome to Kortix",
-      "signUpUnlockMessage": "The AI Super Mega Giga app.",
-      "welcomeBack": "Welcome to Kortix",
-      "welcomeBackMessage": "The AI Super Mega Giga app.",
+      "defaultTitle": "Welcome to Dimatic",
+      "defaultMessage": "Stop guessing, start knowing.",
+      "signInToChat": "Welcome to Dimatic",
+      "signInToChatMessage": "Stop guessing, start knowing.",
+      "signUpUnlock": "Welcome to Dimatic",
+      "signUpUnlockMessage": "Stop guessing, start knowing.",
+      "welcomeBack": "Welcome to Dimatic",
+      "welcomeBackMessage": "Stop guessing, start knowing.",
       "signUpToContinue": "Sign up to continue",
       "signUpToContinueMessage": "Please sign up or sign in to create and select workers, connect apps and much more"
     },
     "guest": {
       "label": "Guest",
       "title": "Browse Without\nan Account",
-      "description": "Try Kortix with limited features. No signup required!",
+      "description": "Try Dimatic with limited features. No signup required!",
       "continue": "Continue as Guest",
       "signUp": "Sign Up Instead",
       "agreement": "By continuing, you agree to our",
@@ -218,8 +218,8 @@
   },
   "chat": {
     "newChat": "New Chat",
-    "placeholder": "Give Kortix a task...",
-    "inputPlaceholder": "Ask Kortix anything...",
+    "placeholder": "Give Dimatic a task...",
+    "inputPlaceholder": "Ask Dimatic anything...",
     "recording": "Recording...",
     "cancelRecording": "Cancel recording",
     "stopRecording": "Stop recording",
@@ -232,7 +232,7 @@
     "rateThisResult": "Rate this result",
     "feedbackHelpsImprove": "Your feedback helps us improve",
     "additionalFeedbackOptional": "Additional feedback (optional)",
-    "helpKortixImprove": "Help Kortix improve with my feedback",
+    "helpKortixImprove": "Help Dimatic improve with my feedback",
     "submit": "Submit",
     "submitting": "Submitting...",
     "suggestedFollowUps": "Suggested follow-ups",
@@ -473,7 +473,7 @@
     "chooseModelFor": "Choose a model for {{agent}}"
   },
   "placeholders": {
-    "default": "Give Kortix a task...",
+    "default": "Give Dimatic a task...",
     "search": "Search...",
     "searchConversations": "Search chats",
     "searchAgents": "Search workers",
@@ -684,12 +684,12 @@
   "beta": {
     "title": "Beta Features",
     "webSupportTitle": "Fully Supported on Web",
-    "webSupportDescription": "Available on Kortix.com. Coming to mobile soon—still work-in-progress here.",
-    "visitKortix": "Visit Kortix.com",
+    "webSupportDescription": "Available on Dimatic.com.au. Coming to mobile soon—still work-in-progress here.",
+    "visitKortix": "Visit Dimatic.com.au",
     "advancedFeatures": "Advanced Features",
     "mobileBeta": "Mobile Beta",
     "pleaseNote": "Please Note",
-    "mobileWarning": "Work-in-progress on mobile and may have issues. For the best experience, use Kortix.com."
+    "mobileWarning": "Work-in-progress on mobile and may have issues. For the best experience, use Dimatic.com.au."
   },
   "accountDeletion": {
     "title": "Delete Account",

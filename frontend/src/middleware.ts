@@ -6,9 +6,7 @@ import { detectBestLocaleFromHeaders } from '@/lib/utils/geo-detection-server';
 
 // Marketing pages that support locale routing for SEO (/de, /it, etc.)
 const MARKETING_ROUTES = [
-  '/',
   '/suna',
-  '/enterprise',
   '/legal',
   '/support',
   '/templates',
@@ -16,7 +14,6 @@ const MARKETING_ROUTES = [
 
 // Routes that don't require authentication
 const PUBLIC_ROUTES = [
-  '/', // Homepage should be public!
   '/auth',
   '/auth/callback',
   '/auth/signup',
@@ -26,7 +23,6 @@ const PUBLIC_ROUTES = [
   '/api/auth',
   '/share', // Shared content should be public
   '/templates', // Template pages should be public
-  '/enterprise', // Enterprise page should be public
   '/master-login', // Master password admin login
   '/checkout', // Public checkout wrapper for Apple compliance
   '/support', // Support page should be public
@@ -34,7 +30,7 @@ const PUBLIC_ROUTES = [
   '/help', // Help center and documentation should be public
   '/credits-explained', // Credits explained page should be public
   // Add locale routes for marketing pages
-  ...locales.flatMap(locale => MARKETING_ROUTES.map(route => `/${locale}${route === '/' ? '' : route}`)),
+  ...locales.flatMap(locale => MARKETING_ROUTES.map(route => `/${locale}${route}`)),
 ];
 
 // Routes that require authentication but are related to billing/trials/setup
@@ -65,10 +61,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Handle Supabase verification redirects at root level
-  // Supabase sometimes redirects to root (/) instead of /auth/callback
-  // Detect authentication parameters and redirect to proper callback handler
-  if (pathname === '/' || pathname === '') {
+  // Handle root path and enterprise page redirects
+  // Redirect based on authentication status
+  if (pathname === '/' || pathname === '' || pathname === '/enterprise') {
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');
     const token = searchParams.get('token');
@@ -88,6 +83,39 @@ export async function middleware(request: NextRequest) {
       console.log('🔄 Redirecting Supabase verification from root to /auth/callback');
       return NextResponse.redirect(callbackUrl);
     }
+    
+    // Check authentication status to determine redirect destination
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll() {
+            // No-op for middleware
+          },
+        },
+      }
+    );
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Redirect authenticated users to dashboard
+      if (user) {
+        const dashboardUrl = new URL('/dashboard', request.url);
+        return NextResponse.redirect(dashboardUrl);
+      }
+    } catch (error) {
+      // If auth check fails, treat as unauthenticated
+      console.error('Auth check error in middleware:', error);
+    }
+    
+    // Redirect unauthenticated users to auth page
+    const authUrl = new URL('/auth', request.url);
+    return NextResponse.redirect(authUrl);
   }
 
   // Extract path segments
