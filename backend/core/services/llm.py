@@ -73,14 +73,14 @@ def setup_api_keys() -> None:
             os.environ["OPENROUTER_API_BASE"] = config.OPENROUTER_API_BASE
             # logger.debug(f"Set OPENROUTER_API_BASE to {config.OPENROUTER_API_BASE}")
 
-    # Set up AWS Bedrock bearer token authentication
-    if hasattr(config, 'AWS_BEARER_TOKEN_BEDROCK'):
-        bedrock_token = config.AWS_BEARER_TOKEN_BEDROCK
-        if bedrock_token:
-            os.environ["AWS_BEARER_TOKEN_BEDROCK"] = bedrock_token
-            logger.debug("AWS Bedrock bearer token configured")
+    # Set up Minimax API key
+    if hasattr(config, 'MINIMAX_API_KEY'):
+        minimax_key = config.MINIMAX_API_KEY
+        if minimax_key:
+            os.environ["MINIMAX_API_KEY"] = minimax_key
+            logger.debug("Minimax API key configured")
         else:
-            logger.debug("AWS_BEARER_TOKEN_BEDROCK not configured - Bedrock models will not be available")
+            logger.debug("MINIMAX_API_KEY not configured - Minimax models will not be available")
 
 def setup_provider_router(openai_compatible_api_key: str = None, openai_compatible_api_base: str = None):
     global provider_router
@@ -106,53 +106,11 @@ def setup_provider_router(openai_compatible_api_key: str = None, openai_compatib
         },
     ]
     
-    fallbacks = [
-        # MAP-tagged Haiku 4.5 (default) -> Sonnet 4 -> Sonnet 4.5
-        {
-            "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/sl6nzclx7bjt": [
-                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/tyj1ks3nj9qf",
-                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/v2qyiec7heax",
-            ]
-        },
-        # MAP-tagged Sonnet 4.5 -> Sonnet 4 -> Haiku 4.5
-        {
-            "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/v2qyiec7heax": [
-                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/tyj1ks3nj9qf",
-                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/sl6nzclx7bjt",
-            ]
-        },
-        # MAP-tagged Sonnet 4 -> Haiku 4.5
-        {
-            "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/tyj1ks3nj9qf": [
-                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/sl6nzclx7bjt",
-            ]
-        }
-    ]
+    # Minimax-m2 is the sole provider - no fallbacks needed
+    fallbacks = []
     
-    # Context window fallbacks: When context window is exceeded, fallback to models with larger context windows
-    # Order: Smaller context models -> Larger context models
-    # Note: All Bedrock models here have 1M context, but this allows LiteLLM to handle the error gracefully
-    context_window_fallbacks = [
-        # Haiku 4.5 (200k) -> Sonnet 4 (1M) -> Sonnet 4.5 (1M)
-        {
-            "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/sl6nzclx7bjt": [
-                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/tyj1ks3nj9qf",
-                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/v2qyiec7heax",
-            ]
-        },
-        # Sonnet 4.5 (1M) -> Sonnet 4 (1M) - both have same context, but allows retry
-        {
-            "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/v2qyiec7heax": [
-                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/tyj1ks3nj9qf",
-            ]
-        },
-        # Sonnet 4 (1M) -> Sonnet 4.5 (1M) - both have same context, but allows retry
-        {
-            "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/tyj1ks3nj9qf": [
-                "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/v2qyiec7heax",
-            ]
-        }
-    ]
+    # No context window fallbacks needed for single-provider setup
+    context_window_fallbacks = []
     
     # Configure Router with specific retry settings:
     # - num_retries=0: Disable router-level retries - we handle errors at our layer
@@ -169,7 +127,7 @@ def setup_provider_router(openai_compatible_api_key: str = None, openai_compatib
         # context_window_fallbacks are separate and only triggered by context length issues
     )
     
-    logger.info(f"Configured LiteLLM Router with {len(fallbacks)} Bedrock-only fallback rules")
+    logger.info("Configured LiteLLM Router with Minimax-m2 as primary provider")
 
 def _configure_openai_compatible(params: Dict[str, Any], model_name: str, api_key: Optional[str], api_base: Optional[str]) -> None:
     """Configure OpenAI-compatible provider setup."""
@@ -350,11 +308,8 @@ if __name__ == "__main__":
     setup_api_keys()
 
     response = completion(
-        model="bedrock/anthropic.claude-sonnet-4-20250115-v1:0",
-        messages=[{"role": "user", "content": "Hello! Testing 1M context window."}],
+        model="minimax/minimax-m2",
+        messages=[{"role": "user", "content": "Hello! Testing Minimax-m2."}],
         max_tokens=100,
-        extra_headers={
-            "anthropic-beta": "context-1m-2025-08-07"  # 👈 Enable 1M context
-        }
     )
 

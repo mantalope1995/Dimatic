@@ -1,24 +1,16 @@
 from typing import Dict, List, Optional, Set
 from .ai_models import Model, ModelProvider, ModelCapability, ModelPricing, ModelConfig
-from core.utils.config import config, EnvMode
+from core.utils.config import config
 from core.utils.logger import logger
 
-# SHOULD_USE_ANTHROPIC = False
-# CRITICAL: Production and Staging must ALWAYS use Bedrock, never Anthropic API directly
-SHOULD_USE_ANTHROPIC = config.ENV_MODE == EnvMode.LOCAL and bool(config.ANTHROPIC_API_KEY)
-
-# Actual model IDs for LiteLLM
-_BASIC_MODEL_ID = "anthropic/claude-sonnet-4-5-20250929" if SHOULD_USE_ANTHROPIC else "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/v2qyiec7heax"
-_POWER_MODEL_ID = "anthropic/claude-sonnet-4-5-20250929" if SHOULD_USE_ANTHROPIC else "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/v2qyiec7heax"
+# Minimax-m2 is the primary model for all environments
+# Actual model IDs for LiteLLM - using Minimax-m2 as the sole provider
+_BASIC_MODEL_ID = "minimax/minimax-m2"
+_POWER_MODEL_ID = "minimax/minimax-m2"
 
 # Default model IDs (these are aliases that resolve to actual IDs)
 FREE_MODEL_ID = "kortix/basic"
 PREMIUM_MODEL_ID = "kortix/power"
-
-
-is_local = config.ENV_MODE == EnvMode.LOCAL
-is_prod = config.ENV_MODE == EnvMode.PRODUCTION
-# pricing_multiplier = 0.20 if is_prod else 1.0
 
 class ModelRegistry:
     def __init__(self):
