@@ -7,8 +7,8 @@ from core.utils.logger import logger
 # Actual model IDs for LiteLLM - using Minimax-m2 as the sole provider
 # Note: Using openai/ prefix because Minimax API is OpenAI SDK-compatible
 # The api_base in ModelConfig routes requests to Minimax's API
-_BASIC_MODEL_ID = "openai/MiniMax-M2"
-_POWER_MODEL_ID = "openai/MiniMax-M2"
+_BASIC_MODEL_ID = "openai-compatible/MiniMax-m2"
+_POWER_MODEL_ID = "openai-compatible/MiniMax-m2"
 
 # Default model IDs (these are aliases that resolve to actual IDs)
 FREE_MODEL_ID = "kortix/basic"
@@ -30,10 +30,10 @@ class ModelRegistry:
         minimax_api_base = config.MINIMAX_API_BASE if config else "https://api.minimax.io/v1"
         
         self.register(Model(
-            id="openai/MiniMax-M2",
+            id="openai-compatible/MiniMax-m2",
             name="MiniMax-M2",
             provider=ModelProvider.MINIMAX,
-            aliases=["minimax-m2", "MiniMax-M2", "Minimax-m2", "minimax-m2-interleaved", "minimax/minimax-m2", "openai/minimax-m2"],
+            aliases=["minimax-m2", "MiniMax-M2", "Minimax-m2", "minimax-m2-interleaved", "minimax/minimax-m2", "openai-compatible/MiniMax-m2"],
             context_window=200_000,
             capabilities=[
                 ModelCapability.CHAT,

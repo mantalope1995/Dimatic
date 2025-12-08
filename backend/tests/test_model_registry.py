@@ -57,8 +57,8 @@ class TestModelRegistryInitialization:
         
         # Property 3: The enabled model should be MiniMax-M2
         enabled_model = enabled_models[0]
-        assert enabled_model.id == "openai/MiniMax-M2", (
-            f"Expected enabled model to be 'openai/MiniMax-M2', "
+        assert enabled_model.id == "openai-compatible/MiniMax-m2", (
+            f"Expected enabled model to be 'openai-compatible/MiniMax-m2', "
             f"but found '{enabled_model.id}'"
         )
         
@@ -104,7 +104,7 @@ class TestModelRegistryInitialization:
         
         # Property 9: Disabled models should still be registered (for future use)
         for model in disabled_models:
-            assert model.id != "openai/MiniMax-M2", (
+            assert model.id != "openai-compatible/MiniMax-m2", (
                 f"MiniMax-M2 should not be in disabled models list"
             )
             # Verify we can still get disabled models by ID
@@ -123,16 +123,16 @@ class TestModelRegistryInitialization:
         registry = ModelRegistry()
         
         # Test resolution by ID
-        model = registry.get("openai/MiniMax-M2")
+        model = registry.get("openai-compatible/MiniMax-m2")
         assert model is not None, "Should resolve by full ID"
         assert model.enabled, "Resolved model should be enabled"
         
         # Test resolution by aliases
-        for alias in ["minimax-m2", "Minimax-m2", "MiniMax-M2", "minimax/minimax-m2", "openai/minimax-m2"]:
+        for alias in ["minimax-m2", "Minimax-m2", "MiniMax-M2", "minimax/minimax-m2", "openai-compatible/MiniMax-m2"]:
             model = registry.get(alias)
             assert model is not None, f"Should resolve by alias '{alias}'"
-            assert model.id == "openai/MiniMax-M2", (
-                f"Alias '{alias}' should resolve to openai/MiniMax-M2"
+            assert model.id == "openai-compatible/MiniMax-m2", (
+                f"Alias '{alias}' should resolve to openai-compatible/MiniMax-m2"
             )
     
     def test_minimax_m2_tier_availability(self):
@@ -146,10 +146,10 @@ class TestModelRegistryInitialization:
         paid_models = registry.get_by_tier("paid", enabled_only=True)
         
         # MiniMax-M2 should be in both tiers
-        assert any(m.id == "openai/MiniMax-M2" for m in free_models), (
+        assert any(m.id == "openai-compatible/MiniMax-m2" for m in free_models), (
             "MiniMax-M2 should be available to free tier"
         )
-        assert any(m.id == "openai/MiniMax-M2" for m in paid_models), (
+        assert any(m.id == "openai-compatible/MiniMax-m2" for m in paid_models), (
             "MiniMax-M2 should be available to paid tier"
         )
     
@@ -166,7 +166,7 @@ class TestModelRegistryInitialization:
         params = model.get_litellm_params()
         
         # Verify essential parameters
-        assert params["model"] == "openai/MiniMax-M2", (
+        assert params["model"] == "openai-compatible/MiniMax-m2", (
             "Model ID should be included in params"
         )
         assert params["api_base"] == "https://api.minimax.io/v1", (

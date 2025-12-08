@@ -32,10 +32,10 @@ The MiniMax-M2 model is registered in `backend/core/ai_models/registry.py` with 
 
 ```python
 Model(
-    id="openai/MiniMax-M2",
+    id="openai-compatible/MiniMax-m2",
     name="MiniMax-M2",
     provider=ModelProvider.MINIMAX,
-    aliases=["minimax-m2", "MiniMax-M2", "Minimax-m2", "minimax-m2-interleaved", "minimax/minimax-m2", "openai/minimax-m2"],
+    aliases=["minimax-m2", "MiniMax-M2", "Minimax-m2", "minimax-m2-interleaved", "minimax/minimax-m2", "openai-compatible/MiniMax-m2"],
     context_window=200_000,
     capabilities=[
         ModelCapability.CHAT,
@@ -62,7 +62,7 @@ Model(
 The LiteLLM integration in `backend/core/services/llm.py` handles MiniMax-M2 as follows:
 
 - **API Key Configuration**: MiniMax API key is loaded from environment and set in `os.environ["MINIMAX_API_KEY"]`
-- **Model Resolution**: The model ID `openai/MiniMax-M2` is resolved to the correct LiteLLM format
+- **Model Resolution**: The model ID `openai-compatible/MiniMax-m2` is resolved to the correct LiteLLM format
 - **OpenAI Compatibility**: Uses standard OpenAI SDK format without extra headers
 
 ### 3. Streaming Response Handling
@@ -180,7 +180,7 @@ The test suite covers:
 When migrating from the Anthropic-compatible API to OpenAI-compatible:
 
 1. **Update API Base**: Change from `https://api.minimax.io/anthropic/v1` to `https://api.minimax.io/v1`
-2. **Update Model ID**: Change from `anthropic/minimax-m2` to `openai/MiniMax-M2`
+2. **Update Model ID**: Change from `anthropic/minimax-m2` to `openai-compatible/MiniMax-m2`
 3. **Remove Extra Headers**: No longer need `anthropic-version` header
 4. **Update Tool Format**: Use `parameters` instead of `input_schema` in tool definitions
 5. **Update Thinking Handling**: Use `reasoning_details` instead of `reasoning_content`
@@ -223,7 +223,7 @@ When migrating from the Anthropic-compatible API to OpenAI-compatible:
    - Check the key is valid and active
 
 2. **Incorrect Model ID**
-   - Use `openai/MiniMax-M2` for LiteLLM compatibility
+   - Use `openai-compatible/MiniMax-m2` for LiteLLM compatibility
    - Verify model is registered in the model registry
 
 3. **Missing Thinking Content**

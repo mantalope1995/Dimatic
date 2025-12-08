@@ -48,7 +48,7 @@ class TestMinimaxOpenAICompatibility:
         params = model.get_litellm_params()
         
         # Verify essential parameters
-        assert params["model"] == "openai/MiniMax-M2", "Model ID should be correct"
+        assert params["model"] == "openai-compatible/MiniMax-m2", "Model ID should be correct"
         assert params["api_base"] == "https://api.minimax.io/v1", "API base should be MiniMax OpenAI-compatible endpoint"
         # OpenAI-compatible API doesn't require extra headers
         assert "extra_headers" not in params or params.get("extra_headers") is None, "Should not have extra headers"
@@ -258,12 +258,12 @@ class TestMinimaxOpenAICompatibility:
     @pytest.mark.asyncio
     async def test_minimax_model_aliases(self):
         """Test that MiniMax-M2 can be accessed via various aliases."""
-        aliases = ["minimax-m2", "MiniMax-M2", "Minimax-m2", "minimax/minimax-m2", "openai/minimax-m2"]
+        aliases = ["minimax-m2", "MiniMax-M2", "Minimax-m2", "minimax/minimax-m2", "openai-compatible/MiniMax-m2"]
         
         for alias in aliases:
             model = registry.get(alias)
             assert model is not None, f"Should be able to get model via alias: {alias}"
-            assert model.id == "openai/MiniMax-M2", f"Model ID should be correct for alias: {alias}"
+            assert model.id == "openai-compatible/MiniMax-m2", f"Model ID should be correct for alias: {alias}"
 
 
 if __name__ == "__main__":

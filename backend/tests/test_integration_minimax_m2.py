@@ -36,7 +36,7 @@ class MockStreamChunk:
     """Mock streaming chunk from LiteLLM."""
     choices: List[Any]
     usage: Optional[Any] = None
-    model: str = "openai/MiniMax-M2"
+    model: str = "openai-compatible/MiniMax-m2"
     
     def model_dump(self):
         return {
@@ -111,7 +111,7 @@ class TestConversationFlowIntegration:
         # Verify MiniMax-M2 is the only enabled model
         enabled_models = registry.get_all(enabled_only=True)
         assert len(enabled_models) == 1, "Only one model should be enabled"
-        assert enabled_models[0].id == "openai/MiniMax-M2", "MiniMax-M2 should be the enabled model"
+        assert enabled_models[0].id == "openai-compatible/MiniMax-m2", "MiniMax-M2 should be the enabled model"
         
         # Verify model can be resolved via alias
         model = registry.get("minimax/minimax-m2")
@@ -660,7 +660,7 @@ class TestConversationMigrationIntegration:
         assert len(enabled_models) == 1
         
         new_message_model = enabled_models[0].id
-        assert new_message_model == "openai/MiniMax-M2"
+        assert new_message_model == "openai-compatible/MiniMax-m2"
         
         # Simulate adding a new message
         new_message = {
@@ -669,7 +669,7 @@ class TestConversationMigrationIntegration:
             "metadata": {"model": new_message_model}
         }
         
-        assert new_message["metadata"]["model"] == "openai/MiniMax-M2"
+        assert new_message["metadata"]["model"] == "openai-compatible/MiniMax-m2"
     
     @pytest.mark.asyncio
     async def test_agent_migration_preserves_settings(self):
@@ -702,10 +702,10 @@ class TestConversationMigrationIntegration:
         
         # Simulate migration - only model changes
         migrated_config = original_config.copy()
-        migrated_config["model"] = "openai/MiniMax-M2"
+        migrated_config["model"] = "openai-compatible/MiniMax-m2"
         
         # Verify model changed
-        assert migrated_config["model"] == "openai/MiniMax-M2"
+        assert migrated_config["model"] == "openai-compatible/MiniMax-m2"
         assert original_config["model"] == "gpt-4"
         
         # Verify all other settings preserved
@@ -779,7 +779,7 @@ class TestModelRegistryLLMIntegration:
         params = model.get_litellm_params()
         
         # Verify essential parameters
-        assert params["model"] == "openai/MiniMax-M2"
+        assert params["model"] == "openai-compatible/MiniMax-m2"
         assert params["api_base"] == "https://api.minimax.io/v1"
         # OpenAI-compatible API doesn't require extra headers
         assert "extra_headers" not in params or params.get("extra_headers") is None
@@ -797,7 +797,7 @@ class TestModelRegistryLLMIntegration:
         
         # Only MiniMax-M2 should be enabled
         assert len(enabled_models) == 1
-        assert enabled_models[0].id == "openai/MiniMax-M2"
+        assert enabled_models[0].id == "openai-compatible/MiniMax-m2"
         
         # Other models should exist but be disabled
         disabled_models = [m for m in all_models if not m.enabled]
