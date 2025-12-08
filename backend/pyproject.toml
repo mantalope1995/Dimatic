@@ -94,8 +94,8 @@ dependencies = [
 ]
 
 [project.urls]
-homepage = "https://www.suna.so/"
-repository = "https://github.com/kortix-ai/suna"
+homepage = "https://www.dimatic.com.au/"
+repository = "https://github.com/mantalope1995/Dimatic"
 
 [tool.uv]
 package = false
