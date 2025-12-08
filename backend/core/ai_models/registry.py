@@ -27,7 +27,7 @@ class ModelRegistry:
         # The api_base routes requests to Minimax's API endpoint
         # API key is loaded from MINIMAX_API_KEY config and passed as api_key to override ANTHROPIC_API_KEY
         minimax_api_key = config.MINIMAX_API_KEY if config else None
-        minimax_api_base = config.MINIMAX_API_BASE if config else "https://api.minimax.io/v1"
+        minimax_api_base = config.MINIMAX_API_BASE if config else "https://api.minimax.io/anthropic/v1"
         
         self.register(Model(
             id="anthropic/minimax-m2",

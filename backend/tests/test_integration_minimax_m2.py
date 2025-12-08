@@ -754,7 +754,7 @@ class TestModelRegistryLLMIntegration:
         assert model.config is not None
         
         # Verify API base
-        assert model.config.api_base == "https://api.minimax.chat/v1"
+        assert model.config.api_base == "https://api.minimax.io/anthropic/v1"
         
         # Verify Anthropic SDK headers
         assert model.config.extra_headers is not None
@@ -776,7 +776,7 @@ class TestModelRegistryLLMIntegration:
         
         # Verify essential parameters
         assert params["model"] == "minimax/minimax-m2"
-        assert params["api_base"] == "https://api.minimax.chat/v1"
+        assert params["api_base"] == "https://api.minimax.io/anthropic/v1"
         assert "extra_headers" in params
         assert "anthropic-version" in params["extra_headers"]
     

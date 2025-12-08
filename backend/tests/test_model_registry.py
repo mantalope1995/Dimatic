@@ -86,8 +86,8 @@ class TestModelRegistryInitialization:
         
         # Property 7: Minimax-m2 should have Anthropic SDK-compatible config
         assert enabled_model.config is not None, "Minimax-m2 should have config defined"
-        assert enabled_model.config.api_base == "https://api.minimax.chat/v1", (
-            f"Expected api_base 'https://api.minimax.chat/v1', "
+        assert enabled_model.config.api_base == "https://api.minimax.io/anthropic/v1", (
+            f"Expected api_base 'https://api.minimax.io/anthropic/v1', "
             f"but found '{enabled_model.config.api_base}'"
         )
         assert enabled_model.config.extra_headers is not None, (
@@ -171,7 +171,7 @@ class TestModelRegistryInitialization:
         assert params["model"] == "minimax/minimax-m2", (
             "Model ID should be included in params"
         )
-        assert params["api_base"] == "https://api.minimax.chat/v1", (
+        assert params["api_base"] == "https://api.minimax.io/anthropic/v1", (
             "API base should be included in params"
         )
         assert "extra_headers" in params, (

@@ -62,7 +62,7 @@ class TestMinimaxConfiguration:
             'SUPABASE_JWT_SECRET': 'test'
         }, clear=True):
             config = Configuration()
-            assert config.MINIMAX_API_BASE == "https://api.minimax.chat/v1"
+            assert config.MINIMAX_API_BASE == "https://api.minimax.io/anthropic/v1"
     
     def test_minimax_api_key_missing_returns_none(self):
         """
