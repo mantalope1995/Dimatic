@@ -78,6 +78,10 @@ class ModelConfig:
     # === Bedrock-Specific Configuration ===
     performanceConfig: Optional[Dict[str, str]] = None  # e.g., {"latency": "optimized"}
     
+    # === Extra Body Parameters (Model-Specific) ===
+    # Used for model-specific parameters like MiniMax's reasoning_split
+    extra_body: Optional[Dict[str, Any]] = None
+    
 
 
 @dataclass
@@ -155,6 +159,8 @@ class Model:
                 params["extra_headers"] = self.config.extra_headers.copy()
             if self.config.performanceConfig:
                 params["performanceConfig"] = self.config.performanceConfig.copy()
+            if self.config.extra_body:
+                params["extra_body"] = self.config.extra_body.copy()
         
         
         # Apply any runtime overrides
@@ -169,6 +175,11 @@ class Model:
                 elif key == "extra_headers" and "extra_headers" in params:
                     if isinstance(params["extra_headers"], dict) and isinstance(value, dict):
                         params["extra_headers"].update(value)
+                    else:
+                        params[key] = value
+                elif key == "extra_body" and "extra_body" in params:
+                    if isinstance(params["extra_body"], dict) and isinstance(value, dict):
+                        params["extra_body"].update(value)
                     else:
                         params[key] = value
                 else:

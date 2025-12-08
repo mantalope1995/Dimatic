@@ -10,10 +10,25 @@ export type MarkdownProps = {
   className?: string;
 };
 
+/**
+ * Strips thinking tokens from content (e.g., <think>...</think> from MiniMax-M2)
+ * These are preserved in message history for reasoning chain continuity,
+ * but hidden from users at render time.
+ */
+function stripThinkingTokens(content: string): string {
+  return content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+}
+
 export const Markdown: React.FC<MarkdownProps> = React.memo(({
   children,
   className = ''
 }) => {
+  const processedContent = stripThinkingTokens(children);
+  
+  if (!processedContent) {
+    return null;
+  }
+  
   return (
     <div className={cn('prose prose-sm dark:prose-invert max-w-none', className)}>
       <ReactMarkdown
@@ -72,7 +87,7 @@ export const Markdown: React.FC<MarkdownProps> = React.memo(({
           ),
         }}
       >
-        {children}
+        {processedContent}
       </ReactMarkdown>
     </div>
   );

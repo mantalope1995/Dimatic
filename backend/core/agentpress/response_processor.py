@@ -364,6 +364,10 @@ class ResponseProcessor:
                                 if hasattr(delta, 'reasoning_content') and delta.reasoning_content:
                                     chunk_data["has_reasoning"] = True
                                     chunk_data["reasoning_content"] = str(delta.reasoning_content)
+                                # MiniMax reasoning_details (with reasoning_split=True)
+                                if hasattr(delta, 'reasoning_details') and delta.reasoning_details:
+                                    chunk_data["has_reasoning"] = True
+                                    chunk_data["reasoning_details"] = delta.reasoning_details
                             if hasattr(chunk.choices[0], 'finish_reason') and chunk.choices[0].finish_reason:
                                 chunk_data["finish_reason"] = chunk.choices[0].finish_reason
                         
@@ -412,19 +416,30 @@ class ResponseProcessor:
                     native_tool_calls_updated = False
                     native_tool_calls_updated = False
                     
-                    # Check for and log Anthropic thinking content
+                    # Check for and log thinking content (Anthropic reasoning_content or MiniMax reasoning_details)
+                    # Anthropic uses delta.reasoning_content
                     if delta and hasattr(delta, 'reasoning_content') and delta.reasoning_content:
                         if not has_printed_thinking_prefix:
                             # print("[THINKING]: ", end='', flush=True)
                             has_printed_thinking_prefix = True
-                        # print(delta.reasoning_content, end='', flush=True)
-                        # Append reasoning to main content to be saved in the final message
+                        # Append reasoning to accumulated content for message history (maintains reasoning chain)
                         reasoning_content = delta.reasoning_content
-                        # logger.debug(f"Processing reasoning_content: type={type(reasoning_content)}, value={reasoning_content}")
                         if isinstance(reasoning_content, list):
                             reasoning_content = ''.join(str(item) for item in reasoning_content)
-                        # logger.debug(f"About to concatenate reasoning_content (type={type(reasoning_content)}) to accumulated_content (type={type(accumulated_content)})")
                         accumulated_content += reasoning_content
+                    
+                    # MiniMax with reasoning_split=True uses delta.reasoning_details
+                    if delta and hasattr(delta, 'reasoning_details') and delta.reasoning_details:
+                        if not has_printed_thinking_prefix:
+                            has_printed_thinking_prefix = True
+                        # Extract text from reasoning_details (list of dicts with 'text' key)
+                        reasoning_details = delta.reasoning_details
+                        if isinstance(reasoning_details, list):
+                            for detail in reasoning_details:
+                                if isinstance(detail, dict) and 'text' in detail:
+                                    accumulated_content += detail['text']
+                                elif isinstance(detail, str):
+                                    accumulated_content += detail
 
                     # Process content chunk
                     if delta and hasattr(delta, 'content') and delta.content:

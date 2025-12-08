@@ -51,6 +51,9 @@ class ModelRegistry:
             config=ModelConfig(
                 api_key=minimax_api_key,
                 api_base=minimax_api_base,
+                # Enable interleaved thinking - separates thinking into reasoning_details field
+                # This keeps <think> tags out of content while preserving reasoning chain
+                extra_body={"reasoning_split": True},
             )
         ))
         
