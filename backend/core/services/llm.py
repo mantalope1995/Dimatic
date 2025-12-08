@@ -85,17 +85,23 @@ def setup_api_keys() -> None:
 def setup_provider_router(openai_compatible_api_key: str = None, openai_compatible_api_base: str = None):
     global provider_router
     
-    # Get config values safely
+    # Get config values safely - prioritize MINIMAX_API_KEY for MiniMax models
+    minimax_api_key = getattr(config, 'MINIMAX_API_KEY', None) if config else None
+    minimax_api_base = getattr(config, 'MINIMAX_API_BASE', None) if config else None
     config_openai_key = getattr(config, 'OPENAI_COMPATIBLE_API_KEY', None) if config else None
     config_openai_base = getattr(config, 'OPENAI_COMPATIBLE_API_BASE', None) if config else None
+    
+    # Use Minimax API key if available, otherwise fall back to OpenAI-compatible key
+    effective_api_key = openai_compatible_api_key or minimax_api_key or config_openai_key
+    effective_api_base = openai_compatible_api_base or minimax_api_base or config_openai_base
     
     model_list = [
         {
             "model_name": "openai-compatible/*", # support OpenAI-Compatible LLM provider
             "litellm_params": {
                 "model": "openai/*",
-                "api_key": openai_compatible_api_key or config_openai_key,
-                "api_base": openai_compatible_api_base or config_openai_base,
+                "api_key": effective_api_key,
+                "api_base": effective_api_base,
             },
         },
         {
@@ -134,19 +140,23 @@ def _configure_openai_compatible(params: Dict[str, Any], model_name: str, api_ke
     if not model_name.startswith("openai-compatible/"):
         return
     
-    # Get config values safely
+    # Get config values safely - prioritize MINIMAX_API_KEY for MiniMax models
+    minimax_api_key = getattr(config, 'MINIMAX_API_KEY', None) if config else None
+    minimax_api_base = getattr(config, 'MINIMAX_API_BASE', None) if config else None
     config_openai_key = getattr(config, 'OPENAI_COMPATIBLE_API_KEY', None) if config else None
     config_openai_base = getattr(config, 'OPENAI_COMPATIBLE_API_BASE', None) if config else None
     
+    # Use Minimax API key if available, otherwise fall back to OpenAI-compatible key
+    effective_api_key = api_key or minimax_api_key or config_openai_key
+    effective_api_base = api_base or minimax_api_base or config_openai_base
+    
     # Check if have required config either from parameters or environment
-    if (not api_key and not config_openai_key) or (
-        not api_base and not config_openai_base
-    ):
+    if not effective_api_key or not effective_api_base:
         raise LLMError(
-            "OPENAI_COMPATIBLE_API_KEY and OPENAI_COMPATIBLE_API_BASE is required for openai-compatible models. If just updated the environment variables, wait a few minutes or restart the service to ensure they are loaded."
+            "MINIMAX_API_KEY (or OPENAI_COMPATIBLE_API_KEY) and MINIMAX_API_BASE (or OPENAI_COMPATIBLE_API_BASE) are required for openai-compatible models. If just updated the environment variables, wait a few minutes or restart the service to ensure they are loaded."
         )
     
-    setup_provider_router(api_key, api_base)
+    setup_provider_router(effective_api_key, effective_api_base)
     logger.debug(f"Configured OpenAI-compatible provider with custom API base")
 
 def _add_tools_config(params: Dict[str, Any], tools: Optional[List[Dict[str, Any]]], tool_choice: str) -> None:
