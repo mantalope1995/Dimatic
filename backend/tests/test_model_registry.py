@@ -55,10 +55,10 @@ class TestModelRegistryInitialization:
             f"{[m.id for m in enabled_models]}"
         )
         
-        # Property 3: The enabled model should be Minimax-m2
+        # Property 3: The enabled model should be MiniMax-M2
         enabled_model = enabled_models[0]
-        assert enabled_model.id == "minimax/minimax-m2", (
-            f"Expected enabled model to be 'minimax/minimax-m2', "
+        assert enabled_model.id == "openai/MiniMax-M2", (
+            f"Expected enabled model to be 'openai/MiniMax-M2', "
             f"but found '{enabled_model.id}'"
         )
         
@@ -84,17 +84,15 @@ class TestModelRegistryInitialization:
             f"${enabled_model.pricing.output_cost_per_million_tokens}"
         )
         
-        # Property 7: Minimax-m2 should have Anthropic SDK-compatible config
-        assert enabled_model.config is not None, "Minimax-m2 should have config defined"
-        assert enabled_model.config.api_base == "https://api.minimax.io/anthropic/v1", (
-            f"Expected api_base 'https://api.minimax.io/anthropic/v1', "
+        # Property 7: MiniMax-M2 should have OpenAI SDK-compatible config
+        assert enabled_model.config is not None, "MiniMax-M2 should have config defined"
+        assert enabled_model.config.api_base == "https://api.minimax.io/v1", (
+            f"Expected api_base 'https://api.minimax.io/v1', "
             f"but found '{enabled_model.config.api_base}'"
         )
-        assert enabled_model.config.extra_headers is not None, (
-            "Minimax-m2 should have extra_headers defined"
-        )
-        assert "anthropic-version" in enabled_model.config.extra_headers, (
-            "Minimax-m2 should have anthropic-version header"
+        # OpenAI-compatible API doesn't require extra headers
+        assert enabled_model.config.extra_headers is None, (
+            "MiniMax-M2 should not have extra_headers for OpenAI-compatible API"
         )
         
         # Property 8: All other models should be disabled
@@ -106,8 +104,8 @@ class TestModelRegistryInitialization:
         
         # Property 9: Disabled models should still be registered (for future use)
         for model in disabled_models:
-            assert model.id != "minimax/minimax-m2", (
-                f"Minimax-m2 should not be in disabled models list"
+            assert model.id != "openai/MiniMax-M2", (
+                f"MiniMax-M2 should not be in disabled models list"
             )
             # Verify we can still get disabled models by ID
             retrieved = registry.get(model.id)
@@ -120,26 +118,26 @@ class TestModelRegistryInitialization:
     
     def test_minimax_m2_model_resolution(self):
         """
-        Test that Minimax-m2 can be resolved by various identifiers.
+        Test that MiniMax-M2 can be resolved by various identifiers.
         """
         registry = ModelRegistry()
         
         # Test resolution by ID
-        model = registry.get("minimax/minimax-m2")
+        model = registry.get("openai/MiniMax-M2")
         assert model is not None, "Should resolve by full ID"
         assert model.enabled, "Resolved model should be enabled"
         
         # Test resolution by aliases
-        for alias in ["minimax-m2", "Minimax-m2"]:
+        for alias in ["minimax-m2", "Minimax-m2", "MiniMax-M2", "minimax/minimax-m2", "openai/minimax-m2"]:
             model = registry.get(alias)
             assert model is not None, f"Should resolve by alias '{alias}'"
-            assert model.id == "minimax/minimax-m2", (
-                f"Alias '{alias}' should resolve to minimax/minimax-m2"
+            assert model.id == "openai/MiniMax-M2", (
+                f"Alias '{alias}' should resolve to openai/MiniMax-M2"
             )
     
     def test_minimax_m2_tier_availability(self):
         """
-        Test that Minimax-m2 is available to both free and paid tiers.
+        Test that MiniMax-M2 is available to both free and paid tiers.
         """
         registry = ModelRegistry()
         
@@ -147,36 +145,34 @@ class TestModelRegistryInitialization:
         free_models = registry.get_by_tier("free", enabled_only=True)
         paid_models = registry.get_by_tier("paid", enabled_only=True)
         
-        # Minimax-m2 should be in both tiers
-        assert any(m.id == "minimax/minimax-m2" for m in free_models), (
-            "Minimax-m2 should be available to free tier"
+        # MiniMax-M2 should be in both tiers
+        assert any(m.id == "openai/MiniMax-M2" for m in free_models), (
+            "MiniMax-M2 should be available to free tier"
         )
-        assert any(m.id == "minimax/minimax-m2" for m in paid_models), (
-            "Minimax-m2 should be available to paid tier"
+        assert any(m.id == "openai/MiniMax-M2" for m in paid_models), (
+            "MiniMax-M2 should be available to paid tier"
         )
     
     def test_minimax_m2_litellm_params(self):
         """
-        Test that Minimax-m2 generates correct LiteLLM parameters.
+        Test that MiniMax-M2 generates correct LiteLLM parameters.
         """
         registry = ModelRegistry()
         model = registry.get("minimax/minimax-m2")
         
-        assert model is not None, "Minimax-m2 should be registered"
+        assert model is not None, "MiniMax-M2 should be registered"
         
         # Get LiteLLM parameters
         params = model.get_litellm_params()
         
         # Verify essential parameters
-        assert params["model"] == "minimax/minimax-m2", (
+        assert params["model"] == "openai/MiniMax-M2", (
             "Model ID should be included in params"
         )
-        assert params["api_base"] == "https://api.minimax.io/anthropic/v1", (
+        assert params["api_base"] == "https://api.minimax.io/v1", (
             "API base should be included in params"
         )
-        assert "extra_headers" in params, (
-            "Extra headers should be included in params"
-        )
-        assert "anthropic-version" in params["extra_headers"], (
-            "Anthropic version header should be included"
+        # OpenAI-compatible API doesn't require extra headers
+        assert "extra_headers" not in params or params.get("extra_headers") is None, (
+            "Extra headers should not be included for OpenAI-compatible API"
         )

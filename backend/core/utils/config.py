@@ -322,10 +322,10 @@ class Configuration:
     OR_SITE_URL: Optional[str] = "https://dimatic.com.au"
     OR_APP_NAME: Optional[str] = "Dimatic"
     
-    # Minimax API configuration
+    # Minimax API configuration (OpenAI-compatible)
     # Note: Use api.minimax.io for international users, api.minimaxi.com for China
     MINIMAX_API_KEY: Optional[str] = None
-    MINIMAX_API_BASE: Optional[str] = "https://api.minimax.io/anthropic/v1"
+    MINIMAX_API_BASE: Optional[str] = "https://api.minimax.io/v1"
     
     # Frontend URL configuration
     FRONTEND_URL_ENV: Optional[str] = None

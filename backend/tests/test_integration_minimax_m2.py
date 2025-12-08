@@ -1,8 +1,9 @@
 """
-Integration tests for Minimax-m2 migration.
+Integration tests for MiniMax-M2 migration.
 
-These tests verify end-to-end functionality of the Minimax-m2 integration,
-including conversation flow, vision tool, tool calling, and migration.
+These tests verify end-to-end functionality of the MiniMax-M2 integration
+using the OpenAI-compatible API, including conversation flow, vision tool,
+tool calling, and migration.
 
 **Feature: minimax-m2-migration**
 **Validates: All Requirements**
@@ -35,7 +36,7 @@ class MockStreamChunk:
     """Mock streaming chunk from LiteLLM."""
     choices: List[Any]
     usage: Optional[Any] = None
-    model: str = "minimax/minimax-m2"
+    model: str = "openai/MiniMax-M2"
     
     def model_dump(self):
         return {
@@ -93,7 +94,7 @@ class MockUsage:
 
 class TestConversationFlowIntegration:
     """
-    Integration tests for complete conversation flow with Minimax-m2.
+    Integration tests for complete conversation flow with MiniMax-M2.
     
     **Validates: Requirements 1.1, 1.2, 2.1, 2.3, 2.4, 2.5, 3.1, 3.2, 8.3, 8.4, 8.5**
     """
@@ -101,30 +102,34 @@ class TestConversationFlowIntegration:
     @pytest.mark.asyncio
     async def test_conversation_uses_minimax_m2_model(self):
         """
-        Test that conversations use Minimax-m2 as the model.
+        Test that conversations use MiniMax-M2 as the model.
         
         **Validates: Requirements 1.1, 1.2, 4.4**
         """
         from core.ai_models.registry import registry
         
-        # Verify Minimax-m2 is the only enabled model
+        # Verify MiniMax-M2 is the only enabled model
         enabled_models = registry.get_all(enabled_only=True)
         assert len(enabled_models) == 1, "Only one model should be enabled"
-        assert enabled_models[0].id == "minimax/minimax-m2", "Minimax-m2 should be the enabled model"
+        assert enabled_models[0].id == "openai/MiniMax-M2", "MiniMax-M2 should be the enabled model"
         
-        # Verify model can be resolved
+        # Verify model can be resolved via alias
         model = registry.get("minimax/minimax-m2")
-        assert model is not None, "Minimax-m2 should be resolvable"
-        assert model.enabled, "Minimax-m2 should be enabled"
+        assert model is not None, "MiniMax-M2 should be resolvable via alias"
+        assert model.enabled, "MiniMax-M2 should be enabled"
     
     @pytest.mark.asyncio
     async def test_thinking_blocks_parsed_in_streaming_response(self):
         """
         Test that thinking blocks are correctly parsed from streaming responses.
         
+        With OpenAI-compatible API and reasoning_split=True, thinking content
+        comes via reasoning_details field.
+        
         **Validates: Requirements 2.3, 2.4**
         """
-        # Create mock streaming chunks with thinking content
+        # Create mock streaming chunks with thinking content (OpenAI-compatible format)
+        # When reasoning_split=True, thinking comes via reasoning_details
         chunks = [
             MockStreamChunk(
                 choices=[MockChoice(delta=MockDelta(reasoning_content="Let me think about this..."))]
@@ -350,19 +355,19 @@ class TestVisionToolIntegration:
 
 class TestToolCallingIntegration:
     """
-    Integration tests for tool calling with Anthropic SDK format.
+    Integration tests for tool calling with OpenAI SDK format.
     
     **Validates: Requirements 3.3, 12.1, 12.2, 12.3, 12.4, 12.5**
     """
     
     @pytest.mark.asyncio
-    async def test_tool_definitions_use_anthropic_format(self):
+    async def test_tool_definitions_use_openai_format(self):
         """
-        Test that tool definitions are formatted according to Anthropic SDK.
+        Test that tool definitions are formatted according to OpenAI SDK.
         
         **Validates: Requirements 3.3, 12.1**
         """
-        # Define a sample tool in Anthropic SDK format
+        # Define a sample tool in OpenAI SDK format
         tool_definition = {
             "type": "function",
             "function": {
@@ -402,11 +407,11 @@ class TestToolCallingIntegration:
     @pytest.mark.asyncio
     async def test_tool_call_parsing(self):
         """
-        Test that tool calls from Minimax-m2 are correctly parsed.
+        Test that tool calls from MiniMax-M2 are correctly parsed.
         
         **Validates: Requirements 12.2**
         """
-        # Mock tool call response from Minimax-m2
+        # Mock tool call response from MiniMax-M2
         tool_call = {
             "id": "call_abc123",
             "type": "function",
@@ -430,7 +435,7 @@ class TestToolCallingIntegration:
     @pytest.mark.asyncio
     async def test_tool_result_formatting(self):
         """
-        Test that tool results are formatted correctly for Minimax-m2.
+        Test that tool results are formatted correctly for MiniMax-M2.
         
         **Validates: Requirements 12.3**
         """
@@ -528,7 +533,7 @@ class TestToolCallingIntegration:
         
         **Validates: Requirements 12.5**
         """
-        # Mock parallel tool calls from Minimax-m2
+        # Mock parallel tool calls from MiniMax-M2
         parallel_tool_calls = [
             {
                 "id": "call_1",
@@ -644,7 +649,7 @@ class TestConversationMigrationIntegration:
     @pytest.mark.asyncio
     async def test_new_messages_use_minimax_m2(self):
         """
-        Test that new messages in existing conversations use Minimax-m2.
+        Test that new messages in existing conversations use MiniMax-M2.
         
         **Validates: Requirements 9.2**
         """
@@ -655,7 +660,7 @@ class TestConversationMigrationIntegration:
         assert len(enabled_models) == 1
         
         new_message_model = enabled_models[0].id
-        assert new_message_model == "minimax/minimax-m2"
+        assert new_message_model == "openai/MiniMax-M2"
         
         # Simulate adding a new message
         new_message = {
@@ -664,7 +669,7 @@ class TestConversationMigrationIntegration:
             "metadata": {"model": new_message_model}
         }
         
-        assert new_message["metadata"]["model"] == "minimax/minimax-m2"
+        assert new_message["metadata"]["model"] == "openai/MiniMax-M2"
     
     @pytest.mark.asyncio
     async def test_agent_migration_preserves_settings(self):
@@ -697,10 +702,10 @@ class TestConversationMigrationIntegration:
         
         # Simulate migration - only model changes
         migrated_config = original_config.copy()
-        migrated_config["model"] = "minimax/minimax-m2"
+        migrated_config["model"] = "openai/MiniMax-M2"
         
         # Verify model changed
-        assert migrated_config["model"] == "minimax/minimax-m2"
+        assert migrated_config["model"] == "openai/MiniMax-M2"
         assert original_config["model"] == "gpt-4"
         
         # Verify all other settings preserved
@@ -727,7 +732,7 @@ class TestModelRegistryLLMIntegration:
     
     def test_minimax_m2_has_correct_pricing(self):
         """
-        Test that Minimax-m2 has correct pricing configuration.
+        Test that MiniMax-M2 has correct pricing configuration.
         
         **Validates: Requirements 8.1, 8.2**
         """
@@ -741,9 +746,9 @@ class TestModelRegistryLLMIntegration:
         assert model.pricing.input_cost_per_million_tokens == 0.60
         assert model.pricing.output_cost_per_million_tokens == 2.20
     
-    def test_minimax_m2_has_anthropic_sdk_config(self):
+    def test_minimax_m2_has_openai_sdk_config(self):
         """
-        Test that Minimax-m2 has Anthropic SDK-compatible configuration.
+        Test that MiniMax-M2 has OpenAI SDK-compatible configuration.
         
         **Validates: Requirements 3.1, 7.4**
         """
@@ -753,16 +758,15 @@ class TestModelRegistryLLMIntegration:
         assert model is not None
         assert model.config is not None
         
-        # Verify API base
-        assert model.config.api_base == "https://api.minimax.io/anthropic/v1"
+        # Verify API base is OpenAI-compatible endpoint
+        assert model.config.api_base == "https://api.minimax.io/v1"
         
-        # Verify Anthropic SDK headers
-        assert model.config.extra_headers is not None
-        assert "anthropic-version" in model.config.extra_headers
+        # OpenAI-compatible API doesn't require extra headers
+        assert model.config.extra_headers is None
     
     def test_minimax_m2_litellm_params(self):
         """
-        Test that Minimax-m2 generates correct LiteLLM parameters.
+        Test that MiniMax-M2 generates correct LiteLLM parameters.
         
         **Validates: Requirements 3.1, 3.2**
         """
@@ -775,10 +779,10 @@ class TestModelRegistryLLMIntegration:
         params = model.get_litellm_params()
         
         # Verify essential parameters
-        assert params["model"] == "minimax/minimax-m2"
-        assert params["api_base"] == "https://api.minimax.io/anthropic/v1"
-        assert "extra_headers" in params
-        assert "anthropic-version" in params["extra_headers"]
+        assert params["model"] == "openai/MiniMax-M2"
+        assert params["api_base"] == "https://api.minimax.io/v1"
+        # OpenAI-compatible API doesn't require extra headers
+        assert "extra_headers" not in params or params.get("extra_headers") is None
     
     def test_other_models_disabled(self):
         """
@@ -791,9 +795,9 @@ class TestModelRegistryLLMIntegration:
         all_models = registry.get_all(enabled_only=False)
         enabled_models = registry.get_all(enabled_only=True)
         
-        # Only Minimax-m2 should be enabled
+        # Only MiniMax-M2 should be enabled
         assert len(enabled_models) == 1
-        assert enabled_models[0].id == "minimax/minimax-m2"
+        assert enabled_models[0].id == "openai/MiniMax-M2"
         
         # Other models should exist but be disabled
         disabled_models = [m for m in all_models if not m.enabled]

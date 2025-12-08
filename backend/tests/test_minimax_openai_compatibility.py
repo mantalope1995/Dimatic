@@ -1,7 +1,7 @@
 """
-Comprehensive tests for Minimax-m2 with Anthropic SDK compatibility.
+Comprehensive tests for MiniMax-M2 with OpenAI SDK compatibility.
 
-These tests verify that Minimax-m2 properly implements Anthropic SDK format
+These tests verify that MiniMax-M2 properly implements OpenAI SDK format
 for API requests, streaming responses, tool calling, thinking tokens, and error handling.
 """
 
@@ -27,49 +27,48 @@ from core.utils.config import Configuration
 from core.utils.logger import logger
 
 
-class TestMinimaxAnthropicCompatibility:
-    """Test Minimax-m2 compatibility with Anthropic SDK format."""
+class TestMinimaxOpenAICompatibility:
+    """Test MiniMax-M2 compatibility with OpenAI SDK format."""
     
     @pytest.mark.asyncio
-    async def test_minimax_model_anthropic_sdk_format(self):
-        """Test that Minimax-m2 model is configured with Anthropic SDK format."""
+    async def test_minimax_model_openai_sdk_format(self):
+        """Test that MiniMax-M2 model is configured with OpenAI SDK format."""
         model = registry.get("minimax/minimax-m2")
         
-        assert model is not None, "Minimax-m2 should be registered"
+        assert model is not None, "MiniMax-M2 should be registered"
         assert model.provider.value == "minimax", "Provider should be MINIMAX"
-        assert model.config.api_base == "https://api.minimax.io/anthropic/v1", "API base should be Minimax Anthropic endpoint"
-        assert model.config.extra_headers is not None, "Extra headers should be configured"
-        assert "anthropic-version" in model.config.extra_headers, "Should include Anthropic version header"
-        assert model.config.extra_headers["anthropic-version"] == "2023-06-01", "Should use correct Anthropic API version"
+        assert model.config.api_base == "https://api.minimax.io/v1", "API base should be MiniMax OpenAI-compatible endpoint"
+        # OpenAI-compatible API doesn't require extra headers
+        assert model.config.extra_headers is None, "Should not have extra headers for OpenAI-compatible API"
     
     @pytest.mark.asyncio
     async def test_minimax_litellm_parameters(self):
-        """Test that Minimax-m2 generates correct LiteLLM parameters."""
+        """Test that MiniMax-M2 generates correct LiteLLM parameters."""
         model = registry.get("minimax/minimax-m2")
         params = model.get_litellm_params()
         
         # Verify essential parameters
-        assert params["model"] == "minimax/minimax-m2", "Model ID should be correct"
-        assert params["api_base"] == "https://api.minimax.io/anthropic/v1", "API base should be Minimax endpoint"
-        assert "extra_headers" in params, "Should have extra headers"
-        assert params["extra_headers"]["anthropic-version"] == "2023-06-01", "Should include Anthropic version header"
+        assert params["model"] == "openai/MiniMax-M2", "Model ID should be correct"
+        assert params["api_base"] == "https://api.minimax.io/v1", "API base should be MiniMax OpenAI-compatible endpoint"
+        # OpenAI-compatible API doesn't require extra headers
+        assert "extra_headers" not in params or params.get("extra_headers") is None, "Should not have extra headers"
     
     @pytest.mark.asyncio
     async def test_minimax_streaming_thinking_tokens(self):
-        """Test that Minimax-m2 properly handles thinking tokens in streaming."""
-        # Mock streaming response with thinking content
+        """Test that MiniMax-M2 properly handles thinking tokens in streaming with reasoning_split."""
+        # Mock streaming response with reasoning_details (OpenAI-compatible format with reasoning_split=True)
         mock_chunks = [
             {
                 "choices": [{
                     "delta": {
-                        "reasoning_content": "Let me think about this step by step..."
+                        "reasoning_details": [{"text": "Let me think about this step by step..."}]
                     }
                 }]
             },
             {
                 "choices": [{
                     "delta": {
-                        "reasoning_content": "I need to analyze the problem carefully."
+                        "reasoning_details": [{"text": "I need to analyze the problem carefully."}]
                     }
                 }]
             },
@@ -88,8 +87,7 @@ class TestMinimaxAnthropicCompatibility:
                 "usage": {
                     "prompt_tokens": 100,
                     "completion_tokens": 50,
-                    "thinking_tokens": 30,
-                    "total_tokens": 180
+                    "total_tokens": 150
                 }
             }
         ]
@@ -114,8 +112,10 @@ class TestMinimaxAnthropicCompatibility:
                 if hasattr(chunk, 'choices') and chunk.choices:
                     delta = chunk.choices[0].delta if hasattr(chunk.choices[0], 'delta') else None
                     if delta:
-                        if hasattr(delta, 'reasoning_content') and delta.reasoning_content:
-                            thinking_chunks.append(delta.reasoning_content)
+                        if hasattr(delta, 'reasoning_details') and delta.reasoning_details:
+                            for detail in delta.reasoning_details:
+                                if "text" in detail:
+                                    thinking_chunks.append(detail["text"])
                         elif hasattr(delta, 'content') and delta.content:
                             content_chunks.append(delta.content)
                 
@@ -131,16 +131,10 @@ class TestMinimaxAnthropicCompatibility:
             # Verify regular content was captured
             assert len(content_chunks) > 0, "Should have captured regular content"
             assert "Based on my analysis" in "".join(content_chunks), "Regular content should be preserved"
-            
-            # Verify usage includes thinking tokens
-            assert usage_info is not None, "Usage information should be captured"
-            assert hasattr(usage_info, 'thinking_tokens'), "Should have thinking tokens"
-            assert usage_info.thinking_tokens == 30, "Should count 30 thinking tokens"
-            assert usage_info.total_tokens == 180, "Total should include thinking tokens"
     
     @pytest.mark.asyncio
     async def test_minimax_tool_calling_format(self):
-        """Test that Minimax-m2 properly handles Anthropic tool calling format."""
+        """Test that MiniMax-M2 properly handles OpenAI tool calling format."""
         # Mock streaming response with tool calls
         mock_chunks = [
             {
@@ -178,7 +172,7 @@ class TestMinimaxAnthropicCompatibility:
                     "function": {
                         "name": "test_tool",
                         "description": "A test tool",
-                        "input_schema": {
+                        "parameters": {
                             "type": "object",
                             "properties": {
                                 "param": {
@@ -209,7 +203,7 @@ class TestMinimaxAnthropicCompatibility:
     
     @pytest.mark.asyncio
     async def test_minimax_error_handling(self):
-        """Test that Minimax-m2 errors are properly handled."""
+        """Test that MiniMax-M2 errors are properly handled."""
         # Mock error response
         error_response = {
             "error": {
@@ -233,63 +227,11 @@ class TestMinimaxAnthropicCompatibility:
             assert "Invalid request" in str(exc_info.value), "Error message should be preserved"
     
     @pytest.mark.asyncio
-    async def test_minimax_prompt_caching(self):
-        """Test that Minimax-m2 supports prompt caching with Anthropic format."""
-        # Mock response with cache control
-        mock_chunks = [
-            {
-                "choices": [{
-                    "delta": {
-                        "content": "This is a cached response."
-                    }
-                }],
-                "usage": {
-                    "prompt_tokens": 100,
-                    "completion_tokens": 20,
-                    "cached_tokens": 80,
-                    "cache_creation_input_tokens": 20
-                }
-            }
-        ]
-        
-        with patch('core.services.llm.provider_router.acompletion') as mock_completion:
-            mock_completion.return_value = self._async_generator_from_chunks(mock_chunks)
-            
-            # Make API call with cache control
-            response = await make_llm_api_call(
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a helpful assistant.",
-                        "cache_control": {"type": "ephemeral"}
-                    },
-                    {
-                        "role": "user", 
-                        "content": "Test caching"
-                    }
-                ],
-                model_name="minimax/minimax-m2",
-                stream=True
-            )
-            
-            # Process response
-            usage_info = None
-            async for chunk in response:
-                if hasattr(chunk, 'usage') and chunk.usage:
-                    usage_info = chunk.usage
-                    break
-            
-            # Verify caching information is captured
-            assert usage_info is not None, "Usage information should be captured"
-            # Note: Actual cache tokens might not be exposed in all response formats
-            # This test verifies that the structure is in place
-    
-    @pytest.mark.asyncio
     async def test_minimax_configuration_loading(self):
-        """Test that Minimax configuration is properly loaded from environment."""
+        """Test that MiniMax configuration is properly loaded from environment."""
         test_config = {
             "MINIMAX_API_KEY": "test_key_12345",
-            "MINIMAX_API_BASE": "https://api.minimax.io/anthropic/v1",
+            "MINIMAX_API_BASE": "https://api.minimax.io/v1",
             "SUPABASE_URL": "http://test",
             "SUPABASE_ANON_KEY": "test",
             "SUPABASE_SERVICE_ROLE_KEY": "test",
@@ -300,7 +242,7 @@ class TestMinimaxAnthropicCompatibility:
             config = Configuration()
             
             assert config.MINIMAX_API_KEY == "test_key_12345", "API key should be loaded"
-            assert config.MINIMAX_API_BASE == "https://api.minimax.io/anthropic/v1", "API base should be loaded"
+            assert config.MINIMAX_API_BASE == "https://api.minimax.io/v1", "API base should be loaded"
     
     async def _async_generator_from_chunks(self, chunks: List[Dict[str, Any]]):
         """Helper to create an async generator from mock chunks."""
@@ -314,16 +256,16 @@ class TestMinimaxAnthropicCompatibility:
         return generator()
     
     @pytest.mark.asyncio
-    async def test_minimax_anthropic_version_header(self):
-        """Test that Anthropic version header is correctly sent."""
-        # This test verifies that the anthropic-version header is included
-        # In a real scenario, this would be checked on the API side
-        model = registry.get("minimax/minimax-m2")
-        params = model.get_litellm_params()
+    async def test_minimax_model_aliases(self):
+        """Test that MiniMax-M2 can be accessed via various aliases."""
+        aliases = ["minimax-m2", "MiniMax-M2", "Minimax-m2", "minimax/minimax-m2", "openai/minimax-m2"]
         
-        assert "extra_headers" in params, "Should have extra headers"
-        assert params["extra_headers"]["anthropic-version"] == "2023-06-01", "Should use correct Anthropic API version"
+        for alias in aliases:
+            model = registry.get(alias)
+            assert model is not None, f"Should be able to get model via alias: {alias}"
+            assert model.id == "openai/MiniMax-M2", f"Model ID should be correct for alias: {alias}"
 
 
 if __name__ == "__main__":
     # Run tests when executed directly
+    pytest.main([__file__, "-v"])

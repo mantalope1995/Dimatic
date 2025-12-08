@@ -5,10 +5,10 @@ from core.utils.logger import logger
 
 # Minimax-m2 is the primary model for all environments
 # Actual model IDs for LiteLLM - using Minimax-m2 as the sole provider
-# Note: Using anthropic/ prefix because Minimax API is Anthropic SDK-compatible
+# Note: Using openai/ prefix because Minimax API is OpenAI SDK-compatible
 # The api_base in ModelConfig routes requests to Minimax's API
-_BASIC_MODEL_ID = "anthropic/minimax-m2"
-_POWER_MODEL_ID = "anthropic/minimax-m2"
+_BASIC_MODEL_ID = "openai/MiniMax-M2"
+_POWER_MODEL_ID = "openai/MiniMax-M2"
 
 # Default model IDs (these are aliases that resolve to actual IDs)
 FREE_MODEL_ID = "kortix/basic"
@@ -23,17 +23,17 @@ class ModelRegistry:
     # KORTIX BASIC & POWER – Same underlying model, different configs
     def _initialize_models(self):
         # Minimax-m2 - Primary model with thinking capability
-        # Using anthropic/ prefix for LiteLLM compatibility - Minimax API is Anthropic SDK-compatible
-        # The api_base routes requests to Minimax's API endpoint
-        # API key is loaded from MINIMAX_API_KEY config and passed as api_key to override ANTHROPIC_API_KEY
+        # Using openai/ prefix for LiteLLM compatibility - Minimax API is OpenAI SDK-compatible
+        # The api_base routes requests to Minimax's OpenAI-compatible API endpoint
+        # API key is loaded from MINIMAX_API_KEY config and passed as api_key to override OPENAI_API_KEY
         minimax_api_key = config.MINIMAX_API_KEY if config else None
-        minimax_api_base = config.MINIMAX_API_BASE if config else "https://api.minimax.io/anthropic/v1"
+        minimax_api_base = config.MINIMAX_API_BASE if config else "https://api.minimax.io/v1"
         
         self.register(Model(
-            id="anthropic/minimax-m2",
-            name="Minimax-m2",
+            id="openai/MiniMax-M2",
+            name="MiniMax-M2",
             provider=ModelProvider.MINIMAX,
-            aliases=["minimax-m2", "Minimax-m2", "minimax-m2-interleaved", "minimax/minimax-m2"],
+            aliases=["minimax-m2", "MiniMax-M2", "Minimax-m2", "minimax-m2-interleaved", "minimax/minimax-m2", "openai/minimax-m2"],
             context_window=200_000,
             capabilities=[
                 ModelCapability.CHAT,
@@ -51,9 +51,6 @@ class ModelRegistry:
             config=ModelConfig(
                 api_key=minimax_api_key,
                 api_base=minimax_api_base,
-                extra_headers={
-                    "anthropic-version": "2023-06-01",
-                }
             )
         ))
         
