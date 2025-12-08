@@ -5,8 +5,10 @@ from core.utils.logger import logger
 
 # Minimax-m2 is the primary model for all environments
 # Actual model IDs for LiteLLM - using Minimax-m2 as the sole provider
-_BASIC_MODEL_ID = "minimax/minimax-m2"
-_POWER_MODEL_ID = "minimax/minimax-m2"
+# Note: Using anthropic/ prefix because Minimax API is Anthropic SDK-compatible
+# The api_base in ModelConfig routes requests to Minimax's API
+_BASIC_MODEL_ID = "anthropic/minimax-m2"
+_POWER_MODEL_ID = "anthropic/minimax-m2"
 
 # Default model IDs (these are aliases that resolve to actual IDs)
 FREE_MODEL_ID = "kortix/basic"
@@ -21,11 +23,17 @@ class ModelRegistry:
     # KORTIX BASIC & POWER – Same underlying model, different configs
     def _initialize_models(self):
         # Minimax-m2 - Primary model with thinking capability
+        # Using anthropic/ prefix for LiteLLM compatibility - Minimax API is Anthropic SDK-compatible
+        # The api_base routes requests to Minimax's API endpoint
+        # API key is loaded from MINIMAX_API_KEY config and passed as api_key to override ANTHROPIC_API_KEY
+        minimax_api_key = config.MINIMAX_API_KEY if config else None
+        minimax_api_base = config.MINIMAX_API_BASE if config else "https://api.minimax.io/v1"
+        
         self.register(Model(
-            id="minimax/minimax-m2",
+            id="anthropic/minimax-m2",
             name="Minimax-m2",
             provider=ModelProvider.MINIMAX,
-            aliases=["minimax-m2", "Minimax-m2", "minimax-m2-interleaved"],
+            aliases=["minimax-m2", "Minimax-m2", "minimax-m2-interleaved", "minimax/minimax-m2"],
             context_window=200_000,
             capabilities=[
                 ModelCapability.CHAT,
@@ -41,7 +49,8 @@ class ModelRegistry:
             recommended=True,
             enabled=True,
             config=ModelConfig(
-                api_base="https://api.minimax.chat/v1",
+                api_key=minimax_api_key,
+                api_base=minimax_api_base,
                 extra_headers={
                     "anthropic-version": "2023-06-01",
                 }

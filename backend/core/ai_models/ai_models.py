@@ -63,6 +63,7 @@ class ModelConfig:
     """Essential model configuration - provider settings and API configuration only."""
     
     # === Provider & API Configuration ===
+    api_key: Optional[str] = None  # API key for the provider
     api_base: Optional[str] = None
     api_version: Optional[str] = None
     base_url: Optional[str] = None  # Alternative to api_base
@@ -138,7 +139,7 @@ class Model:
         if self.config:
             # Provider & API configuration parameters
             api_params = [
-                'api_base', 'api_version', 'base_url', 'deployment_id', 
+                'api_key', 'api_base', 'api_version', 'base_url', 'deployment_id', 
                 'timeout', 'num_retries'
             ]
             

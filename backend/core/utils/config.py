@@ -323,8 +323,9 @@ class Configuration:
     OR_APP_NAME: Optional[str] = "Dimatic"
     
     # Minimax API configuration
+    # Note: Use api.minimax.io for international users, api.minimaxi.com for China
     MINIMAX_API_KEY: Optional[str] = None
-    MINIMAX_API_BASE: Optional[str] = "https://api.minimax.chat/v1"
+    MINIMAX_API_BASE: Optional[str] = "https://api.minimax.io/v1"
     
     # Frontend URL configuration
     FRONTEND_URL_ENV: Optional[str] = None
