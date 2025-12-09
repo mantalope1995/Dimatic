@@ -320,7 +320,7 @@
     "chatDescription": "Simple back-and-forth conversation",
     "sampleAnswers": "Sample answers",
     "samplePrompts": "Sample prompts",
-    "waitingForUserResponse": "Kortix will proceed to work autonomously after you answer.",
+    "waitingForUserResponse": "Dimatic will proceed to work autonomously after you answer.",
     "taskCompleted": "Task completed",
     "uploadingFiles": "Uploading {count} file{plural}...",
     "uploadingFilesOne": "Uploading {count} file...",
