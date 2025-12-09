@@ -102,7 +102,11 @@ def setup_provider_router(openai_compatible_api_key: str = None, openai_compatib
                 "model": "openai/MiniMax-m2",
                 "api_key": effective_api_key,
                 "api_base": effective_api_base,
-                "max_tokens": 200000,  # Explicitly set MiniMax's context limit
+                # Note: max_tokens removed - it controls output tokens, not context window
+                # Context window validation is handled via model_info.base_model and enable_pre_call_checks
+            },
+            "model_info": {
+                "base_model": "openai/MiniMax-m2",  # Enables LiteLLM context window lookup
             },
         },
         {
@@ -131,6 +135,7 @@ def setup_provider_router(openai_compatible_api_key: str = None, openai_compatib
     # - num_retries=0: Disable router-level retries - we handle errors at our layer
     # - fallbacks: ONLY for rate limits and overloaded errors, NOT for 400 errors
     # - context_window_fallbacks: Automatically fallback to models with larger context windows when context is exceeded
+    # - enable_pre_call_checks: Validates context window limits before making API calls
     # CRITICAL: 400 Bad Request errors must NOT retry or fallback - they're permanent failures
     # EXCEPTION: ContextWindowExceededError is a special case where fallback to larger context models is appropriate
     provider_router = Router(
@@ -138,6 +143,7 @@ def setup_provider_router(openai_compatible_api_key: str = None, openai_compatib
         num_retries=0,  # CRITICAL: Disable all router-level retries to prevent infinite loops
         fallbacks=fallbacks,
         context_window_fallbacks=context_window_fallbacks,  # Handle context window exceeded errors
+        enable_pre_call_checks=True,  # Validate context window limits before API calls
         # Only use fallbacks for rate limits (429) and server errors (5xx), NOT client errors (4xx)
         # context_window_fallbacks are separate and only triggered by context length issues
     )
