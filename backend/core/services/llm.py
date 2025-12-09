@@ -97,7 +97,16 @@ def setup_provider_router(openai_compatible_api_key: str = None, openai_compatib
     
     model_list = [
         {
-            "model_name": "openai-compatible/*", # support OpenAI-Compatible LLM provider
+            "model_name": "openai-compatible/MiniMax-m2", # Specific MiniMax model
+            "litellm_params": {
+                "model": "openai/MiniMax-m2",
+                "api_key": effective_api_key,
+                "api_base": effective_api_base,
+                "max_tokens": 200000,  # Explicitly set MiniMax's context limit
+            },
+        },
+        {
+            "model_name": "openai-compatible/*", # fallback for other OpenAI-Compatible providers
             "litellm_params": {
                 "model": "openai/*",
                 "api_key": effective_api_key,
