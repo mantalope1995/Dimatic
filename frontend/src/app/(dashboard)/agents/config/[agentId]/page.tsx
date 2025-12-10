@@ -73,7 +73,7 @@ export default function AgentConfigPage() {
 
   const menuItems = [
     { id: 'instructions' as const, label: 'Instructions', icon: Brain },
-    { id: 'tools' as const, label: 'Tools', icon: Wrench },
+// { id: 'tools' as const, label: 'Tools', icon: Wrench },
     { id: 'integrations' as const, label: 'Integrations', icon: Server },
     { id: 'knowledge' as const, label: 'Knowledge', icon: BookOpen },
     { id: 'triggers' as const, label: 'Triggers', icon: Zap },
@@ -191,7 +191,7 @@ export default function AgentConfigPage() {
 
         {/* Dynamic Content Based on Active View */}
         {activeView === 'instructions' && <InstructionsScreen agentId={agentId} />}
-        {activeView === 'tools' && <ToolsScreen agentId={agentId} />}
+{/* {activeView === 'tools' && <ToolsScreen agentId={agentId} />} */}
         {activeView === 'integrations' && <IntegrationsScreen agentId={agentId} />}
         {activeView === 'knowledge' && <KnowledgeScreen agentId={agentId} />}
         {activeView === 'triggers' && <TriggersScreen agentId={agentId} />}
