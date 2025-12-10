@@ -4,6 +4,7 @@ from typing import List, Optional, Dict, Any, Tuple
 from pydantic import BaseModel
 import os
 import uuid
+import asyncio
 from datetime import datetime, timezone
 import json
 import hmac
@@ -105,14 +106,18 @@ async def sync_triggers_to_version_config(agent_id: str):
     try:
         client = await db.client
         
-        agent_result = await client.table('agents').select('current_version_id').eq('agent_id', agent_id).single().execute()
+        # Run independent queries in parallel
+        agent_task = client.table('agents').select('current_version_id').eq('agent_id', agent_id).single().execute()
+        triggers_task = client.table('agent_triggers').select('*').eq('agent_id', agent_id).execute()
+        
+        agent_result, triggers_result = await asyncio.gather(agent_task, triggers_task)
+
         if not agent_result.data or not agent_result.data.get('current_version_id'):
             logger.warning(f"No current version found for agent {agent_id}")
             return
         
         current_version_id = agent_result.data['current_version_id']
-        
-        triggers_result = await client.table('agent_triggers').select('*').eq('agent_id', agent_id).execute()
+
         triggers = []
         if triggers_result.data:
             import json

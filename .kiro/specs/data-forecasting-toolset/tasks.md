@@ -1,0 +1,211 @@
+# Implementation Plan
+
+- [ ] 1. Set up project structure and dependencies
+  - [ ] 1.1 Add forecasting dependencies to backend/pyproject.toml
+    - Add `prophet` package (install via `python -m pip install prophet`)
+    - Add `hypothesis` package for property-based testing
+    - Add `torch` for Granite TTM
+    - Document Granite TTM installation: `pip install "tsfm_public[notebooks] @ git+https://github.com/ibm-granite/granite-tsfm.git@v0.2.12"`
+    - _Requirements: 7.1_
+  - [ ] 1.2 Update Daytona sandbox Docker image
+    - Update `backend/core/sandbox/docker/requirements.txt` to add:
+      - `prophet>=1.1.5` (univariate forecasting)
+      - `torch>=2.0.0` (required for Granite TTM)
+      - `cmdstanpy>=1.2.0` (Prophet dependency)
+    - Update `backend/core/sandbox/docker/Dockerfile` to add system dependencies:
+      - Add `build-essential` for compiling Prophet's Stan backend
+      - Add `libffi-dev` for Python C extensions
+    - Add Granite TTM installation via pip from GitHub:
+      - `pip install "tsfm_public[notebooks] @ git+https://github.com/ibm-granite/granite-tsfm.git@v0.2.12"`
+    - Ensure sandbox has sufficient memory allocation for model inference (~2GB recommended)
+    - Test sandbox image builds successfully with new dependencies
+    - _Requirements: 7.1, 11.1_
+  - [ ] 1.3 Create forecasting module directory structure
+    - Create `backend/core/forecasting/` directory
+    - Create `__init__.py` with module exports
+    - Create `backend/core/forecasting/tests/` directory for property tests
+    - _Requirements: 7.1_
+
+- [ ] 2. Implement DataPreprocessor component
+  - [ ] 2.1 Create data cleaning utilities
+    - Implement date format parsing with multiple format support
+    - Implement missing value handling (interpolation, forward-fill)
+    - Implement duplicate timestamp aggregation
+    - Implement outlier detection and capping
+    - Implement numeric string conversion (currency, percentages)
+    - _Requirements: 3.1, 3.3, 3.1.1, 3.1.2, 3.1.3, 3.1.4, 3.1.5_
+  - [ ] 2.2 Write property tests for data cleaning
+    - Use Hypothesis `@given` decorator with custom strategies
+    - Create `time_series_data` strategy for generating test data
+    - Create `messy_data` strategy for data with quality issues
+    - **Property 7: Missing Value Handling**
+    - **Property 8: Duplicate Timestamp Aggregation**
+    - **Property 9: Date Format Parsing**
+    - **Property 10: Numeric String Conversion**
+    - **Property 11: Regular Frequency Resampling**
+    - **Validates: Requirements 3.3, 3.1.1, 3.1.2, 3.1.4, 3.1.5**
+  - [ ] 2.3 Create column inference logic
+    - Implement timestamp column detection by name patterns
+    - Implement numeric column identification
+    - Implement primary target inference from column names
+    - Return confidence scores for inferred mappings
+    - _Requirements: 3.2.1, 3.2.2, 3.2.3, 3.2.4, 3.2.5_
+  - [ ] 2.4 Write property tests for column inference
+    - **Property 12: Column Inference for Timestamps**
+    - **Property 13: Column Inference for Numeric Values**
+    - **Validates: Requirements 3.2.1, 3.2.2**
+  - [ ] 2.5 Create data validation logic
+    - Implement monotonic timestamp validation
+    - Implement null value verification
+    - Implement frequency consistency check
+    - Return DataStatistics on success
+    - _Requirements: 11.2.1, 11.2.2, 11.2.3, 11.2.5_
+  - [ ] 2.6 Write property tests for data validation
+    - **Property 17: Data Validation Completeness**
+    - **Property 18: Validation Statistics**
+    - **Validates: Requirements 11.2.1, 11.2.2, 11.2.3, 11.2.5**
+
+- [ ] 3. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 4. Implement ProphetEngine component
+  - [ ] 4.1 Create ProphetEngine class
+    - Implement fit() method with seasonality configuration
+    - Implement predict() method with future dataframe generation
+    - Implement serialize() using model_to_json
+    - Implement deserialize() using model_from_json
+    - _Requirements: 1.1, 1.2, 1.3, 1.4, 8.1, 8.2, 8.3, 8.4_
+  - [ ] 4.2 Write property tests for ProphetEngine
+    - Use `prophet.serialize.model_to_json` and `model_from_json` for round-trip tests
+    - Test with various seasonality configurations (additive, multiplicative)
+    - **Property 4: Prediction Length Consistency**
+    - **Property 5: Forecast Output Structure**
+    - **Property 6: Confidence Bounds Ordering**
+    - **Property 15: Model Serialization Round-Trip**
+    - **Property 16: Serialized Model Metadata**
+    - **Validates: Requirements 1.3, 1.4, 4.1, 4.2, 4.3, 8.1, 8.2, 8.3, 8.4**
+  - [ ] 4.3 Create ProphetConfig dataclass
+    - Define seasonality_mode, yearly/weekly/daily seasonality options
+    - Define confidence_interval parameter
+    - Define custom_seasonalities list
+    - _Requirements: 5.3, 5.4_
+
+- [ ] 5. Implement GraniteEngine component (runs on-device, not API)
+  - [ ] 5.1 Create GraniteEngine class
+    - Model runs locally using Hugging Face Transformers (CPU or GPU)
+    - Use `TinyTimeMixerForPrediction.from_pretrained("ibm-granite/granite-timeseries-ttm-r2")`
+    - Use `TimeSeriesPreprocessor` with target_columns, control_columns, scaling=True
+    - Set `decoder_mode="mix_channel"` for inter-channel dependencies
+    - Handle device selection (cuda if available, else cpu)
+    - Implement fit() with TimeSeriesPreprocessor configuration
+    - Implement predict() with model inference using `torch.no_grad()`
+    - Implement get_channel_relationships() for explanations
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+  - [ ] 5.2 Write property tests for GraniteEngine
+    - Test with multivariate data (multiple target columns)
+    - Test control column (exogenous variable) incorporation
+    - Note: Tests may be slower due to on-device model inference
+    - **Property 20: Multivariate Prediction Coverage**
+    - **Property 21: Control Column Incorporation**
+    - **Validates: Requirements 2.3, 2.4**
+  - [ ] 5.3 Create GraniteConfig dataclass
+    - Define timestamp_column, target_columns, control_columns
+    - Define prediction_length (default 96) and context_length (default 512)
+    - Define device parameter (auto-detect cuda/cpu)
+    - _Requirements: 5.1, 5.2_
+
+- [ ] 6. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 7. Implement engine selection logic
+  - [ ] 7.1 Create EngineSelector class
+    - Implement automatic engine selection based on data characteristics
+    - Support explicit engine override parameter
+    - _Requirements: 6.1, 6.2, 6.3, 6.4_
+  - [ ] 7.2 Write property tests for engine selection
+    - **Property 1: Engine Selection for Univariate Data**
+    - **Property 2: Engine Selection for Multivariate Data**
+    - **Property 3: Explicit Engine Override**
+    - **Validates: Requirements 1.1, 2.1, 6.1, 6.2, 6.3, 6.4**
+
+- [ ] 8. Implement natural language interpretation
+  - [ ] 8.1 Create HorizonParser class
+    - Implement parsing for "next week", "next month", "next quarter", "next year"
+    - Convert natural language to prediction_length based on data frequency
+    - Infer reasonable defaults when no horizon specified
+    - _Requirements: 5.1.1, 5.1.2_
+  - [ ] 8.2 Write property tests for horizon parsing
+    - **Property 14: Natural Language Horizon Conversion**
+    - **Validates: Requirements 5.1.1**
+
+- [ ] 9. Implement ResultFormatter component
+  - [ ] 9.1 Create chart data formatter
+    - Convert forecast results to ChartData structure
+    - Include historical, predicted, and confidence band datasets
+    - Format timestamps as strings for chart labels
+    - _Requirements: 4.1, 4.2, 4.3, 4.4_
+  - [ ] 9.2 Create explanation generator
+    - Generate plain-language trend direction summary
+    - Generate seasonality explanations
+    - Generate confidence interval explanations
+    - Generate changepoint highlights
+    - Generate multivariate relationship explanations
+    - _Requirements: 5.1.3, 5.1.4, 5.1.5, 10.1, 10.2, 10.3, 10.4, 10.5_
+  - [ ] 9.3 Write property tests for result formatting
+    - **Property 19: Forecast Explanation Completeness**
+    - **Validates: Requirements 5.1.5, 10.1, 10.2, 10.3, 10.4**
+
+- [ ] 10. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 11. Implement SandboxScriptGenerator component
+  - [ ] 11.1 Create script generation utilities
+    - Generate pandas-based cleaning scripts
+    - Generate merge scripts for multiple data sources
+    - Generate template scripts for common transformations
+    - _Requirements: 11.1, 11.2, 11.5, 11.1.4_
+  - [ ] 11.2 Write property tests for script generation
+    - **Property 23: Script Generation for Transformations**
+    - **Validates: Requirements 11.1, 11.2**
+  - [ ] 11.3 Create data preparation templates
+    - Create CSV cleaning template
+    - Create financial data template (normalization, returns)
+    - Create sales data template (aggregation, currency conversion)
+    - _Requirements: 11.1.1, 11.1.2, 11.1.3_
+
+- [ ] 12. Implement ForecastingTool main class
+  - [ ] 12.1 Create ForecastingTool class extending Tool
+    - Add @tool_metadata decorator with display_name, description, icon
+    - Implement forecast() method with @openapi_schema
+    - Implement prepare_data() method with @openapi_schema
+    - Implement get_forecast_templates() method
+    - Wire up all components (preprocessor, engines, formatter)
+    - _Requirements: 7.1, 7.2, 7.3, 7.4_
+  - [ ] 12.2 Write property tests for ForecastingTool
+    - **Property 22: ToolResult Compliance**
+    - **Validates: Requirements 7.3**
+  - [ ] 12.3 Implement error handling
+    - Create user-friendly error messages for all error conditions
+    - Implement warning generation for data quality issues
+    - Implement low-confidence prediction warnings
+    - _Requirements: 1.5, 3.4, 3.1.6, 9.1, 9.2, 9.3, 9.4, 9.5_
+
+- [ ] 13. Implement sandbox file integration
+  - [ ] 13.1 Create file I/O utilities
+    - Implement CSV, Excel, JSON file reading
+    - Implement forecast result CSV export
+    - Include historical and predicted values in export
+    - _Requirements: 12.1, 12.2, 12.3, 12.4_
+  - [ ] 13.2 Write property tests for file operations
+    - **Property 24: File Read Support**
+    - **Property 25: Forecast File Export**
+    - **Validates: Requirements 12.1, 12.2, 12.3**
+
+- [ ] 14. Register tool in tool registry
+  - [ ] 14.1 Add ForecastingTool to tool registry
+    - Add entry to ALL_TOOLS in backend/core/tools/tool_registry.py
+    - Verify tool loads correctly
+    - _Requirements: 7.4_
+
+- [ ] 15. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.

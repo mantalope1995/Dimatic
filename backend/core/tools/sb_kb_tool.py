@@ -320,10 +320,32 @@ class SandboxKbTool(SandboxToolsBase):
             synced_files = 0
             folder_structure = {}
             
+            # 1. Collect folders and files to sync
+            folders_to_create = set()
+            files_to_sync = []
+            
             for assignment in result.data:
                 if not assignment.get('knowledge_base_entries'):
                     continue
                     
+                entry = assignment['knowledge_base_entries']
+                folder_name = entry['knowledge_base_folders']['name']
+                
+                folders_to_create.add(folder_name)
+                files_to_sync.append(assignment)
+
+            # 2. Create all folders in batch (or parallel) to reduce `exec` calls
+            # We can just create them one by one in parallel, mkdir -p is safe
+            create_folder_tasks = []
+            for folder_name in folders_to_create:
+                folder_path = f"~/{kb_dir}/{folder_name}"
+                create_folder_tasks.append(self.sandbox.process.exec(f"mkdir -p '{folder_path}'"))
+            
+            if create_folder_tasks:
+                await asyncio.gather(*create_folder_tasks)
+
+            # 3. Define parallel sync function
+            async def sync_single_file(assignment):
                 entry = assignment['knowledge_base_entries']
                 folder_name = entry['knowledge_base_folders']['name']
                 filename = entry['filename']
@@ -334,24 +356,31 @@ class SandboxKbTool(SandboxToolsBase):
                     file_response = await client.storage.from_('file-uploads').download(file_path)
                     
                     if not file_response:
-                        continue
-                    
-                    # Create folder structure in sandbox
-                    folder_path = f"~/{kb_dir}/{folder_name}"
-                    await self.sandbox.process.exec(f"mkdir -p '{folder_path}'")
+                        return None
                     
                     # Upload file to sandbox
                     file_destination = f"{kb_dir}/{folder_name}/{filename}"
                     await self.sandbox.fs.upload_file(file_response, file_destination)
                     
+                    return (folder_name, filename)
+                except Exception:
+                    return None
+
+            # 4. Execute file syncs in parallel
+            sync_tasks = [sync_single_file(assignment) for assignment in files_to_sync]
+            completed_syncs = await asyncio.gather(*sync_tasks)
+            
+            # 5. Aggregate results
+            synced_files = 0
+            folder_structure = {}
+            
+            for res in completed_syncs:
+                if res:
+                    folder_name, filename = res
                     synced_files += 1
-                    
                     if folder_name not in folder_structure:
                         folder_structure[folder_name] = []
                     folder_structure[folder_name].append(filename)
-                    
-                except Exception as e:
-                    continue
             
             # Create README
             readme_content = f"""# Global Knowledge Base
@@ -808,16 +837,17 @@ Agent ID: {agent_id}
             
             account_id = agent_result.data[0]['account_id']
             
-            # Get all folders
-            folders_result = await client.table('knowledge_base_folders').select(
+            # Run independent queries in parallel
+            folders_task = client.table('knowledge_base_folders').select(
                 'folder_id, name, description, created_at'
             ).eq('account_id', account_id).order('name').execute()
             
-            # Get all files with folder info
-            files_result = await client.table('knowledge_base_entries').select('''
+            files_task = client.table('knowledge_base_entries').select('''
                 entry_id, filename, file_size, created_at, summary, folder_id,
                 knowledge_base_folders (name)
             ''').eq('account_id', account_id).eq('is_active', True).order('created_at').execute()
+
+            folders_result, files_result = await asyncio.gather(folders_task, files_task)
             
             # Organize data
             kb_structure = {}

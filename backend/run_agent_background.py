@@ -308,7 +308,7 @@ async def create_stop_signal_checker(pubsub, agent_run_id: str, instance_id: str
                         await redis.expire(instance_active_key, redis.REDIS_KEY_TTL)
                     except Exception as ttl_err:
                         logger.warning(f"Failed to refresh TTL for {instance_active_key}: {ttl_err}")
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(1.0)
         except asyncio.CancelledError:
             logger.debug(f"Stop signal checker cancelled for {agent_run_id} (Instance: {instance_id})")
         except Exception as e:

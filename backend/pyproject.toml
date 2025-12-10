@@ -30,7 +30,7 @@ dependencies = [
   "hypothesis==6.122.3",
   "asyncio==3.4.3",
   "altair==4.2.2",
-  "prisma==0.15.0",
+
   "fastapi==0.115.12",
   "uvicorn==0.27.1",
   "python-multipart==0.0.20",
