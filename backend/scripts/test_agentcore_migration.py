@@ -73,8 +73,8 @@ async def test_agentcore_tools():
                 from core.tools.sb_browser_tool_agentcore import AgentCoreBrowserTool
                 print("✅ AgentCore Browser Tool imported successfully")
                 
-                from core.tools.sb_vision_tool_agentcore import AgentCoreVisionTool
-                print("✅ AgentCore Vision Tool imported successfully")
+                # Vision tool removed - using native Qwen3-VL multimodal capabilities instead
+                print("ℹ️ AgentCore Vision Tool removed - using native Qwen3-VL multimodal capabilities")
                 
             except ImportError as e:
                 print(f"⚠️ AgentCore tool import failed: {e}")

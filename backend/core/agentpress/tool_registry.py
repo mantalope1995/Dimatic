@@ -129,3 +129,31 @@ class ToolRegistry:
         # logger.debug(f"Retrieved {len(schemas)} OpenAPI schemas")
         return schemas
 
+    def get_openai_function_schemas(self) -> List[Dict[str, Any]]:
+        """Get OpenAI function calling format schemas.
+        
+        Converts OpenAPI schemas to OpenAI function format for native function calling.
+        
+        Returns:
+            List of OpenAI function schema definitions
+        """
+        openai_schemas = []
+        
+        for tool_info in self.tools.values():
+            if str(tool_info['schema'].schema_type) == str(SchemaType.OPENAPI):
+                openapi_schema = tool_info['schema'].schema
+                
+                # Convert OpenAPI schema to OpenAI function format
+                openai_function_schema = {
+                    "type": "function",
+                    "function": {
+                        "name": openapi_schema.get("name", ""),
+                        "description": openapi_schema.get("description", ""),
+                        "parameters": openapi_schema.get("schema", {})
+                    }
+                }
+                openai_schemas.append(openai_function_schema)
+        
+        # logger.debug(f"Retrieved {len(openai_schemas)} OpenAI function schemas")
+        return openai_schemas
+

@@ -25,7 +25,6 @@ SANDBOX_TOOLS = [
     ('sb_shell_tool', 'core.tools.sb_shell_tool', 'SandboxShellTool'),
     ('sb_files_tool', 'core.tools.sb_files_tool', 'SandboxFilesTool'),
     ('sb_expose_tool', 'core.tools.sb_expose_tool', 'SandboxExposeTool'),
-    ('sb_vision_tool', 'core.tools.sb_vision_tool', 'SandboxVisionTool'),
     ('sb_image_edit_tool', 'core.tools.sb_image_edit_tool', 'SandboxImageEditTool'),
     ('sb_kb_tool', 'core.tools.sb_kb_tool', 'SandboxKbTool'),
     # ('sb_design_tool', 'core.tools.sb_designer_tool', 'SandboxDesignerTool'),
@@ -38,7 +37,6 @@ SANDBOX_TOOLS = [
 AGENTCORE_TOOLS = [
     ('sb_shell_tool', 'core.tools.sb_shell_tool_agentcore', 'AgentCoreShellTool'),
     ('sb_files_tool', 'core.tools.sb_files_tool_agentcore', 'AgentCoreFilesTool'),
-    ('sb_vision_tool', 'core.tools.sb_vision_tool_agentcore', 'AgentCoreVisionTool'),
     ('sb_browser_tool', 'core.tools.sb_browser_tool_agentcore', 'AgentCoreBrowserTool'),
     ('sb_browser_tool_stagehand', 'core.tools.sb_browser_tool_stagehand_agentcore', 'AgentCoreStagehandTool'),
 ]

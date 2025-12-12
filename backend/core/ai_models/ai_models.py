@@ -12,6 +12,7 @@ class ModelProvider(Enum):
     XAI = "xai"
     MOONSHOTAI = "moonshotai"
     MINIMAX = "minimax"
+    SILICONFLOW = "siliconflow"
 
 class ModelCapability(Enum):
     CHAT = "chat"
@@ -133,8 +134,14 @@ class Model:
     def get_litellm_params(self, **override_params) -> Dict[str, Any]:
         """Get complete LiteLLM parameters for this model, including all configuration."""
         # Start with intelligent defaults
+        # Format model ID for LiteLLM based on provider
+        model_id = self.id
+        if self.provider == ModelProvider.SILICONFLOW:
+            model_id = f"openai/{self.id}"
+        
         params = {
-            "model": self.id,
+            "model": model_id,
+            "max_tokens": self.max_output_tokens,
             "num_retries": 5,
         }
         

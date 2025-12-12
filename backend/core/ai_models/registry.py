@@ -3,16 +3,17 @@ from .ai_models import Model, ModelProvider, ModelCapability, ModelPricing, Mode
 from core.utils.config import config
 from core.utils.logger import logger
 
-# Minimax-m2 is the primary model for all environments
-# Actual model IDs for LiteLLM - using Minimax-m2 as the sole provider
-# Note: Using openai/ prefix because Minimax API is OpenAI SDK-compatible
-# The api_base in ModelConfig routes requests to Minimax's API
-_BASIC_MODEL_ID = "openai-compatible/MiniMax-m2"
-_POWER_MODEL_ID = "openai-compatible/MiniMax-m2"
+# Qwen3-VL models are the primary models for all environments
+# Actual model IDs for LiteLLM - using Qwen3-VL via SiliconFlow
+# Note: Using openai/ prefix because SiliconFlow API is OpenAI SDK-compatible
+_BASIC_MODEL_ID = "Qwen/Qwen3-VL-235B-A22B-Instruct"
+_POWER_MODEL_ID = "Qwen/Qwen3-VL-235B-A22B-Instruct"
+_THINKING_MODEL_ID = "Qwen/Qwen3-VL-235B-A22B-Thinking"
 
 # Default model IDs (these are aliases that resolve to actual IDs)
 FREE_MODEL_ID = "kortix/basic"
 PREMIUM_MODEL_ID = "kortix/power"
+THINKING_MODEL_ID = "kortix/thinking"
 
 class ModelRegistry:
     def __init__(self):
@@ -20,364 +21,79 @@ class ModelRegistry:
         self._aliases: Dict[str, str] = {}
         self._initialize_models()
     
-    # KORTIX BASIC & POWER – Same underlying model, different configs
+    # Qwen3-VL ONLY – Primary models for all environments
     def _initialize_models(self):
-        # Minimax-m2 - Primary model with thinking capability
-        # Using openai/ prefix for LiteLLM compatibility - Minimax API is OpenAI SDK-compatible
-        # The api_base routes requests to Minimax's OpenAI-compatible API endpoint
-        # API key is loaded from MINIMAX_API_KEY config and passed as api_key to override OPENAI_API_KEY
-        minimax_api_key = config.MINIMAX_API_KEY if config else None
-        minimax_api_base = config.MINIMAX_API_BASE if config else "https://api.minimax.io/v1"
+        # Get SiliconFlow configuration for Qwen3-VL models
+        siliconflow_api_key = config.SILICONFLOW_API_KEY if config else None
+        siliconflow_api_base = config.SILICONFLOW_API_BASE if config else "https://api.siliconflow.cn/v1"
         
+        # Qwen3-VL-235B-A22B-Instruct - Primary execution model
         self.register(Model(
-            id="openai-compatible/MiniMax-m2",
-            name="MiniMax-M2",
-            provider=ModelProvider.MINIMAX,
-            aliases=["minimax-m2", "MiniMax-M2", "Minimax-m2", "minimax-m2-interleaved", "minimax/minimax-m2", "openai-compatible/MiniMax-m2"],
-            context_window=200_000,
+            id="Qwen/Qwen3-VL-235B-A22B-Instruct",
+            name="Qwen3-VL-235B-A22B-Instruct",
+            provider=ModelProvider.SILICONFLOW,
+            aliases=["qwen3-vl-instruct", "Qwen3-VL-Instruct", "qwen-vl-instruct", "kortix/basic", "kortix/power"],
+            context_window=262_144,
+            max_output_tokens=262_144,
             capabilities=[
                 ModelCapability.CHAT,
                 ModelCapability.FUNCTION_CALLING,
+                ModelCapability.VISION,
                 ModelCapability.THINKING,
+                ModelCapability.STRUCTURED_OUTPUT,
             ],
             pricing=ModelPricing(
-                input_cost_per_million_tokens=0.60,
-                output_cost_per_million_tokens=2.20,
+                input_cost_per_million_tokens=0.40,  # Estimated pricing
+                output_cost_per_million_tokens=1.20,  # Estimated pricing
             ),
             tier_availability=["free", "paid"],
             priority=100,
             recommended=True,
             enabled=True,
             config=ModelConfig(
-                api_key=minimax_api_key,
-                api_base=minimax_api_base,
-                # Enable interleaved thinking - separates thinking into reasoning_details field
-                # This keeps <think> tags out of content while preserving reasoning chain
-                extra_body={"reasoning_split": True},
-            )
-        ))
-        
-        # Kortix Basic - DISABLED
-        self.register(Model(
-            id="kortix/basic",
-            name="Kortix Basic",
-            provider=ModelProvider.ANTHROPIC,
-            aliases=["kortix-basic", "Kortix Basic"],
-            context_window=1_000_000,
-            capabilities=[
-                ModelCapability.CHAT,
-                ModelCapability.FUNCTION_CALLING,
-                ModelCapability.VISION,
-            ],
-            pricing=ModelPricing(
-                input_cost_per_million_tokens=1.00,
-                output_cost_per_million_tokens=5.00,
-                cached_read_cost_per_million_tokens=0.10,
-                cache_write_5m_cost_per_million_tokens=1.25,
-                cache_write_1h_cost_per_million_tokens=2.00
-            ),
-            tier_availability=["free", "paid"],
-            priority=102,
-            recommended=False,
-            enabled=False,
-            config=ModelConfig(
-                extra_headers={
-                    "anthropic-beta": "context-1m-2025-08-07,fine-grained-tool-streaming-2025-05-14,token-efficient-tools-2025-02-19" 
+                api_key=siliconflow_api_key,
+                api_base=siliconflow_api_base,
+                # Vision parameters for Qwen3-VL
+                extra_body={
+                    "min_pixels": 512 * 32 * 32,
+                    "max_pixels": 2048 * 32 * 32,
                 },
             )
         ))
         
-        # Kortix Power - DISABLED
+        # Qwen3-VL-235B-A22B-Thinking - Planning model with extended reasoning
         self.register(Model(
-            id="kortix/power",
-            name="Kortix POWER Mode",
-            provider=ModelProvider.ANTHROPIC,
-            aliases=["kortix-power", "Kortix POWER Mode", "Kortix Power"],
-            context_window=1_000_000,
+            id="Qwen/Qwen3-VL-235B-A22B-Thinking",
+            name="Qwen3-VL-235B-A22B-Thinking",
+            provider=ModelProvider.SILICONFLOW,
+            aliases=["qwen3-vl-thinking", "Qwen3-VL-Thinking", "qwen-vl-thinking", "kortix/thinking"],
+            context_window=262_144,
+            max_output_tokens=262_144,
             capabilities=[
                 ModelCapability.CHAT,
                 ModelCapability.FUNCTION_CALLING,
                 ModelCapability.VISION,
                 ModelCapability.THINKING,
+                ModelCapability.STRUCTURED_OUTPUT,
             ],
             pricing=ModelPricing(
-                input_cost_per_million_tokens=1.00,
-                output_cost_per_million_tokens=5.00,
-                cached_read_cost_per_million_tokens=0.10,
-                cache_write_5m_cost_per_million_tokens=1.25,
-                cache_write_1h_cost_per_million_tokens=2.00
+                input_cost_per_million_tokens=0.50,  # Estimated pricing for thinking model
+                output_cost_per_million_tokens=1.50,  # Estimated pricing for thinking model
             ),
-            tier_availability=["paid"],
+            tier_availability=["paid"],  # Thinking model for paid tiers
             priority=101,
-            recommended=False,
-            enabled=False,
+            recommended=False,  # Not recommended for general use, only for planning
+            enabled=True,
             config=ModelConfig(
-                extra_headers={
-                    "anthropic-beta": "context-1m-2025-08-07,fine-grained-tool-streaming-2025-05-14,token-efficient-tools-2025-02-19" 
+                api_key=siliconflow_api_key,
+                api_base=siliconflow_api_base,
+                # Vision parameters for Qwen3-VL
+                extra_body={
+                    "min_pixels": 512 * 32 * 32,
+                    "max_pixels": 2048 * 32 * 32,
                 },
             )
         ))
-
-
-        # self.register(Model(
-        #     id="anthropic/claude-haiku-4-5" if SHOULD_USE_ANTHROPIC else "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/sl6nzclx7bjt",
-        #     name="Haiku 4.5",
-        #     provider=ModelProvider.ANTHROPIC,
-        #     aliases=["claude-haiku-4.5", "anthropic/claude-haiku-4.5", "anthropic/claude-haiku-4-5", "Claude Haiku 4.5", "anthropic/claude-haiku-4-5-20251001", "global.anthropic.claude-haiku-4-5-20251001-v1:0", "bedrock/global.anthropic.claude-haiku-4-5-20251001-v1:0", "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/sl6nzclx7bjt", "arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/sl6nzclx7bjt"],
-        #     context_window=200_000,
-        #     capabilities=[
-        #         ModelCapability.CHAT,
-        #         ModelCapability.FUNCTION_CALLING,
-        #         ModelCapability.VISION,
-        #     ],
-        #     pricing=ModelPricing(
-        #         input_cost_per_million_tokens=1.00,
-        #         output_cost_per_million_tokens=5.00,
-        #         cached_read_cost_per_million_tokens=0.10,  # Cache hits & refreshes
-        #         cache_write_5m_cost_per_million_tokens=1.25,  # 5-minute cache writes
-        #         cache_write_1h_cost_per_million_tokens=2.00  # 1-hour cache writes
-        #     ),
-        #     tier_availability=["free", "paid"],  # Available to all users as default model
-        #     priority=102,
-        #     recommended=True,
-        #     enabled=True,
-        #     config=ModelConfig(
-        #         extra_headers={
-        #             "anthropic-beta": "fine-grained-tool-streaming-2025-05-14,token-efficient-tools-2025-02-19" 
-        #         },
-        #     )
-        # ))
-        
-        # self.register(Model(
-        #     id="anthropic/claude-sonnet-4-5-20250929" if SHOULD_USE_ANTHROPIC else "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/v2qyiec7heax",
-        #     name="Sonnet 4.5",
-        #     provider=ModelProvider.ANTHROPIC,
-        #     aliases=["claude-sonnet-4.5", "anthropic/claude-sonnet-4.5", "anthropic/claude-sonnet-4-5", "anthropic/claude-sonnet-4-5-20250929", "Claude Sonnet 4.5", "claude-sonnet-4-5-20250929", "global.anthropic.claude-sonnet-4-5-20250929-v1:0", "arn:aws:bedrock:ap-southeast-2:211226321416:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0", "bedrock/global.anthropic.claude-sonnet-4-5-20250929-v1:0", "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/v2qyiec7heax", "arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/v2qyiec7heax"],
-        #     context_window=1_000_000,
-        #     capabilities=[
-        #         ModelCapability.CHAT,
-        #         ModelCapability.FUNCTION_CALLING,
-        #         ModelCapability.VISION,
-        #         ModelCapability.THINKING,
-        #     ],
-        #     pricing=ModelPricing(
-        #         input_cost_per_million_tokens=3.00,
-        #         output_cost_per_million_tokens=15.00,
-        #         cached_read_cost_per_million_tokens=0.30,  # Cache hits & refreshes
-        #         cache_write_5m_cost_per_million_tokens=3.75,  # 5-minute cache writes
-        #         cache_write_1h_cost_per_million_tokens=6.00  # 1-hour cache writes
-        #     ),
-        #     tier_availability=["paid"],
-        #     priority=101,
-        #     recommended=True,
-        #     enabled=True,
-        #     config=ModelConfig(
-        #         extra_headers={
-        #             "anthropic-beta": "context-1m-2025-08-07,fine-grained-tool-streaming-2025-05-14,token-efficient-tools-2025-02-19" 
-        #         },
-        #     )
-        # ))
-        
-        # self.register(Model(
-        #     id="anthropic/claude-sonnet-4-20250514" if SHOULD_USE_ANTHROPIC else "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/tyj1ks3nj9qf",
-        #     name="Sonnet 4",
-        #     provider=ModelProvider.ANTHROPIC,
-        #     aliases=["claude-sonnet-4", "anthropic/claude-sonnet-4", "anthropic/claude-sonnet-4-20250514", "Claude Sonnet 4", "claude-sonnet-4-20250514", "global.anthropic.claude-sonnet-4-20250514-v1:0", "arn:aws:bedrock:ap-southeast-2:211226321416:inference-profile/global.anthropic.claude-sonnet-4-20250514-v1:0", "bedrock/global.anthropic.claude-sonnet-4-20250514-v1:0", "bedrock/converse/arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/tyj1ks3nj9qf", "arn:aws:bedrock:ap-southeast-2:211226321416:application-inference-profile/tyj1ks3nj9qf"],
-        #     context_window=1_000_000,
-        #     capabilities=[
-        #         ModelCapability.CHAT,
-        #         ModelCapability.FUNCTION_CALLING,
-        #         ModelCapability.VISION,
-        #         ModelCapability.THINKING,
-        #     ],
-        #     pricing=ModelPricing(
-        #         input_cost_per_million_tokens=3.00,
-        #         output_cost_per_million_tokens=15.00,
-        #         cached_read_cost_per_million_tokens=0.30,  # Cache hits & refreshes
-        #         cache_write_5m_cost_per_million_tokens=3.75,  # 5-minute cache writes
-        #         cache_write_1h_cost_per_million_tokens=6.00  # 1-hour cache writes
-        #     ),
-        #     tier_availability=["paid"],
-        #     priority=100,
-        #     recommended=True,
-        #     enabled=True,
-        #     config=ModelConfig(
-        #         extra_headers={
-        #             "anthropic-beta": "context-1m-2025-08-07,fine-grained-tool-streaming-2025-05-14" 
-        #         },
-        #     )
-        # ))
-        
-        # Commented out non-Anthropic models as requested
-        # self.register(Model(
-        #     id="xai/grok-4-fast-non-reasoning",
-        #     name="Grok 4 Fast",
-        #     provider=ModelProvider.XAI,
-        #     aliases=["grok-4-fast-non-reasoning", "Grok 4 Fast"],
-        #     context_window=2_000_000,
-        #     capabilities=[
-        #         ModelCapability.CHAT,
-        #         ModelCapability.FUNCTION_CALLING,
-        #     ],
-        #     pricing=ModelPricing(
-        #         input_cost_per_million_tokens=0.20,
-        #         output_cost_per_million_tokens=0.50
-        #     ),
-        #     tier_availability=["paid"],
-        #     priority=98,
-        #     enabled=True
-        # ))        
-        
-        # self.register(Model(
-        #     id="anthropic/claude-3-5-sonnet-latest",
-        #     name="Claude 3.5 Sonnet",
-        #     provider=ModelProvider.ANTHROPIC,
-        #     aliases=["sonnet-3.5", "claude-3.5", "Claude 3.5 Sonnet", "claude-3-5-sonnet-latest"],
-        #     context_window=200_000,
-        #     capabilities=[
-        #         ModelCapability.CHAT,
-        #         ModelCapability.FUNCTION_CALLING,
-        #         ModelCapability.VISION,
-        #     ],
-        #     pricing=ModelPricing(
-        #         input_cost_per_million_tokens=3.00,
-        #         output_cost_per_million_tokens=15.00
-        #     ),
-        #     tier_availability=["paid"],
-        #     priority=90,
-        #     enabled=True
-        # ))
-        
-        # Commented out OpenAI models as requested
-        # self.register(Model(
-        #     id="openai/gpt-5",
-        #     name="GPT-5",
-        #     provider=ModelProvider.OPENAI,
-        #     aliases=["gpt-5", "GPT-5"],
-        #     context_window=400_000,
-        #     capabilities=[
-        #         ModelCapability.CHAT,
-        #         ModelCapability.FUNCTION_CALLING,
-        #         ModelCapability.VISION,
-        #         ModelCapability.STRUCTURED_OUTPUT,
-        #     ],
-        #     pricing=ModelPricing(
-        #         input_cost_per_million_tokens=1.25,
-        #         output_cost_per_million_tokens=10.00
-        #     ),
-        #     tier_availability=["paid"],
-        #     priority=97,
-        #     enabled=True
-        # ))
-        
-        # self.register(Model(
-        #     id="openai/gpt-5-mini",
-        #     name="GPT-5 Mini",
-        #     provider=ModelProvider.OPENAI,
-        #     aliases=["gpt-5-mini", "GPT-5 Mini"],
-        #     context_window=400_000,
-        #     capabilities=[
-        #         ModelCapability.CHAT,
-        #         ModelCapability.FUNCTION_CALLING,
-        #         ModelCapability.STRUCTURED_OUTPUT,
-        #     ],
-        #     pricing=ModelPricing(
-        #         input_cost_per_million_tokens=0.25,
-        #         output_cost_per_million_tokens=2.00
-        #     ),
-        #     tier_availability=["free", "paid"],
-        #     priority=96,
-        #     enabled=True
-        # ))
-        
-        # Commented out Google models as requested
-        # self.register(Model(
-        #     id="gemini/gemini-2.5-pro",
-        #     name="Gemini 2.5 Pro",
-        #     provider=ModelProvider.GOOGLE,
-        #     aliases=["gemini-2.5-pro", "Gemini 2.5 Pro"],
-        #     context_window=2_000_000,
-        #     capabilities=[
-        #         ModelCapability.CHAT,
-        #         ModelCapability.FUNCTION_CALLING,
-        #         ModelCapability.VISION,
-        #         ModelCapability.STRUCTURED_OUTPUT,
-        #     ],
-        #     pricing=ModelPricing(
-        #         input_cost_per_million_tokens=1.25,
-        #         output_cost_per_million_tokens=10.00
-        #     ),
-        #     tier_availability=["paid"],
-        #     priority=95,
-        #     enabled=True
-        # ))
-        
-        
-        # self.register(Model(
-        #     id="openrouter/moonshotai/kimi-k2",
-        #     name="Kimi K2",
-        #     provider=ModelProvider.MOONSHOTAI,
-        #     aliases=["kimi-k2", "Kimi K2", "moonshotai/kimi-k2"],
-        #     context_window=200_000,
-        #     capabilities=[
-        #         ModelCapability.CHAT,
-        #         ModelCapability.FUNCTION_CALLING,
-        #     ],
-        #     pricing=ModelPricing(
-        #         input_cost_per_million_tokens=1.00,
-        #         output_cost_per_million_tokens=3.00
-        #     ),
-        #     tier_availability=["free", "paid"],
-        #     priority=94,
-        #     enabled=True,
-        #     config=ModelConfig(
-        #         extra_headers={
-        #             "HTTP-Referer": config.OR_SITE_URL if hasattr(config, 'OR_SITE_URL') and config.OR_SITE_URL else "",
-        #             "X-Title": config.OR_APP_NAME if hasattr(config, 'OR_APP_NAME') and config.OR_APP_NAME else ""
-        #         }
-        #     )
-        # ))
-        
-        # # DeepSeek Models
-        # self.register(Model(
-        #     id="openrouter/deepseek/deepseek-chat",
-        #     name="DeepSeek Chat",
-        #     provider=ModelProvider.OPENROUTER,
-        #     aliases=["deepseek", "deepseek-chat"],
-        #     context_window=128_000,
-        #     capabilities=[
-        #         ModelCapability.CHAT, 
-        #         ModelCapability.FUNCTION_CALLING
-        #     ],
-        #     pricing=ModelPricing(
-        #         input_cost_per_million_tokens=0.38,
-        #         output_cost_per_million_tokens=0.89
-        #     ),
-        #     tier_availability=["free", "paid"],
-        #     priority=95,
-        #     enabled=False  # Currently disabled
-        # ))
-        
-        # # Qwen Models
-        # self.register(Model(
-        #     id="openrouter/qwen/qwen3-235b-a22b",
-        #     name="Qwen3 235B",
-        #     provider=ModelProvider.OPENROUTER,
-        #     aliases=["qwen3", "qwen-3"],
-        #     context_window=128_000,
-        #     capabilities=[
-        #         ModelCapability.CHAT, 
-        #         ModelCapability.FUNCTION_CALLING
-        #     ],
-        #     pricing=ModelPricing(
-        #         input_cost_per_million_tokens=0.13,
-        #         output_cost_per_million_tokens=0.60
-        #     ),
-        #     tier_availability=["free", "paid"],
-        #     priority=90,
-        #     enabled=False  # Currently disabled
-        # ))
-        
     
     def register(self, model: Model) -> None:
         self._models[model.id] = model
@@ -402,6 +118,10 @@ class ModelRegistry:
         if enabled_only:
             models = [m for m in models if m.enabled]
         return models
+    
+    def get_all_models(self) -> List[Model]:
+        """Return all models in the registry (including disabled ones)."""
+        return list(self._models.values())
     
     def get_by_tier(self, tier: str, enabled_only: bool = True) -> List[Model]:
         models = self.get_all(enabled_only)
@@ -428,50 +148,28 @@ class ModelRegistry:
         if model_id in ("kortix/basic", "kortix/power"):
             return _BASIC_MODEL_ID  # Both use the same underlying model
         
+        if model_id == "kortix/thinking":
+            return _THINKING_MODEL_ID
+        
         # For other models, check if it's an alias and resolve
         model = self.get(model_id)
         if model:
-            # Check if this model's ID needs resolution
-            if model.id in ("kortix/basic", "kortix/power"):
-                return _BASIC_MODEL_ID
             return model.id
         
         # Return as-is if not found (let LiteLLM handle it)
         return model_id
     
     def resolve_from_litellm_id(self, litellm_model_id: str) -> str:
-        """Reverse lookup: resolve a LiteLLM model ID (e.g. Bedrock ARN) back to registry model ID.
+        """Reverse lookup: resolve a LiteLLM model ID back to registry model ID.
         
         This is the inverse of get_litellm_model_id. Used by cost calculator to find pricing.
-        
-        Args:
-            litellm_model_id: The actual model ID used by LiteLLM (e.g. Bedrock ARN)
-            
-        Returns:
-            The registry model ID (e.g. 'kortix/basic') or the input if not found
         """
-        # Check if this is the Bedrock ARN that maps to kortix models
-        # Strip common prefixes for comparison
-        normalized_id = litellm_model_id
-        for prefix in ['bedrock/converse/', 'bedrock/', 'converse/']:
-            if normalized_id.startswith(prefix):
-                normalized_id = normalized_id[len(prefix):]
-                break
-        
-        # Check if this matches _BASIC_MODEL_ID (also normalize it)
-        basic_model_normalized = _BASIC_MODEL_ID
-        for prefix in ['bedrock/converse/', 'bedrock/', 'converse/']:
-            if basic_model_normalized.startswith(prefix):
-                basic_model_normalized = basic_model_normalized[len(prefix):]
-                break
-        
-        # If the normalized ID matches the basic model ARN, return kortix/basic
-        if normalized_id == basic_model_normalized or litellm_model_id == _BASIC_MODEL_ID:
-            return "kortix/basic"
-        
-        # Also check if the full ID matches
+        # Check if this matches our Qwen3-VL models
         if litellm_model_id == _BASIC_MODEL_ID:
             return "kortix/basic"
+        
+        if litellm_model_id == _THINKING_MODEL_ID:
+            return "kortix/thinking"
         
         # Check if this model exists directly in registry
         if self.get(litellm_model_id):
@@ -503,10 +201,7 @@ class ModelRegistry:
         return model.context_window if model else default
     
     def get_pricing(self, model_id: str) -> Optional[ModelPricing]:
-        """Get pricing for a model, with reverse lookup for LiteLLM model IDs.
-        
-        Handles both registry model IDs (kortix/basic) and LiteLLM model IDs (Bedrock ARNs).
-        """
+        """Get pricing for a model, with reverse lookup for LiteLLM model IDs."""
         # First try direct lookup
         model = self.get(model_id)
         if model and model.pricing:
@@ -561,4 +256,4 @@ class ModelRegistry:
             "PAID_TIER_MODELS": paid_models,
         }
 
-registry = ModelRegistry() 
+registry = ModelRegistry()

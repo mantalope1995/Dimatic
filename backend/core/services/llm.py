@@ -54,6 +54,7 @@ def setup_api_keys() -> None:
         "MORPH",
         "GEMINI",
         "OPENAI_COMPATIBLE",
+        "SILICONFLOW",
     ]
     
     for provider in providers:
@@ -82,20 +83,73 @@ def setup_api_keys() -> None:
         else:
             logger.debug("MINIMAX_API_KEY not configured - Minimax models will not be available")
 
+    # Set up SiliconFlow API key
+    if hasattr(config, 'SILICONFLOW_API_KEY'):
+        siliconflow_key = config.SILICONFLOW_API_KEY
+        if siliconflow_key:
+            os.environ["SILICONFLOW_API_KEY"] = siliconflow_key
+            logger.debug("SiliconFlow API key configured")
+        else:
+            logger.debug("SILICONFLOW_API_KEY not configured - Qwen3-VL models will not be available")
+
 def setup_provider_router(openai_compatible_api_key: str = None, openai_compatible_api_base: str = None):
     global provider_router
     
-    # Get config values safely - prioritize MINIMAX_API_KEY for MiniMax models
+    # Get config values safely - prioritize SiliconFlow for Qwen3-VL models
+    siliconflow_api_key = getattr(config, 'SILICONFLOW_API_KEY', None) if config else None
+    siliconflow_api_base = getattr(config, 'SILICONFLOW_API_BASE', None) if config else None
     minimax_api_key = getattr(config, 'MINIMAX_API_KEY', None) if config else None
     minimax_api_base = getattr(config, 'MINIMAX_API_BASE', None) if config else None
     config_openai_key = getattr(config, 'OPENAI_COMPATIBLE_API_KEY', None) if config else None
     config_openai_base = getattr(config, 'OPENAI_COMPATIBLE_API_BASE', None) if config else None
+    
+    # Use SiliconFlow API key if available for Qwen3-VL models
+    qwen_api_key = siliconflow_api_key
+    qwen_api_base = siliconflow_api_base
     
     # Use Minimax API key if available, otherwise fall back to OpenAI-compatible key
     effective_api_key = openai_compatible_api_key or minimax_api_key or config_openai_key
     effective_api_base = openai_compatible_api_base or minimax_api_base or config_openai_base
     
     model_list = [
+        # Qwen3-VL models via SiliconFlow (primary provider for Qwen3-VL optimization)
+        {
+            "model_name": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+            "litellm_params": {
+                "model": "openai/Qwen/Qwen3-VL-235B-A22B-Instruct",
+                "api_key": qwen_api_key,
+                "api_base": qwen_api_base,
+                "max_tokens": 262144,  # Maximum output tokens
+                "context_window": 262144,  # Context window
+            },
+            "model_info": {
+                "base_model": "openai/Qwen/Qwen3-VL-235B-A22B-Instruct",
+                "context_window": 262144,
+            },
+        },
+        {
+            "model_name": "Qwen/Qwen3-VL-235B-A22B-Thinking",
+            "litellm_params": {
+                "model": "openai/Qwen/Qwen3-VL-235B-A22B-Thinking",
+                "api_key": qwen_api_key,
+                "api_base": qwen_api_base,
+                "max_tokens": 262144,
+                "context_window": 262144,
+            },
+            "model_info": {
+                "base_model": "openai/Qwen/Qwen3-VL-235B-A22B-Thinking",
+                "context_window": 262144,
+            },
+        },
+        {
+            "model_name": "Qwen/*",  # Fallback for other Qwen models
+            "litellm_params": {
+                "model": "openai/Qwen/*",
+                "api_key": qwen_api_key,
+                "api_base": qwen_api_base,
+            },
+        },
+        # Legacy MiniMax model (kept for compatibility)
         {
             "model_name": "openai-compatible/MiniMax-m2", # Specific MiniMax model
             "litellm_params": {
@@ -125,7 +179,7 @@ def setup_provider_router(openai_compatible_api_key: str = None, openai_compatib
         },
     ]
     
-    # Minimax-m2 is the sole provider - no fallbacks needed
+    # Qwen3-VL models are primary - fallback to MiniMax if SiliconFlow unavailable
     fallbacks = []
     
     # No context window fallbacks needed for single-provider setup
@@ -148,7 +202,7 @@ def setup_provider_router(openai_compatible_api_key: str = None, openai_compatib
         # context_window_fallbacks are separate and only triggered by context length issues
     )
     
-    logger.info("Configured LiteLLM Router with Minimax-m2 as primary provider")
+    logger.info("Configured LiteLLM Router with Qwen3-VL models as primary provider via SiliconFlow")
 
 def _configure_openai_compatible(params: Dict[str, Any], model_name: str, api_key: Optional[str], api_base: Optional[str]) -> None:
     """Configure OpenAI-compatible provider setup."""

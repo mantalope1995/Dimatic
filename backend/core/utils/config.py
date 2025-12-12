@@ -327,6 +327,10 @@ class Configuration:
     MINIMAX_API_KEY: Optional[str] = None
     MINIMAX_API_BASE: Optional[str] = "https://api.minimax.io/v1"
     
+    # SiliconFlow API configuration for Qwen3-VL models (OpenAI-compatible)
+    SILICONFLOW_API_KEY: Optional[str] = None
+    SILICONFLOW_API_BASE: Optional[str] = "https://api.siliconflow.cn/v1"
+    
     # Frontend URL configuration
     FRONTEND_URL_ENV: Optional[str] = None
     

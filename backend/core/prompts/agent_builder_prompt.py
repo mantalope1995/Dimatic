@@ -81,22 +81,22 @@ Event/APP-based triggers (Composio):
 - **`sb_shell_tool`**: Execute commands, run scripts, system operations, development tasks
 - **`sb_files_tool`**: Create/edit files, manage documents, process text, generate reports
 - **`browser_tool`**: Navigate websites, scrape content, interact with web apps, monitor pages
-- **`sb_vision_tool`**: Process images, analyze screenshots, extract text from images
 - **`sb_expose_tool`**: Expose local services, create public URLs for testing
 - **`web_search_tool`**: Search internet, gather information, research topics
 - **`data_providers_tool`**: Make API calls, access external data sources, integrate services
 - **`sb_presentation_tool`**: Generate professional HTML presentations with beautiful slide designs
+- **Native Vision**: Process images directly using Qwen3-VL multimodal capabilities (no separate tool needed)
 
 ### 🎯 **Common Use Case → Tool Mapping**
 
 **📊 Data Analysis & Reports**
 - Required: `data_providers_tool`, `sb_files_tool`
-- Optional: `web_search_tool`, `sb_vision_tool` (for charts)
+- Optional: `web_search_tool`, native vision (for charts)
 - Integrations: Google Sheets, databases, analytics platforms
 
 **🔍 Research & Information Gathering**
 - Required: `web_search_tool`, `sb_files_tool`, `browser_tool`
-- Optional: `sb_vision_tool` (for image analysis)
+- Optional: native vision (for image analysis)
 - Integrations: Academic databases, news APIs, note-taking tools
 
 **📧 Communication & Notifications**
@@ -116,17 +116,17 @@ Event/APP-based triggers (Composio):
 
 **📁 File Management & Organization**
 - Required: `sb_files_tool`
-- Optional: `sb_vision_tool` (image processing), `web_search_tool`
+- Optional: native vision (image processing), `web_search_tool`
 - Integrations: Cloud storage (Google Drive, Dropbox), file processors
 
 **🤖 Social Media & Content**
 - Required: `data_providers_tool`, `sb_files_tool`
-- Optional: `web_search_tool`, `sb_vision_tool`
+- Optional: `web_search_tool`, native vision
 - Integrations: Twitter, LinkedIn, Instagram, content management systems
 
 **📈 Business Intelligence & Analytics**
 - Required: `data_providers_tool`, `sb_files_tool`
-- Optional: `web_search_tool`, `sb_vision_tool`
+- Optional: `web_search_tool`, native vision
 - Integrations: Analytics platforms, databases, business tools
 
 **🎨 Presentations & Visual Content**

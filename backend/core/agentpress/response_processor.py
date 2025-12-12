@@ -3,7 +3,7 @@ Response processing module for AgentPress.
 
 This module handles the processing of LLM responses, including:
 - Streaming and non-streaming response handling
-- XML and native tool call detection and parsing
+- Native tool call detection and parsing (OpenAI function calling format)
 - Tool execution orchestration
 - Message formatting and persistence
 """
@@ -19,17 +19,17 @@ from core.utils.logger import logger
 from core.utils.config import config as global_config
 from core.agentpress.tool import ToolResult
 from core.agentpress.tool_registry import ToolRegistry
-from core.agentpress.xml_tool_parser import (
-    extract_xml_chunks,
-    parse_xml_tool_calls_with_ids
-)
+# Native function calling only - XML tool calling removed in Phase 4
 from core.agentpress.native_tool_parser import (
     extract_tool_call_chunk_data,
     is_tool_call_complete,
     convert_to_exec_tool_call,
     convert_buffer_to_complete_tool_calls,
     convert_to_unified_tool_call_format,
-    convert_buffer_to_metadata_tool_calls
+    convert_buffer_to_metadata_tool_calls,
+    parse_native_tool_call_arguments,
+    format_tool_result,
+    parse_tool_calls
 )
 from core.agentpress.error_processor import ErrorProcessor
 from langfuse.client import StatefulTraceClient
@@ -38,7 +38,7 @@ from core.utils.json_helpers import (
     ensure_dict, ensure_list, safe_json_parse, 
     to_json_string, format_for_yield
 )
-from core.agentpress.xml_tool_parser import strip_xml_tool_calls
+# XML tool calling removed in Phase 4 - native function calling only
 
 # Note: Debug stream saving is controlled by global_config.DEBUG_SAVE_LLM_IO
 
@@ -65,19 +65,18 @@ class ProcessorConfig:
     are detected, executed, and their results handled.
     
     Attributes:
-        xml_tool_calling: Enable XML-based tool call detection (<tool>...</tool>)
-        native_tool_calling: Enable OpenAI-style function calling format
+        native_tool_calling: Enable OpenAI-style function calling format (always True in Phase 4)
         execute_tools: Whether to automatically execute detected tool calls
         execute_on_stream: For streaming, execute tools as they appear vs. at the end
         tool_execution_strategy: How to execute multiple tools ("sequential" or "parallel")
         
     NOTE: Default values are loaded from core.utils.config (backend/core/utils/config.py)
-    Change AGENT_XML_TOOL_CALLING, AGENT_NATIVE_TOOL_CALLING, etc. in config.py
-    to modify the defaults globally.
+    Change AGENT_NATIVE_TOOL_CALLING, etc. in config.py to modify the defaults globally.
     """
 
-    xml_tool_calling: bool = None  # Set in __post_init__ from global config
-    native_tool_calling: bool = None  # Set in __post_init__ from global config
+    # Phase 4: XML tool calling removed - only native function calling
+    xml_tool_calling: bool = False  # Always False in Phase 4
+    native_tool_calling: bool = True  # Always True in Phase 4
 
     execute_tools: bool = True
     execute_on_stream: bool = None  # Set in __post_init__ from global config
@@ -89,18 +88,14 @@ class ProcessorConfig:
         from core.utils.config import config
         
         # Load defaults from global config if not explicitly set
-        if self.xml_tool_calling is None:
-            self.xml_tool_calling = config.AGENT_XML_TOOL_CALLING
-        if self.native_tool_calling is None:
-            self.native_tool_calling = config.AGENT_NATIVE_TOOL_CALLING
         if self.execute_on_stream is None:
             self.execute_on_stream = config.AGENT_EXECUTE_ON_STREAM
         if self.tool_execution_strategy is None:
             self.tool_execution_strategy = config.AGENT_TOOL_EXECUTION_STRATEGY
         
-        # Validate
-        if self.xml_tool_calling is False and self.native_tool_calling is False and self.execute_tools:
-            raise ValueError("At least one tool calling format (XML or native) must be enabled if execute_tools is True")
+        # Phase 4: Native tool calling is always enabled
+        self.native_tool_calling = True
+        self.xml_tool_calling = False
 
 class ResponseProcessor:
     """Processes LLM responses, extracting and executing tool calls."""
@@ -237,13 +232,10 @@ class ResponseProcessor:
         # Each assistant message should be separate
         accumulated_content = ""
         tool_calls_buffer = {}
-        current_xml_content = ""
-        xml_chunks_buffer = []
         pending_tool_executions = []
         yielded_tool_indices = set() # Stores indices of tools whose *status* has been yielded
         executed_native_tool_indices = set() # Track which native tool call indices have been executed
         tool_index = 0
-        xml_tool_call_count = 0
         finish_reason = None
         should_auto_continue = False
         last_assistant_message_object = None # Store the final saved assistant message object
@@ -251,7 +243,6 @@ class ResponseProcessor:
         has_printed_thinking_prefix = False # Flag for printing thinking prefix only once
         agent_should_terminate = False # Flag to track if a terminating tool has been executed
         complete_native_tool_calls = [] # Initialize early for use in assistant_response_end
-        xml_tool_calls_with_ids = [] # Track XML tool calls with their IDs for metadata storage
         content_chunk_buffer = {} # Buffer to reorder content chunks: sequence -> chunk_data
         next_expected_sequence = 0 # Track the next expected sequence number for ordering
 
@@ -412,8 +403,6 @@ class ResponseProcessor:
                     delta = chunk.choices[0].delta if hasattr(chunk.choices[0], 'delta') else None
                     
                     # Initialize tool call update flags at the start of each chunk iteration
-                    xml_tool_calls_updated = False
-                    native_tool_calls_updated = False
                     native_tool_calls_updated = False
                     
                     # Check for and log thinking content (Anthropic reasoning_content or MiniMax reasoning_details)
@@ -450,8 +439,7 @@ class ResponseProcessor:
                         # print(chunk_content, end='', flush=True)
                         # logger.debug(f"About to concatenate chunk_content (type={type(chunk_content)}) to accumulated_content (type={type(accumulated_content)})")
                         accumulated_content += chunk_content
-                        # logger.debug(f"About to concatenate chunk_content (type={type(chunk_content)}) to current_xml_content (type={type(current_xml_content)})")
-                        current_xml_content += chunk_content
+                        # Phase 4: XML tool calling disabled - current_xml_content removed
 
                         # Yield ONLY content chunk (don't save)
                         now_chunk = datetime.now(timezone.utc).isoformat()
@@ -465,49 +453,7 @@ class ResponseProcessor:
                         }
                         __sequence += 1
 
-                        # --- Process XML Tool Calls (if enabled) ---
-                        if config.xml_tool_calling:
-                            xml_chunks = extract_xml_chunks(current_xml_content)
-                            for xml_chunk in xml_chunks:
-                                current_xml_content = current_xml_content.replace(xml_chunk, "", 1)
-                                xml_chunks_buffer.append(xml_chunk)
-                                # Parse ALL tool calls from this chunk (can be multiple <invoke> tags)
-                                current_assistant_id = last_assistant_message_object['message_id'] if last_assistant_message_object else None
-                                parsed_tool_calls = parse_xml_tool_calls_with_ids(xml_chunk, current_assistant_id, xml_tool_call_count)
-                                
-                                # Convert parsed XML tool calls to unified format
-                                for tool_call in parsed_tool_calls:
-                                    xml_tool_call_count += 1
-                                    # Track XML tool call with its ID for metadata storage
-                                    # parse_xml_tool_calls_with_ids already generates IDs, so use that
-                                    xml_tool_call_data = {
-                                        "tool_call_id": tool_call.get("id"),
-                                        "function_name": tool_call.get("function_name"),
-                                        "arguments": tool_call.get("arguments"),
-                                        "source": "xml"
-                                    }
-                                    xml_tool_calls_with_ids.append(xml_tool_call_data)
-                                
-                                xml_tool_calls_updated = True
-                                
-                                # Execute XML tool calls if enabled
-                                for tool_call in parsed_tool_calls:
-                                    context = self._create_tool_context(
-                                        tool_call, tool_index, current_assistant_id
-                                    )
-
-                                    if config.execute_tools and config.execute_on_stream:
-                                        # Save and Yield tool_started status
-                                        started_msg_obj = await self._yield_and_save_tool_started(context, thread_id, thread_run_id)
-                                        if started_msg_obj: yield format_for_yield(started_msg_obj)
-                                        yielded_tool_indices.add(tool_index) # Mark status as yielded
-
-                                        execution_task = asyncio.create_task(self._execute_tool(tool_call))
-                                        pending_tool_executions.append({
-                                            "task": execution_task, "tool_call": tool_call,
-                                            "tool_index": tool_index, "context": context
-                                        })
-                                        tool_index += 1
+                        # XML tool calling disabled in Phase 4 - only native function calling
 
                     # --- Process Native Tool Call Chunks ---
                     if config.native_tool_calling and delta and hasattr(delta, 'tool_calls') and delta.tool_calls:
@@ -565,9 +511,9 @@ class ResponseProcessor:
                                 })
                                 tool_index += 1
                         
-                        # --- Unified Streaming Chunk Yield (combines XML + Native tool calls) ---
-                        if xml_tool_calls_updated or native_tool_calls_updated:
-                            # Build unified tool calls list (XML + Native)
+                        # --- Unified Streaming Chunk Yield (native tool calls only) ---
+                        if native_tool_calls_updated:
+                            # Build unified tool calls list (native only)
                             unified_tool_calls = []
                             
                             # Add native tool calls from buffer
@@ -577,10 +523,6 @@ class ResponseProcessor:
                                     include_partial=True  # Include partial tool calls for streaming
                                 )
                                 unified_tool_calls.extend(native_unified)
-                            
-                            # Add XML tool calls
-                            if config.xml_tool_calling:
-                                unified_tool_calls.extend(xml_tool_calls_with_ids)
                             
                             # Yield single unified streaming chunk if we have any tool calls
                             if unified_tool_calls:
@@ -622,7 +564,7 @@ class ResponseProcessor:
                         "total_chunks": chunk_count,
                         "finish_reason": finish_reason,
                         "accumulated_content_length": len(accumulated_content),
-                        "xml_tool_call_count": xml_tool_call_count,
+                        "xml_tool_call_count": 0,  # Phase 4: XML tool calling eliminated
                         "native_tool_call_count": len(tool_calls_buffer),
                         "first_chunk_time": first_chunk_time,
                         "last_chunk_time": last_chunk_time,
@@ -749,8 +691,14 @@ class ResponseProcessor:
             # 2. We have content OR tool calls
             # 3. Either NOT auto-continuing OR we have tool calls (always save tool calls)
             has_native_tool_calls = config.native_tool_calling and len(tool_calls_buffer) > 0
-            has_xml_tool_calls = config.xml_tool_calling and xml_tool_call_count > 0
-            has_any_tool_calls = has_native_tool_calls or has_xml_tool_calls
+            # has_xml_tool_calls = False  # Phase 4: XML tool calling eliminated
+            
+            # Save if: (not auto-continuing) OR (has tool calls - always save these)
+            should_save_message = (
+                finish_reason != "cancelled" and 
+                (accumulated_content or has_any_tool_calls) and
+                (not should_auto_continue or has_any_tool_calls)
+            )
             
             # Save if: (not auto-continuing) OR (has tool calls - always save these)
             should_save_message = (
@@ -781,8 +729,8 @@ class ResponseProcessor:
                 # Build unified metadata with all tool calls (native + XML) and clean text
                 assistant_metadata = {"thread_run_id": thread_run_id}
                 
-                # Extract clean text content (without tool calls)
-                text_content = strip_xml_tool_calls(final_content) if config.xml_tool_calling else final_content
+                # Extract clean text content (native function calling only)
+                text_content = final_content
                 if text_content.strip():
                     assistant_metadata["text_content"] = text_content
                 
@@ -794,19 +742,11 @@ class ResponseProcessor:
                     for tc in complete_native_tool_calls:
                         unified_tool_calls.append(convert_to_unified_tool_call_format(tc))
                 
-                # Add XML tool calls
-                if config.xml_tool_calling and xml_tool_calls_with_ids:
-                    for xml_tc in xml_tool_calls_with_ids:
-                        unified_tool_calls.append({
-                            "tool_call_id": xml_tc.get("tool_call_id"),
-                            "function_name": xml_tc.get("function_name"),
-                            "arguments": xml_tc.get("arguments"),
-                            "source": "xml"
-                        })
+                # Phase 4: XML tool calling eliminated
                 
                 if unified_tool_calls:
                     assistant_metadata["tool_calls"] = unified_tool_calls
-                    logger.debug(f"Storing {len(unified_tool_calls)} unified tool calls in assistant message metadata ({len(complete_native_tool_calls) if complete_native_tool_calls else 0} native, {len(xml_tool_calls_with_ids)} XML)")
+                    logger.debug(f"Storing {len(unified_tool_calls)} unified tool calls in assistant message metadata ({len(complete_native_tool_calls) if complete_native_tool_calls else 0} native)")
 
                 last_assistant_message_object = await self._add_message_with_agent_info(
                     thread_id=thread_id, type="assistant", content=message_data,
@@ -841,30 +781,8 @@ class ResponseProcessor:
                 if config.native_tool_calling and complete_native_tool_calls:
                     for tc in complete_native_tool_calls:
                         final_tool_calls_to_process.append(convert_to_exec_tool_call(tc))
-                 # Gather XML tool calls from buffer
-                parsed_xml_data = []
-                if config.xml_tool_calling:
-                    # Reparse remaining content just in case (should be empty if processed correctly)
-                    xml_chunks = extract_xml_chunks(current_xml_content)
-                    xml_chunks_buffer.extend(xml_chunks)
-
-                    for chunk in xml_chunks_buffer:
-                         # Parse ALL tool calls from this chunk (can be multiple <invoke> tags)
-                         current_assistant_id_for_parsing = last_assistant_message_object['message_id'] if last_assistant_message_object else None
-                         parsed_tool_calls = parse_xml_tool_calls_with_ids(chunk, current_assistant_id_for_parsing, xml_tool_call_count)
-                         for tool_call in parsed_tool_calls:
-                             # Track XML tool call with its ID for metadata storage (if not already tracked)
-                             tool_call_id = tool_call.get("id")
-                             if tool_call_id and not any(tc.get("tool_call_id") == tool_call_id for tc in xml_tool_calls_with_ids):
-                                 xml_tool_calls_with_ids.append({
-                                     "tool_call_id": tool_call_id,
-                                     "function_name": tool_call.get("function_name"),
-                                     "arguments": tool_call.get("arguments")
-                                 })
-                             # Avoid adding if already processed during streaming
-                             if not any(exec['tool_call'] == tool_call for exec in pending_tool_executions):
-                                 final_tool_calls_to_process.append(tool_call)
-                                 parsed_xml_data.append({'tool_call': tool_call})
+                 # XML tool calling removed in Phase 4 - only native tool calls remain
+                parsed_xml_data = []  # Keep for compatibility, but will be empty
 
 
                 all_tool_data_map = {} # tool_index -> {'tool_call': ...}
@@ -876,10 +794,7 @@ class ResponseProcessor:
                          all_tool_data_map[native_tool_index] = {"tool_call": exec_tool_call}
                          native_tool_index += 1
 
-                 # Add XML tool data
-                xml_tool_index_start = native_tool_index
-                for idx, item in enumerate(parsed_xml_data):
-                    all_tool_data_map[xml_tool_index_start + idx] = item
+                 # Phase 4: XML tool calling eliminated - no XML tool data mapping needed
 
 
                 tool_results_map = {} # tool_index -> (tool_call, result, context)
@@ -974,7 +889,7 @@ class ResponseProcessor:
                 finish_content = {"status_type": "finish", "finish_reason": finish_reason}
                 # Only set tools_executed for 'tool_calls' finish_reason (not for 'stop' or other reasons)
                 # This ensures auto-continue only triggers for 'tool_calls' or 'length', not for stop sequences
-                if finish_reason == 'tool_calls' and (xml_tool_call_count > 0 or len(complete_native_tool_calls) > 0) and not agent_should_terminate:
+                if finish_reason == 'tool_calls' and len(complete_native_tool_calls) > 0 and not agent_should_terminate:
                     finish_content["tools_executed"] = True
                 finish_msg_obj = await self.add_message(
                     thread_id=thread_id, type="status", content=finish_content, 
@@ -1331,7 +1246,7 @@ class ResponseProcessor:
         thread_run_id = str(uuid.uuid4())
         all_tool_data = [] # Stores {'tool_call': ...}
         tool_index = 0
-        xml_tool_call_count = 0
+        # xml_tool_call_count = 0  # Removed in Phase 4 - XML tool calling eliminated
         assistant_message_object = None
         tool_result_message_objects = {}
         finish_reason = None
@@ -1356,18 +1271,7 @@ class ResponseProcessor:
                  if response_message:
                      if hasattr(response_message, 'content') and response_message.content:
                          content = response_message.content
-                         if config.xml_tool_calling:
-                             # Parse XML tool calls (assistant message not created yet, so no message_id)
-                             xml_chunks = extract_xml_chunks(content)
-                             parsed_xml_data = []
-                             current_index = xml_tool_call_count
-                             for xml_chunk in xml_chunks:
-                                 parsed_tool_calls = parse_xml_tool_calls_with_ids(xml_chunk, None, current_index)
-                                 current_index += len(parsed_tool_calls)
-                                 for tool_call in parsed_tool_calls:
-                                     parsed_xml_data.append({"tool_call": tool_call})
-                             all_tool_data.extend(parsed_xml_data)
-                             xml_tool_call_count += len(parsed_xml_data)
+                         # Phase 4: XML tool calling eliminated
 
                      if config.native_tool_calling and hasattr(response_message, 'tool_calls') and response_message.tool_calls:
                           for tool_call in response_message.tool_calls:
@@ -1394,10 +1298,9 @@ class ResponseProcessor:
             # Build unified metadata with all tool calls (native + XML) and clean text
             assistant_metadata = {"thread_run_id": thread_run_id}
             
-            # Extract clean text content (without tool calls)
-            text_content = strip_xml_tool_calls(content) if config.xml_tool_calling else content
-            if text_content.strip():
-                assistant_metadata["text_content"] = text_content
+            # Phase 4: XML tool calling eliminated - no text stripping needed
+            if content.strip():
+                assistant_metadata["text_content"] = content
             
             # Unify all tool calls into single tool_calls array
             unified_tool_calls = []
@@ -1407,19 +1310,7 @@ class ResponseProcessor:
                 for tc in native_tool_calls_for_message:
                     unified_tool_calls.append(convert_to_unified_tool_call_format(tc))
             
-            # Add XML tool calls
-            if config.xml_tool_calling and all_tool_data:
-                for item in all_tool_data:
-                    tool_call = item.get('tool_call', {})
-                    # XML tool calls are identified by having function_name but no native tool_call format
-                    # We check if it's XML by looking at the format or absence of native structure
-                    if tool_call.get("function_name") and not tool_call.get("id") and not isinstance(tool_call.get("function"), dict):
-                        unified_tool_calls.append({
-                            "tool_call_id": tool_call.get("id") or str(uuid.uuid4()),
-                            "function_name": tool_call.get("function_name"),
-                            "arguments": tool_call.get("arguments"),
-                            "source": "xml"
-                        })
+            # Phase 4: XML tool calling eliminated - no XML tool calls to add
             
             if unified_tool_calls:
                 assistant_metadata["tool_calls"] = unified_tool_calls

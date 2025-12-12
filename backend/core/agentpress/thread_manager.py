@@ -12,6 +12,7 @@ from core.agentpress.tool_registry import ToolRegistry
 from core.agentpress.context_manager import ContextManager
 from core.agentpress.response_processor import ResponseProcessor, ProcessorConfig
 from core.agentpress.error_processor import ErrorProcessor
+from core.agentpress.vision_handler import VisionMessageHandler
 from core.services.supabase import DBConnection
 from core.utils.logger import logger
 from langfuse.client import StatefulGenerationClient, StatefulTraceClient
@@ -20,6 +21,9 @@ from datetime import datetime, timezone
 from core.billing.credits.integration import billing_integration
 from litellm.utils import token_counter
 import litellm
+import re
+from core.agentpress.task_plan import TaskPlan
+
 
 ToolChoice = Literal["auto", "required", "none"]
 
@@ -41,6 +45,7 @@ class ThreadManager:
             trace=self.trace,
             agent_config=self.agent_config
         )
+        self.vision_handler = VisionMessageHandler()
 
     def add_tool(self, tool_class: Type[Tool], function_names: Optional[List[str]] = None, **kwargs):
         """Add a tool to the ThreadManager."""
@@ -111,6 +116,21 @@ class ThreadManager:
                 if type == "llm_response_end" and isinstance(content, dict):
                     await self._handle_billing(thread_id, content, saved_message)
                 
+                # Check if this is a Thinking model response containing a plan
+                if type == "assistant" or (type == "llm_response_end" and isinstance(content, dict)):
+                    # Extract content string
+                    msg_content = ""
+                    if isinstance(content, str):
+                        msg_content = content
+                    elif isinstance(content, dict):
+                        msg_content = content.get("content", "")
+                        
+                    if msg_content and isinstance(msg_content, str) and ("<plan>" in msg_content or "```json" in msg_content):
+                        await self._check_and_save_plan(thread_id, msg_content)
+                    
+                    if msg_content and isinstance(msg_content, str) and "<step_update" in msg_content:
+                        await self._check_and_update_step(thread_id, msg_content)
+                
                 return saved_message
             else:
                 logger.error(f"Insert operation failed for thread {thread_id}")
@@ -119,6 +139,123 @@ class ThreadManager:
             logger.error(f"Failed to add message to thread {thread_id}: {str(e)}", exc_info=False)
             raise
 
+    async def _check_and_save_plan(self, thread_id: str, content: str):
+        """Check if message contains a plan and save it to thread metadata."""
+        try:
+            # Look for plan inside <plan> tags
+            plan_match = re.search(r'<plan>(.*?)</plan>', content, re.DOTALL)
+            plan_json_str = None
+            
+            if plan_match:
+                plan_json_str = plan_match.group(1).strip()
+            else:
+                # Fallback: Look for JSON code block if strictly requested
+                json_match = re.search(r'```json\n(.*?)\n```', content, re.DOTALL)
+                if json_match:
+                    possible_json = json_match.group(1).strip()
+                    if "steps" in possible_json and "reasoning" in possible_json:
+                        plan_json_str = possible_json
+            
+            if plan_json_str:
+                import uuid
+                try:
+                    plan_data = json.loads(plan_json_str)
+                    
+                    # Create Plan object including ID
+                    if "id" not in plan_data:
+                        plan_data["id"] = str(uuid.uuid4())
+                    
+                    # Ensure steps have everything needed
+                    if "steps" in plan_data and isinstance(plan_data["steps"], list):
+                        for step in plan_data["steps"]:
+                            if "id" not in step:
+                                step["id"] = str(uuid.uuid4())
+                    
+                    # Need original request... Ideally we'd have it, but for now use placeholder or fetch
+                    if "original_request" not in plan_data:
+                        # Try to get latest user message
+                        client = await self.db.client
+                        latest_msg_result = await client.table('messages')\
+                            .select('content')\
+                            .eq('thread_id', thread_id)\
+                            .eq('type', 'user')\
+                            .order('created_at', desc=True)\
+                            .limit(1)\
+                            .single()\
+                            .execute()
+                        if latest_msg_result.data:
+                            plan_data["original_request"] = str(latest_msg_result.data.get('content', ''))
+                        else:
+                            plan_data["original_request"] = "Unknown request"
+                            
+                    # Create TaskPlan to validate
+                    plan = TaskPlan.from_dict(plan_data)
+                    
+                    # Store in thread metadata
+                    client = await self.db.client
+                    
+                    # Get current metadata
+                    thread_result = await client.table('threads').select('metadata').eq('thread_id', thread_id).single().execute()
+                    current_metadata = thread_result.data.get('metadata', {}) or {}
+                    
+                    # Update metadata with new plan
+                    current_metadata['active_task_plan'] = plan.to_dict()
+                    
+                    await client.table('threads').update({'metadata': current_metadata}).eq('thread_id', thread_id).execute()
+                    logger.info(f"✅ Successfully extracted and saved TaskPlan from Thinking model response")
+                    
+                except json.JSONDecodeError:
+                    logger.warning(f"Found <plan> tags but failed to parse JSON: {plan_json_str[:100]}...")
+                except Exception as e:
+                    logger.error(f"Error saving plan to metadata: {e}")
+                    
+        except Exception as e:
+            logger.error(f"Error checking for plan in message: {e}")
+    
+
+            
+    async def _check_and_update_step(self, thread_id: str, content: str):
+        """Check for step updates and modify active plan."""
+        try:
+            # Parse <step_update ... />
+            # Regex to capture attributes
+            update_match = re.search(r'<step_update\s+id="([^"]+)"\s+status="([^"]+)"\s+(?:result="([^"]*)")?.*?>', content)
+            
+            if update_match:
+                step_id = update_match.group(1)
+                status = update_match.group(2)
+                result = update_match.group(3) or "Completed"
+                
+                client = await self.db.client
+                thread_result = await client.table('threads').select('metadata').eq('thread_id', thread_id).single().execute()
+                current_metadata = thread_result.data.get('metadata', {}) or {}
+                
+                active_plan_data = current_metadata.get('active_task_plan')
+                if active_plan_data:
+                    plan = TaskPlan.from_dict(active_plan_data)
+                    
+                    found = False
+                    for step in plan.steps:
+                        if step.id == step_id:
+                            step.status = status
+                            step.result = result
+                            found = True
+                            # If complete, advance pointer
+                            if status == "complete":
+                                plan.mark_step_complete(result)
+                            elif status == "failed":
+                                plan.mark_step_failed(result)
+                            break
+                    
+                    if found:
+                        current_metadata['active_task_plan'] = plan.to_dict()
+                        await client.table('threads').update({'metadata': current_metadata}).eq('thread_id', thread_id).execute()
+                        logger.info(f"✅ Updated step {step_id} status to {status}")
+                    else:
+                        logger.warning(f"⚠️ Step update for unknown step ID: {step_id}")
+        except Exception as e:
+            logger.error(f"Error updating step from message: {e}")
+    
     async def _handle_billing(self, thread_id: str, content: dict, saved_message: dict):
         try:
             llm_response_id = content.get("llm_response_id", "unknown")
@@ -549,9 +686,31 @@ class ThreadManager:
                     logger.debug(f"First message: Skipping caching and validation ({len(messages)} messages)")
                 prepared_messages = [system_prompt] + messages
 
+            # Apply vision processing to messages for Qwen3-VL native multimodal support
+            # This converts image references to base64 data URLs and formats messages correctly
+            vision_start = time.time()
+            try:
+                # Check if the model supports vision (Qwen3-VL models)
+                is_vision_model = "qwen3-vl" in llm_model.lower() or "qwen" in llm_model.lower()
+                
+                if is_vision_model:
+                    # Process messages for vision content
+                    processed_messages = []
+                    for msg in prepared_messages:
+                        # Format message with images using VisionMessageHandler
+                        formatted_msg = self.vision_handler.format_message_with_images(msg.copy())
+                        processed_messages.append(formatted_msg)
+                    
+                    prepared_messages = processed_messages
+                    logger.debug(f"⏱️ [TIMING] Vision processing: {(time.time() - vision_start) * 1000:.1f}ms")
+                else:
+                    logger.debug(f"Skipping vision processing for non-vision model: {llm_model}")
+            except Exception as e:
+                logger.warning(f"Vision processing failed, continuing without vision: {str(e)}")
+
             # Get tool schemas for LLM API call (after compression)
             schema_start = time.time()
-            openapi_tool_schemas = self.tool_registry.get_openapi_schemas() if config.native_tool_calling else None
+            openapi_tool_schemas = self.tool_registry.get_openai_function_schemas() if config.native_tool_calling else None
             logger.debug(f"⏱️ [TIMING] Get tool schemas: {(time.time() - schema_start) * 1000:.1f}ms")
 
             # Update generation tracking

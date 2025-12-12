@@ -33,6 +33,8 @@ from core.tools.company_search_tool import CompanySearchTool
 from core.tools.paper_search_tool import PaperSearchTool
 from core.ai_models.manager import model_manager
 from core.tools.vapi_voice_tool import VapiVoiceTool
+from core.agentpress.model_router import ModelRouter
+from core.agentpress.task_plan import TaskPlan
 
 load_dotenv()
 
@@ -134,7 +136,7 @@ class ToolManager:
         from core.tools.tool_registry import get_all_tools_with_agentcore
         
         # Tools that need thread_id
-        tools_needing_thread_id = {'sb_vision_tool', 'sb_image_edit_tool', 'sb_design_tool', 'sb_vision_tool_agentcore', 'sb_image_edit_tool_agentcore'}
+        tools_needing_thread_id = {'sb_image_edit_tool', 'sb_design_tool', 'sb_image_edit_tool_agentcore'}
         
         sandbox_tools = []
         all_sandbox_tools = get_all_tools_with_agentcore()
@@ -784,7 +786,7 @@ class AgentRunner:
         
         all_tools = [
             'sb_shell_tool', 'sb_files_tool', 'sb_expose_tool',
-            'web_search_tool', 'image_search_tool', 'sb_vision_tool', 'sb_presentation_tool', 'sb_image_edit_tool',
+            'web_search_tool', 'image_search_tool', 'sb_presentation_tool', 'sb_image_edit_tool',
             'sb_kb_tool', 'sb_design_tool', 'sb_upload_file_tool',
             'sb_docs_tool',
             'data_providers_tool', 'browser_tool', 'people_search_tool', 'company_search_tool', 
@@ -900,12 +902,110 @@ class AgentRunner:
             logger.debug(f"max_tokens: {max_tokens} (using provider defaults)")
             generation = self.config.trace.generation(name="thread_manager.run_thread") if self.config.trace else None
             try:
+                # Initialize model variable
+                llm_model = self.config.model_name
+
+                # ==================================
+                # --- Hybrid Model Routing (Qwen3-VL Optimization) ---
+                # Determine which model to use based on conversation state (Planning vs Execution)
+                
+                # Fetch thread metadata first to check for active plan
+                # Use self.client which is initialized in run()
+                client = self.client
+                thread_data_result = await client.table('threads').select('metadata').eq('thread_id', self.config.thread_id).single().execute()
+                thread_metadata = thread_data_result.data.get('metadata', {}) if thread_data_result.data else {}
+                
+                # Initialize router and select model
+                router = ModelRouter()
+                selected_model = router.select_model(thread_metadata, llm_model)
+                
+                # If the router changed the model, update it
+                if selected_model != llm_model:
+                    logger.info(f"🔄 Model Router switched model: {llm_model} -> {selected_model}")
+                    llm_model = selected_model
+                    
+                # If using Thinking model, append formatting instructions
+                if selected_model == ModelRouter.THINKING_MODEL:
+                    # Add instruction to system prompt to output plan in specific format
+                    plan_instruction = """
+                    
+                    IMPORTANT: You are in PLANNING MODE.
+                    You must analyze the user's request and create a detailed step-by-step plan.
+                    
+                    Your response MUST include a 'reasoning_content' section (if supported) or use <plan> tags.
+                    Structure your plan using the following JSON format inside <plan> tags:
+                    
+                    <plan>
+                    {
+                        "reasoning": "Detailed reasoning about the approach...",
+                        "steps": [
+                            {
+                                "id": "step_1",
+                                "description": "Description of step 1",
+                                "tools_to_use": ["tool_name"]
+                            },
+                            ...
+                        ]
+                    }
+                    </plan>
+                    """
+                    # Modifying system prompt copy to avoid side effects
+                    if isinstance(system_message, dict) and 'content' in system_message:
+                        system_message = system_message.copy()
+                        system_message['content'] += plan_instruction
+                        
+                # If using Instruct model, inject active plan context
+                elif selected_model == ModelRouter.INSTRUCT_MODEL:
+                    active_plan_data = thread_metadata.get('active_task_plan')
+                    if active_plan_data:
+                        try:
+                            plan = TaskPlan.from_dict(active_plan_data)
+                            
+                            # Format plan for context
+                            plan_context = f"""
+                            
+                            === ACTIVE TASK PLAN ===
+                            Original Request: {plan.original_request}
+                            
+                            Plan Status:
+                            """
+                            
+                            for i, step in enumerate(plan.steps):
+                                status_mark = "[ ]"
+                                if step.status == "complete":
+                                    status_mark = "[x]"
+                                elif step.status == "in_progress":
+                                    status_mark = "[>]"
+                                elif step.status == "failed":
+                                    status_mark = "[!]"
+                                    
+                                plan_context += f"{i+1}. {status_mark} {step.description}\n"
+                                if step.result:
+                                    plan_context += f"   Result: {step.result[:200]}...\n"
+                            
+                            current_step = plan.get_current_step()
+                            if current_step:
+                                plan_context += f"\n👉 CURRENT STEP: {current_step.description}\n"
+                                plan_context += f"\nCOMPLETION INSTRUCTION: When you have verified this step is complete, you MUST output the following tag at the end of your response:\n"
+                                plan_context += f'<step_update id="{current_step.id}" status="complete" result="[Brief summary of valid result]"/>\n'
+                                
+                            plan_context += "=== END TASK PLAN ===\n"
+                            
+                            if isinstance(system_message, dict) and 'content' in system_message:
+                                system_message = system_message.copy()
+                                system_message['content'] += plan_context
+                                
+                        except Exception as e:
+                            logger.error(f"Failed to inject task plan context: {e}")
+                
+                # ----------------------------------------------------
+
                 logger.debug(f"Starting thread execution for {self.config.thread_id}")
                 response = await self.thread_manager.run_thread(
                     thread_id=self.config.thread_id,
                     system_prompt=system_message,
                     stream=True, 
-                    llm_model=self.config.model_name,
+                    llm_model=llm_model,
                     llm_temperature=0,
                     llm_max_tokens=max_tokens,
                     tool_choice="auto",
@@ -954,8 +1054,9 @@ class AgentRunner:
                                         error_detected = True
                                         yield chunk
                                         continue
-                                    
-                                    # Check for agent termination
+
+
+            # Fast path: Check stored token count + new message tokens
                                     metadata = chunk.get('metadata', {})
                                     if isinstance(metadata, str):
                                         metadata = json.loads(metadata)
