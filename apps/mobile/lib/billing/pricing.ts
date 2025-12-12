@@ -53,7 +53,7 @@ export const PRICING_TIERS: PricingTier[] = [
       '200 daily credits - Refreshes every 24 hours (applies to all tiers)',
       '1 concurrent run',
       '10 Total Chats',
-      'Basic Mode - Core Kortix experience with basic autonomy',
+      'Basic Mode - Core Dimatic experience with basic autonomy',
     ],
     disabledFeatures: [
       // 'No custom AI Workers',
@@ -83,7 +83,7 @@ export const PRICING_TIERS: PricingTier[] = [
       // '5 scheduled triggers - Run at 9am daily, every Monday, first of month...',
       // '25 app triggers - Auto-respond to new emails, Slack messages, form submissions...',
       // '100+ Integrations - Google Drive, Slack, Notion, Gmail, Calendar, GitHub & more',
-      'Kortix Power mode - Strongest autonomy & decision-making capabilities',
+      'Dimatic Power mode - Strongest autonomy & decision-making capabilities',
     ],
     isPopular: true,
     buttonText: 'Get started',
@@ -108,7 +108,7 @@ export const PRICING_TIERS: PricingTier[] = [
       // '10 scheduled triggers - Run at 9am daily, every Monday, first of month...',
       // '50 app triggers - Auto-respond to new emails, Slack messages, form submissions...',
       // '100+ Integrations - Google Drive, Slack, Notion, Gmail, Calendar, GitHub & more',
-      'Kortix Power mode - Strongest autonomy & decision-making capabilities',
+      'Dimatic Power mode - Strongest autonomy & decision-making capabilities',
     ],
     isPopular: false,
     buttonText: 'Get started',
@@ -133,7 +133,7 @@ export const PRICING_TIERS: PricingTier[] = [
       // '50 scheduled triggers - Run at 9am daily, every Monday, first of month...',
       // '200 app triggers - Auto-respond to new emails, Slack messages, form submissions...',
       // '100+ Integrations - Google Drive, Slack, Notion, Gmail, Calendar, GitHub & more',
-      'Kortix Power mode - Strongest autonomy & decision-making capabilities',
+      'Dimatic Power mode - Strongest autonomy & decision-making capabilities',
     ],
     isPopular: false,
     buttonText: 'Get started',
@@ -154,8 +154,8 @@ export function getDisplayPrice(
 ): string {
   if ((period === 'yearly' || period === 'yearly_commitment') && tier.priceYearly) {
     // Yearly: -10%, Yearly Commitment: -15%
-    const yearlyPrice = period === 'yearly' 
-      ? tier.priceMonthly * 0.9 
+    const yearlyPrice = period === 'yearly'
+      ? tier.priceMonthly * 0.9
       : tier.priceYearly;
     return `$${yearlyPrice.toFixed(0)}`;
   }

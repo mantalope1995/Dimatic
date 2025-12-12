@@ -13,30 +13,32 @@ import KortixSymbolIcon from '@/assets/brand/kortix-symbol.svg';
 import type { SvgProps } from 'react-native-svg';
 import type React from 'react';
 
-export type ModelProvider = 
+export type ModelProvider =
   | 'openai'
-  | 'anthropic' 
+  | 'anthropic'
   | 'google'
   | 'xai'
   | 'moonshotai'
   | 'bedrock'
   | 'openrouter'
-  | 'kortix';
+  | 'dimatic';
 
 /**
- * Check if a model ID corresponds to a Kortix mode (Basic or POWER)
+ * Check if a model ID corresponds to a Dimatic mode (Basic or POWER)
  */
-export function isKortixMode(modelId: string): boolean {
-  // New Kortix registry IDs
-  if (modelId === 'kortix/basic' || modelId === 'kortix/power' || 
-      modelId === 'kortix-basic' || modelId === 'kortix-power') {
+export function isDimaticMode(modelId: string): boolean {
+  // New Dimatic registry IDs
+  if (modelId === 'dimatic/basic' || modelId === 'dimatic/power' ||
+    modelId === 'dimatic-basic' || modelId === 'dimatic-power' ||
+    modelId === 'kortix/basic' || modelId === 'kortix/power' ||
+    modelId === 'kortix-basic' || modelId === 'kortix-power') {
     return true;
   }
-  // Legacy: Kortix Basic (Haiku 4.5)
+  // Legacy: Dimatic Basic (Haiku 4.5)
   if (modelId.includes('claude-haiku-4-5') || modelId.includes('heol2zyy5v48')) {
     return true;
   }
-  // Legacy: Kortix POWER Mode (Sonnet 4.5)
+  // Legacy: Dimatic POWER Mode (Sonnet 4.5)
   if (modelId.includes('claude-sonnet-4-5') || modelId.includes('few7z4l830xh')) {
     return true;
   }
@@ -47,9 +49,9 @@ export function isKortixMode(modelId: string): boolean {
  * Get the provider from a model ID
  */
 export function getModelProvider(modelId: string): ModelProvider {
-  // Check for Kortix modes first
-  if (isKortixMode(modelId)) {
-    return 'kortix';
+  // Check for Dimatic modes first
+  if (isDimaticMode(modelId)) {
+    return 'dimatic';
   }
   if (modelId.includes('anthropic') || modelId.includes('claude')) {
     return 'anthropic';
@@ -72,16 +74,16 @@ export function getModelProvider(modelId: string): ModelProvider {
   if (modelId.includes('openrouter')) {
     return 'openrouter';
   }
-  
+
   // Default fallback - try to extract provider from model ID format "provider/model"
   const parts = modelId.split('/');
   if (parts.length > 1) {
     const provider = parts[0].toLowerCase();
-    if (['openai', 'anthropic', 'google', 'xai', 'moonshotai', 'bedrock', 'openrouter', 'kortix'].includes(provider)) {
+    if (['openai', 'anthropic', 'google', 'xai', 'moonshotai', 'bedrock', 'openrouter', 'dimatic'].includes(provider)) {
       return provider as ModelProvider;
     }
   }
-  
+
   return 'openai'; // Default fallback
 }
 
@@ -90,9 +92,9 @@ export function getModelProvider(modelId: string): ModelProvider {
  */
 export function getModelProviderName(modelId: string): string {
   const provider = getModelProvider(modelId);
-  
+
   const nameMap: Record<ModelProvider, string> = {
-    kortix: 'Kortix',
+    dimatic: 'Dimatic',
     anthropic: 'Anthropic',
     openai: 'OpenAI',
     google: 'Google',
@@ -101,7 +103,7 @@ export function getModelProviderName(modelId: string): string {
     bedrock: 'AWS Bedrock',
     openrouter: 'OpenRouter',
   };
-  
+
   return nameMap[provider] || 'Unknown';
 }
 
@@ -110,9 +112,9 @@ export function getModelProviderName(modelId: string): string {
  */
 export function getModelProviderIcon(modelId: string): React.FC<SvgProps> {
   const provider = getModelProvider(modelId);
-  
+
   const iconMap: Record<ModelProvider, React.FC<SvgProps>> = {
-    kortix: KortixSymbolIcon, // Kortix modes use the Kortix symbol
+    dimatic: KortixSymbolIcon, // Dimatic modes use the Dimatic symbol
     anthropic: AnthropicIcon,
     openai: OAIIcon,
     google: GeminiIcon,
@@ -121,7 +123,7 @@ export function getModelProviderIcon(modelId: string): React.FC<SvgProps> {
     bedrock: AnthropicIcon, // Bedrock uses Anthropic models primarily
     openrouter: OAIIcon, // Default to OpenAI icon for OpenRouter
   };
-  
+
   return iconMap[provider] || OAIIcon;
 }
 

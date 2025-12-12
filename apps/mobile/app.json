@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Kortix",
-    "slug": "kortix",
+    "name": "Dimatic",
+    "slug": "dimatic",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/AppIcon-Light.png",
-    "scheme": "kortix",
+    "scheme": "dimatic",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -18,7 +18,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.kortix.app",
+      "bundleIdentifier": "com.dimatic.app",
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSUserTrackingUsageDescription": "This app uses analytics to improve your experience and understand how features are used. Your data helps us make the app better for everyone."
@@ -30,7 +30,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.kortix.app",
+      "package": "com.dimatic.app",
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
@@ -75,7 +75,7 @@
         "projectId": "9fca3cff-a291-41c9-88b9-feb8053b990f"
       }
     },
-    "owner": "kortix",
+    "owner": "dimatic",
     "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/9fca3cff-a291-41c9-88b9-feb8053b990f"

@@ -36,21 +36,6 @@ const helpData = {
         },
       ],
     },
-    {
-      title: "Quick Links",
-      items: [
-        {
-          title: "GitHub Repository",
-          url: "https://github.com/kortix-ai/suna",
-          external: true,
-        },
-        {
-          title: "Discord Community",
-          url: "https://discord.gg/Py6pCBUUPw",
-          external: true,
-        },
-      ],
-    },
   ],
 }
 
@@ -106,29 +91,15 @@ export function HelpSidebar({ onSearchClick, ...props }: HelpSidebarProps) {
                           active ? "bg-muted" : "bg-transparent"
                         )}
                       >
-                        {item.external ? (
-                          <a 
-                            href={item.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className={cn(
-                              "flex items-center justify-between w-full px-3 py-2 text-sm",
-                              active ? "text-foreground" : "text-muted-foreground"
-                            )}
-                          >
-                            <span className="font-medium text-primary">{item.title}</span>
-                          </a>
-                        ) : (
-                          <Link 
-                            href={item.url} 
-                            className={cn(
-                              "flex items-center justify-between w-full px-3 py-2 text-sm",
-                              active ? "text-foreground" : "text-muted-foreground"
-                            )}
-                          >
-                            <span className="font-medium text-primary">{item.title}</span>
-                          </Link>
-                        )}
+                        <Link
+                          href={item.url}
+                          className={cn(
+                            "flex items-center justify-between w-full px-3 py-2 text-sm",
+                            active ? "text-foreground" : "text-muted-foreground"
+                          )}
+                        >
+                          <span className="font-medium text-primary">{item.title}</span>
+                        </Link>
                       </SpotlightCard>
                     </SidebarMenuItem>
                   );

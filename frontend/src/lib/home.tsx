@@ -11,11 +11,7 @@ export const siteConfig = {
   url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3015',
   keywords: ['Dimatic', 'Autonomous AI Worker', 'AI Worker', 'Generalist AI', 'Open Source AI', 'Autonomous Agent', 'Complex Tasks', 'AI Assistant'],
   links: {
-    email: 'support@kortix.com',
-    twitter: 'https://x.com/kortix',
-    // discord: 'https://discord.gg/kortixai',
-    github: 'https://github.com/Kortix-ai/Suna',
-    instagram: 'https://instagram.com/kortixai',
+    email: 'hello@dimatic.com.au',
   },
   nav: {
     links: [
@@ -56,10 +52,10 @@ export const siteConfig = {
     ),
     badge: '100% OPEN SOURCE',
     githubUrl: 'https://github.com/kortix-ai/suna',
-    title: 'Kortix – Build, manage and train your AI Workforce.',
+    title: 'Dimatic – Build, manage and train your AI Workforce.',
     description:
-      'Kortix – open-source platform to build, manage and train your AI Workforce.',
-    inputPlaceholder: 'Ask Kortix to...',
+      'Dimatic – open-source platform to build, manage and train your AI Workforce.',
+    inputPlaceholder: 'Ask Dimatic to...',
   },
   cloudPricingItems: pricingTiers,
   footerLinks: [
@@ -72,34 +68,17 @@ export const siteConfig = {
       ],
     },
     {
-      title: 'Resources',
-      links: [
-        {
-          id: 5,
-          title: 'Documentation',
-          url: 'https://github.com/Kortix-ai/Suna',
-        },
-        { id: 7, title: 'Discord', url: 'https://discord.gg/Py6pCBUUPw' },
-        { id: 8, title: 'GitHub', url: 'https://github.com/Kortix-ai/Suna' },
-      ],
-    },
-    {
       title: 'Legal',
       links: [
         {
           id: 9,
           title: 'Privacy Policy',
-          url: 'https://kortix.com/legal?tab=privacy',
+          url: 'https://dimatic.com.au/legal?tab=privacy',
         },
         {
           id: 10,
           title: 'Terms of Service',
-          url: 'https://kortix.com/legal?tab=terms',
-        },
-        {
-          id: 11,
-          title: 'License Apache 2.0',
-          url: 'https://github.com/Kortix-ai/Suna/blob/main/LICENSE',
+          url: 'https://dimatic.com.au/legal?tab=terms',
         },
       ],
     },

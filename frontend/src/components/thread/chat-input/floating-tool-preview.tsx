@@ -30,12 +30,12 @@ const getToolResultStatus = (toolCall: ToolCallInput): boolean => {
   if (toolCall.toolResult?.success !== undefined) {
     return toolCall.toolResult.success;
   }
-  
+
   // Fallback to isSuccess if available
   if (toolCall.isSuccess !== undefined) {
     return toolCall.isSuccess;
   }
-  
+
   // Default to true if no result yet (streaming)
   return true;
 };
@@ -141,7 +141,7 @@ export const FloatingToolPreview: React.FC<FloatingToolPreviewProps> = ({
                   )} />
                   <span className="text-xs text-muted-foreground truncate">
                     {isStreaming
-                      ? `${agentName || 'Suna'} is working...`
+                      ? `${agentName || 'Agent'} is working...`
                       : isSuccess
                         ? "Success"
                         : "Failed"

@@ -14,7 +14,7 @@ import pt from '@/locales/pt.json';
 import zh from '@/locales/zh.json';
 import ja from '@/locales/ja.json';
 
-const LANGUAGE_KEY = '@kortix_language';
+const LANGUAGE_KEY = '@dimatic_language';
 
 // Language resources
 const resources = {
@@ -47,10 +47,10 @@ export const initializeI18n = async () => {
       if (user?.user_metadata?.locale && SUPPORTED_LOCALES.includes(user.user_metadata.locale as SupportedLocale)) {
         initialLanguage = user.user_metadata.locale as SupportedLocale;
         console.log(`✅ Using user metadata locale (highest priority): ${initialLanguage}`);
-        
+
         // Save to AsyncStorage for consistency
         await AsyncStorage.setItem(LANGUAGE_KEY, initialLanguage);
-        
+
         // Initialize i18n with user's profile locale
         await i18n
           .use(initReactI18next)
@@ -66,7 +66,7 @@ export const initializeI18n = async () => {
               useSuspense: false,
             },
           });
-        
+
         console.log('✅ i18n initialized with user profile locale:', i18n.language);
         return;
       }
@@ -78,7 +78,7 @@ export const initializeI18n = async () => {
     // Priority 2: Get saved language from AsyncStorage (user's explicit preference)
     const savedLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
     console.log('🌍 Saved language preference:', savedLanguage);
-    
+
     if (savedLanguage && SUPPORTED_LOCALES.includes(savedLanguage as SupportedLocale)) {
       initialLanguage = savedLanguage as SupportedLocale;
       console.log('✅ Using saved language preference:', initialLanguage);
@@ -87,7 +87,7 @@ export const initializeI18n = async () => {
       const detectedLocale = detectBestLocale();
       initialLanguage = detectedLocale;
       console.log('✅ Using geo-detected locale:', initialLanguage);
-      
+
       // Save the detected locale so we don't detect again
       // User can still change it manually in settings
       await AsyncStorage.setItem(LANGUAGE_KEY, initialLanguage);
@@ -136,19 +136,19 @@ export const initializeI18n = async () => {
 export const changeLanguage = async (languageCode: string) => {
   try {
     console.log('🌍 Changing language to:', languageCode);
-    
+
     // Validate language code
     if (!SUPPORTED_LOCALES.includes(languageCode as SupportedLocale)) {
       console.warn(`⚠️ Invalid language code: ${languageCode}, using default`);
       languageCode = DEFAULT_LOCALE;
     }
-    
+
     // Update i18n
     await i18n.changeLanguage(languageCode);
-    
+
     // Save to AsyncStorage
     await AsyncStorage.setItem(LANGUAGE_KEY, languageCode);
-    
+
     // Update user profile metadata if authenticated (matching web behavior)
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -156,7 +156,7 @@ export const changeLanguage = async (languageCode: string) => {
         const { error } = await supabase.auth.updateUser({
           data: { locale: languageCode }
         });
-        
+
         if (error) {
           console.warn('⚠️ Could not update user profile locale:', error);
         } else {
@@ -167,7 +167,7 @@ export const changeLanguage = async (languageCode: string) => {
       // User might not be authenticated, that's okay
       console.debug('Could not update user profile locale (user not authenticated):', error);
     }
-    
+
     console.log('✅ Language changed and saved:', languageCode);
   } catch (error) {
     console.error('❌ Language change error:', error);

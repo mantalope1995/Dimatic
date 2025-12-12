@@ -106,27 +106,27 @@ export default function RootLayout({
           type="font/woff2"
           crossOrigin="anonymous"
         />
-        
+
         {/* DNS prefetch for analytics (loaded later but resolve DNS early) */}
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://connect.facebook.net" />
         <link rel="dns-prefetch" href="https://eu.i.posthog.com" />
-        
+
         {/* Static SEO meta tags - rendered in initial HTML */}
         <title>dimatic: Your Autonomous AI Worker</title>
         <meta name="description" content="Built for complex tasks, designed for everything. The ultimate AI assistant that handles it all—from simple requests to mega-complex projects." />
         <meta name="keywords" content="dimatic, Autonomous AI Worker, AI Worker, Generalist AI, Open Source AI, Autonomous Agent, Complex Tasks, AI Assistant" />
         <meta property="og:title" content="dimatic: Your Autonomous AI Worker" />
         <meta property="og:description" content="Built for complex tasks, designed for everything. The ultimate AI assistant that handles it all—from simple requests to mega-complex projects." />
-        <meta property="og:image" content="https://kortix.com/banner.png" />
-        <meta property="og:url" content="https://kortix.com" />
+        <meta property="og:image" content="https://dimatic.com.au/banner.png" />
+        <meta property="og:url" content="https://dimatic.com.au" />
         <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="Kortix" />
+        <meta property="og:site_name" content="Dimatic" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Kortix: Your Autonomous AI Worker" />
+        <meta name="twitter:title" content="Dimatic: Your Autonomous AI Worker" />
         <meta name="twitter:description" content="Built for complex tasks, designed for everything. The ultimate AI assistant that handles it all—from simple requests to mega-complex projects." />
-        <meta name="twitter:image" content="https://kortix.com/banner.png" />
-        <meta name="twitter:site" content="@kortix" />
+        <meta name="twitter:image" content="https://dimatic.com.au/banner.png" />
+        <meta name="twitter:site" content="" />
         <link rel="canonical" href="https://dimatic.com.au" />
 
         <Script id="facebook-pixel" strategy="lazyOnload">
@@ -161,7 +161,7 @@ export default function RootLayout({
               '@context': 'https://schema.org',
               '@type': 'Organization',
               name: siteMetadata.name,
-              alternateName: ['Suna', 'Dimatic AI', 'Dimatic: Your Autonomous AI Worker'],
+              alternateName: ['Dimatic AI', 'Dimatic: Your Autonomous AI Worker'],
               url: siteMetadata.url,
               logo: `${siteMetadata.url}/favicon.png`,
               description: siteMetadata.description,
@@ -187,7 +187,7 @@ export default function RootLayout({
               '@context': 'https://schema.org',
               '@type': 'SoftwareApplication',
               name: siteMetadata.title,
-              alternateName: [siteMetadata.name, 'Suna'],
+              alternateName: [siteMetadata.name],
               applicationCategory: 'BusinessApplication',
               operatingSystem: 'Web, macOS, Windows, Linux',
               description: siteMetadata.description,
@@ -234,13 +234,13 @@ export default function RootLayout({
           <I18nProvider>
             <AuthProvider>
               <PresenceProvider>
-              <ReactQueryProvider>
-                {children}
-                <Toaster />
-                <Suspense fallback={null}>
-                  <PlanSelectionModal />
-                </Suspense>
-              </ReactQueryProvider>
+                <ReactQueryProvider>
+                  {children}
+                  <Toaster />
+                  <Suspense fallback={null}>
+                    <PlanSelectionModal />
+                  </Suspense>
+                </ReactQueryProvider>
               </PresenceProvider>
             </AuthProvider>
           </I18nProvider>

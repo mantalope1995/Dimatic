@@ -29,8 +29,8 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="kortix"/>
-        <data android:scheme="exp+kortix"/>
+        <data android:scheme="dimatic"/>
+        <data android:scheme="exp+dimatic"/>
       </intent-filter>
     </activity>
   </application>
