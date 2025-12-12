@@ -18,6 +18,10 @@ import json
 import asyncio
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 
 # Add the backend directory to the Python path
 backend_dir = Path(__file__).parent
@@ -44,7 +48,7 @@ def test_basic_api_connectivity():
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Say 'Hello from Qwen3-VL!'"}
             ],
-            api_base="https://api.siliconflow.cn/v1",
+            api_base="https://api.siliconflow.com/v1",
             api_key=os.getenv("SILICONFLOW_API_KEY"),
             max_tokens=50
         )
@@ -102,7 +106,7 @@ def test_native_function_calling():
             ],
             tools=tools,
             tool_choice="auto",
-            api_base="https://api.siliconflow.cn/v1",
+            api_base="https://api.siliconflow.com/v1",
             api_key=os.getenv("SILICONFLOW_API_KEY"),
             max_tokens=100
         )
@@ -150,7 +154,7 @@ def test_streaming_responses():
                 {"role": "user", "content": "Count from 1 to 5, one number per line."}
             ],
             stream=True,
-            api_base="https://api.siliconflow.cn/v1",
+            api_base="https://api.siliconflow.com/v1",
             api_key=os.getenv("SILICONFLOW_API_KEY"),
             max_tokens=50
         )
@@ -187,7 +191,7 @@ def test_thinking_model():
             messages=[
                 {"role": "user", "content": "Explain the concept of machine learning in simple terms."}
             ],
-            api_base="https://api.siliconflow.cn/v1",
+            api_base="https://api.siliconflow.com/v1",
             api_key=os.getenv("SILICONFLOW_API_KEY"),
             max_tokens=200
         )
@@ -221,7 +225,7 @@ def test_error_handling():
             response = litellm.completion(
                 model="openai/Invalid/Model",
                 messages=[{"role": "user", "content": "test"}],
-                api_base="https://api.siliconflow.cn/v1",
+                api_base="https://api.siliconflow.com/v1",
                 api_key=os.getenv("SILICONFLOW_API_KEY"),
                 max_tokens=10
             )
@@ -244,7 +248,7 @@ def main():
     """Run all SiliconFlow integration tests."""
     print("SiliconFlow API Integration Test Suite")
     print("=" * 50)
-    print(f"API Base: https://api.siliconflow.cn/v1")
+    print(f"API Base: https://api.siliconflow.com/v1")
     print(f"API Key: {'*' * 20}{os.getenv('SILICONFLOW_API_KEY', '')[-4:] if os.getenv('SILICONFLOW_API_KEY') else 'None'}")
     print()
     

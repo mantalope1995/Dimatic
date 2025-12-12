@@ -25,7 +25,7 @@ class ModelRegistry:
     def _initialize_models(self):
         # Get SiliconFlow configuration for Qwen3-VL models
         siliconflow_api_key = config.SILICONFLOW_API_KEY if config else None
-        siliconflow_api_base = config.SILICONFLOW_API_BASE if config else "https://api.siliconflow.cn/v1"
+        siliconflow_api_base = config.SILICONFLOW_API_BASE if config else "https://api.siliconflow.com/v1"
         
         # Qwen3-VL-235B-A22B-Instruct - Primary execution model
         self.register(Model(

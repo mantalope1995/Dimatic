@@ -83,7 +83,7 @@ class ModelManager:
         
         # Get config from model, then override the model ID with the actual LiteLLM model ID
         params = model.get_litellm_params(**override_params)
-        params["model"] = self.registry.get_litellm_model_id(model_id)
+        # params["model"] = self.registry.get_litellm_model_id(model_id)
         
         return params
     
