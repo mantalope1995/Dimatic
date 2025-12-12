@@ -33,6 +33,9 @@ from core.tools.company_search_tool import CompanySearchTool
 from core.tools.paper_search_tool import PaperSearchTool
 from core.ai_models.manager import model_manager
 from core.tools.vapi_voice_tool import VapiVoiceTool
+from core.obot.client import ObotClient
+from core.obot.profile_service import ObotProfileService
+from core.tools.obot_mcp_tool import create_obot_tools
 
 load_dotenv()
 
@@ -805,6 +808,55 @@ class AgentRunner:
         
         mcp_manager = MCPManager(self.thread_manager, self.account_id)
         return await mcp_manager.register_mcp_tools(self.config.agent_config)
+
+    async def setup_obot_tools(self):
+        """Setup Obot tools if enabled and account is present."""
+        # Use config to check if Obot is enabled (via URL presence)
+        if not config.OBOT_API_URL or not self.account_id:
+            return
+
+        try:
+            profile_service = ObotProfileService()
+            client = ObotClient() # Uses env vars
+            
+            # Fetch connected profiles
+            profiles = await profile_service.get_profiles(self.account_id)
+            connected_profiles = [p for p in profiles if p.status == 'connected']
+            
+            if not connected_profiles:
+                return
+
+            logger.debug(f"Setting up Obot tools for user {self.account_id} ({len(connected_profiles)} profiles)")
+
+            # Load tools for each profile
+            total_tools = 0
+            for profile in connected_profiles:
+                try:
+                    tools = await create_obot_tools(
+                        obot_client=client,
+                        server_id=profile.obot_server_id,
+                        user_id=self.account_id
+                    )
+                    
+                    # Manually inject into registry
+                    for tool in tools:
+                        schemas = tool.get_schemas()
+                        for method_name, schema_list in schemas.items():
+                            for schema in schema_list:
+                                self.thread_manager.tool_registry.tools[method_name] = {
+                                    "instance": tool,
+                                    "schema": schema
+                                }
+                                total_tools += 1
+                        
+                except Exception as e:
+                    logger.warning(f"Failed to load tools for Obot profile {profile.id}: {e}")
+            
+            if total_tools > 0:
+                logger.info(f"⚡ Registered {total_tools} Obot MCP tools")
+                
+        except Exception as e:
+            logger.error(f"Error setting up Obot tools: {e}")
     
     async def run(self, cancellation_event: Optional[asyncio.Event] = None) -> AsyncGenerator[Dict[str, Any], None]:
         import time
@@ -819,8 +871,10 @@ class AgentRunner:
         parallel_start = time.time()
         setup_tools_task = asyncio.create_task(self._setup_tools_async())
         mcp_task = asyncio.create_task(self.setup_mcp_tools())
+        obot_task = asyncio.create_task(self.setup_obot_tools())
         
         await setup_tools_task
+        await obot_task
         tools_elapsed = (time.time() - parallel_start) * 1000
         
         mcp_wrapper_instance = await mcp_task

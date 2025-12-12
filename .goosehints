@@ -1,1016 +1,1356 @@
+Use the Context7 to get relevant documentation. 
+
+# Project Structure
+
+## Repository Layout
+
+```
+kortix/
+├── backend/              # Python FastAPI backend
+├── frontend/             # Next.js frontend
+├── apps/mobile/          # React Native mobile app
+├── sdk/                  # Python SDK for Kortix API
+├── docs/                 # Documentation
+├── docker-compose.yaml   # Docker orchestration
+├── setup.py             # Setup wizard
+└── start.py             # Service management script
+```
+
+## Backend Structure (`backend/`)
+
+```
+backend/
+├── core/                           # Core application logic
+│   ├── agentpress/                # Agent execution framework
+│   │   ├── context_manager.py    # Context and prompt management
+│   │   ├── thread_manager.py     # Conversation thread handling
+│   │   ├── tool_registry.py      # Tool registration system
+│   │   └── prompt_caching.py     # LLM prompt caching
+│   ├── ai_models/                 # LLM model management
+│   │   ├── ai_models.py          # Model definitions
+│   │   ├── manager.py            # Model lifecycle management
+│   │   └── registry.py           # Model registry
+│   ├── api_models/                # API request/response models
+│   ├── billing/                   # Billing and subscription system
+│   │   ├── credits/              # Credit management
+│   │   ├── payments/             # Payment processing
+│   │   └── subscriptions/        # Subscription handling
+│   ├── composio_integration/      # Composio service integrations
+│   ├── credentials/               # Credential management
+│   ├── google/                    # Google Workspace integrations
+│   ├── knowledge_base/            # Knowledge base and RAG
+│   ├── mcp_module/                # MCP (Model Context Protocol) integration
+│   ├── notifications/             # Push notifications (Novu)
+│   ├── prompts/                   # System prompts and templates
+│   ├── referrals/                 # Referral system
+│   ├── sandbox/                   # Docker sandbox execution
+│   ├── services/                  # Core services
+│   │   ├── docker/               # Docker management
+│   │   ├── email.py              # Email service
+│   │   ├── langfuse.py           # LLM observability
+│   │   ├── llm.py                # LLM client wrapper
+│   │   ├── redis.py              # Redis client
+│   │   ├── redis_worker.py       # Dramatiq worker
+│   │   └── supabase.py           # Supabase client
+│   ├── templates/                 # Agent templates
+│   ├── tools/                     # Agent tools
+│   │   ├── agent_builder_tools/  # Tools for building agents
+│   │   ├── data_providers/       # Data provider integrations
+│   │   ├── sb_*.py               # Sandbox tools (files, shell, vision, etc.)
+│   │   └── tool_registry.py      # Tool registration
+│   ├── triggers/                  # Event triggers and webhooks
+│   ├── utils/                     # Utility functions
+│   ├── agent_service.py           # Agent orchestration
+│   ├── agent_runs.py              # Agent execution management
+│   ├── api.py                     # API route definitions
+│   ├── auth.py                    # Authentication logic
+│   └── threads.py                 # Thread management
+├── supabase/                      # Supabase configuration
+│   ├── migrations/               # Database migrations
+│   └── config.toml               # Supabase config
+├── api.py                         # Main FastAPI application entry
+├── run_agent_background.py        # Dramatiq worker entry
+├── pyproject.toml                 # Python dependencies (uv)
+└── Dockerfile                     # Backend container image
+```
+
+## Frontend Structure (`frontend/`)
+
+```
+frontend/
+├── src/
+│   ├── app/                       # Next.js App Router pages
+│   │   ├── (auth)/               # Authentication pages
+│   │   ├── (dashboard)/          # Main dashboard pages
+│   │   ├── api/                  # API routes
+│   │   └── layout.tsx            # Root layout
+│   ├── components/                # React components
+│   │   ├── ui/                   # Reusable UI components
+│   │   ├── agents/               # Agent-related components
+│   │   ├── chat/                 # Chat interface components
+│   │   ├── settings/             # Settings components
+│   │   └── ...                   # Feature-specific components
+│   ├── hooks/                     # Custom React hooks
+│   ├── lib/                       # Utility libraries
+│   │   ├── supabase/             # Supabase client setup
+│   │   ├── utils.ts              # General utilities
+│   │   └── api.ts                # API client
+│   ├── stores/                    # Zustand state stores
+│   ├── providers/                 # React context providers
+│   ├── i18n/                      # Internationalization
+│   └── middleware.ts              # Next.js middleware
+├── public/                        # Static assets
+├── translations/                  # Translation files (en, de, es, fr, etc.)
+├── package.json                   # npm dependencies
+├── next.config.ts                 # Next.js configuration
+├── tailwind.config.js             # Tailwind CSS config
+└── tsconfig.json                  # TypeScript config
+```
+
+## Mobile App Structure (`apps/mobile/`)
+
+```
+apps/mobile/
+├── api/                           # Centralized API layer
+│   ├── index.ts                  # API exports
+│   ├── config.ts                 # Configuration
+│   ├── supabase.ts               # Supabase client
+│   └── types.ts                  # Type definitions
+├── app/                           # Expo Router screens
+│   ├── _layout.tsx               # Root layout
+│   ├── index.tsx                 # Entry screen
+│   ├── home.tsx                  # Home screen
+│   ├── auth/                     # Auth screens
+│   └── ...                       # Other screens
+├── components/                    # React Native components
+│   ├── ui/                       # Reusable UI components
+│   ├── agents/                   # Agent components
+│   ├── chat/                     # Chat components
+│   └── ...                       # Feature components
+├── contexts/                      # React contexts
+│   ├── AuthContext.tsx           # Authentication
+│   ├── AgentContext.tsx          # Agent state
+│   └── ...                       # Other contexts
+├── hooks/                         # Custom hooks
+├── lib/                           # Utilities
+├── locales/                       # Translation files
+├── assets/                        # Images, fonts, etc.
+├── android/                       # Android native code
+├── ios/                           # iOS native code
+├── app.json                       # Expo configuration
+├── package.json                   # npm dependencies
+└── tsconfig.json                  # TypeScript config
+```
+
+## SDK Structure (`sdk/`)
+
+```
+sdk/
+├── kortix/                        # Python SDK package
+│   ├── api/                      # API client modules
+│   ├── agent.py                  # Agent interface
+│   ├── thread.py                 # Thread interface
+│   ├── tools.py                  # Tool definitions
+│   └── kortix.py                 # Main SDK class
+├── example/                       # Usage examples
+└── pyproject.toml                # SDK dependencies
+```
+
+## Key Architectural Patterns
+
+### Backend
+- **Modular structure**: Features organized in `core/` subdirectories
+- **Service layer**: Core services in `core/services/`
+- **Tool system**: Extensible tools in `core/tools/`
+- **API routes**: Defined in `core/api.py` and feature-specific `*_api.py` files
+- **Background jobs**: Dramatiq actors in `run_agent_background.py`
+- **Database**: Supabase with migrations in `supabase/migrations/`
+
+### Frontend
+- **App Router**: File-based routing in `src/app/`
+- **Component library**: Reusable components in `src/components/ui/`
+- **State management**: Zustand stores + React Query for server state
+- **API client**: Centralized in `src/lib/api.ts`
+- **Styling**: Tailwind CSS with design tokens
+
+### Mobile
+- **Centralized API**: All API code in `api/` directory
+- **File-based routing**: Expo Router in `app/`
+- **Context providers**: Global state in `contexts/`
+- **NativeWind**: Tailwind CSS for React Native
+- **Type safety**: Full TypeScript coverage
+
+## Configuration Files
+
+- `backend/.env` - Backend environment variables
+- `frontend/.env.local` - Frontend environment variables
+- `apps/mobile/.env` - Mobile app environment variables
+- `docker-compose.yaml` - Service orchestration
+- `backend/supabase/config.toml` - Supabase configuration
+- `.setup_progress` - Setup wizard state (generated)
+
+## Important Conventions
+
+1. **Python imports**: Use absolute imports from `core.*`
+2. **TypeScript paths**: Use `@/` alias for `src/` directory
+3. **API routes**: Backend at `/api/*`, frontend API routes at `/api/*`
+4. **Environment variables**: Prefix with `NEXT_PUBLIC_` for client-side access in Next.js
+5. **Database migrations**: Sequential numbered files in `backend/supabase/migrations/`
+6. **Tool naming**: Tools prefixed with `sb_` for sandbox tools
+7. **Component organization**: Group by feature, not by type
+
+# Technology Stack
+
+## Backend
+
+**Language & Framework**: Python 3.11+ with FastAPI
+**Package Manager**: uv (Astral's fast Python package manager)
+**Key Dependencies**:
+- `litellm` - Multi-provider LLM integration (Anthropic, OpenAI, etc.)
+- `dramatiq` - Background task processing with Redis
+- `supabase` - Database client and authentication
+- `prisma` - Database ORM
+- `mcp` - Model Context Protocol for tool integrations
+- `composio` - Third-party service integrations
+- `AWS Code Interpretor` - Code execution sandbox
+- `stripe` - Payment processing
+- `langfuse` - LLM observability
+- `sentry-sdk` - Error tracking
+
+**Database**: PostgreSQL via Supabase (with pg_cron, pg_net extensions)
+**Cache/Queue**: Redis (for Dramatiq workers and caching)
+**Storage**: Supabase Storage (S3-compatible)
+
+## Frontend
+
+**Framework**: Next.js 15 (App Router) with React 18
+**Language**: TypeScript (strict mode)
+**Package Manager**: npm
+**Styling**: Tailwind CSS 4 with tailwindcss-animate
+**UI Components**: Radix UI primitives with custom components
+**Key Dependencies**:
+- `@supabase/ssr` - Supabase client for Next.js
+- `@tanstack/react-query` - Data fetching and state management
+- `@tiptap/react` - Rich text editor
+- `framer-motion` - Animations
+- `zustand` - Client state management
+- `next-intl` - Internationalization
+- `recharts` - Data visualization
+- `zod` - Schema validation
+- `react-hook-form` - Form handling
+
+## Mobile App
+
+**Framework**: React Native with Expo SDK 54
+**Language**: TypeScript
+**Package Manager**: npm
+**Styling**: NativeWind (Tailwind CSS for React Native)
+**Navigation**: Expo Router (file-based routing)
+**Key Dependencies**:
+- `@supabase/supabase-js` - Backend integration
+- `@tanstack/react-query` - Data fetching
+- `react-native-purchases` - In-app purchases (RevenueCat)
+- `@rn-primitives/*` - UI component primitives
+- `expo-notifications` - Push notifications
+- `lottie-react-native` - Animations
+
+## Infrastructure
+
+**Containerization**: Docker with Docker Compose
+**Orchestration**: Docker Compose for local development
+**Sandbox**: Docker containers for isolated agent execution
+**Deployment**: Supports cloud deployment (configuration via setup wizard)
+
+## Development Tools
+
+**Python**:
+- `pytest` - Testing framework
+- `uv` - Package management and virtual environments
+
+**Frontend**:
+- `eslint` - Linting
+- `prettier` - Code formatting
+- `typescript` - Type checking
+
+**Mobile**:
+- `patch-package` - Package patching
+- `prettier` - Code formatting
+
+## Common Commands
+
+### Backend
+```bash
+# Install dependencies
+cd backend
+uv sync
+
+# Start Redis
+docker compose up redis -d
+
+# Start backend API
+uv run api.py
+
+# Start background worker (IMPORTANT: always specify --processes)
+uv run dramatiq --processes 4 --threads 4 run_agent_background
+
+# Run tests
+uv run pytest
+
+# Database migrations (via Supabase CLI)
+cd backend/supabase
+npx supabase db push
+```
+
+### Frontend
+```bash
+# Install dependencies
+cd frontend
+npm install
+
+# Development server
+npm run dev
+
+# Production build
+npm run build
+npm run start
+
+# Linting and formatting
+npm run lint
+npm run format
+```
+
+### Mobile
+```bash
+# Install dependencies
+cd apps/mobile
+npm install
+
+# Start development server
+npm run dev
+
+# Run on specific platform
+npm run ios
+npm run android
+npm run web
+
+# Clean cache
+npm run clean
+```
+
+### Full Stack (Docker Compose)
+```bash
+# Start all services
+docker compose up -d
+
+# Stop all services
+docker compose down
+
+# View logs
+docker compose logs -f
+
+# Start specific service
+docker compose up redis -d
+```
+
+### Setup & Start
+```bash
+# Initial setup wizard
+python setup.py
+
+# Start services (based on setup method)
+python start.py
+```
+
+## Environment Configuration
+
+Configuration is managed through `.env` files:
+- `backend/.env` - Backend configuration
+- `frontend/.env.local` - Frontend configuration
+- `apps/mobile/.env` - Mobile app configuration
+
+Use `setup.py` wizard for guided configuration.
+
+## API Integration Patterns
+
+**LLM Providers**: Unified via LiteLLM (supports OpenAI, Anthropic, Groq, OpenRouter, XAI, Gemini, AWS Bedrock)
+**Tool System**: MCP (Model Context Protocol) for extensible tool integrations
+**Authentication**: Supabase Auth with JWT tokens
+**Real-time**: Supabase Realtime for live updates
+**Background Jobs**: Dramatiq with Redis broker
+
+
 # Requirements Document
 
 ## Introduction
 
-This specification defines the requirements for optimizing Suna (Kortix's AI agent platform) to use Qwen3-VL-235B-A22B-Instruct as the primary LLM. This is a greenfield integration that replaces the existing LLM infrastructure with a Qwen3-VL-optimized architecture. The model will be accessed via SiliconFlow's API, which provides an OpenAI-compatible interface. Key optimizations include transitioning from XML-based tool calling to native OpenAI-style function calling, leveraging the model's native multimodal (vision) capabilities, and optionally integrating Qwen3 embedding and reranker models for enhanced RAG functionality.
+This document specifies the requirements for replacing Composio (a managed MCP integration service) with Obot as a self-hosted MCP Gateway sidecar for the Suna AI agent platform. Obot provides enterprise-grade MCP server management, including server discovery, authentication, credential management, and access control. The integration will enable Suna users to connect to MCP servers through Obot while maintaining their existing identity and authentication context.
+
+The key challenge is mapping Suna's Supabase-based user identity system to Obot's internal user management, ensuring that each Suna user is recognized as a unique user within Obot for proper credential isolation and access control.
 
 ## Glossary
 
-- **Qwen3-VL-235B-A22B-Instruct**: A multimodal vision-language model from Alibaba's Qwen series with 235B parameters (22B active via MoE), supporting text, image, and video understanding with native function calling
-- **SiliconFlow**: A cloud API provider offering OpenAI-compatible endpoints for various LLMs including Qwen models
-- **Native Function Calling**: OpenAI-style tool/function calling where the model outputs structured JSON tool calls rather than XML-formatted text
-- **XML Tool Calling**: The current Suna approach where tools are invoked via XML tags like `<function_calls><invoke name="tool">...</invoke></function_calls>`
-- **MoE (Mixture of Experts)**: Architecture where only a subset of parameters are active per inference, enabling larger models with efficient compute
-- **Qwen3-Embedding**: Qwen's text embedding model series (0.6B-8B) for semantic search and retrieval
-- **Qwen3-Reranker**: Qwen's reranking model series (0.6B-8B) for improving retrieval relevance
-- **RAG (Retrieval-Augmented Generation)**: Pattern combining retrieval systems with LLM generation
-- **LiteLLM**: Python library providing unified interface to multiple LLM providers
-- **Vision Tool**: Current Suna tool that sends images to a separate vision model for analysis
+- **Suna**: The AI agent platform (Kortix) that currently uses Composio for MCP integrations
+- **Obot**: An open-source MCP Gateway and management platform that will replace Composio
+- **MCP (Model Context Protocol)**: An industry standard protocol for connecting AI applications to external systems and data
+- **MCP Server**: A service that exposes tools and resources via the MCP protocol
+- **MCP Gateway**: A proxy layer that manages authentication, access control, and routing for MCP servers
+- **Composio**: A managed MCP integration service (not used in this implementation)
+- **Supabase**: The database and authentication service used by Suna
+- **Sidecar**: A deployment pattern where Obot runs alongside Suna as a companion service
+- **User Identity Mapping**: The process of associating a Suna user with a corresponding Obot user
+- **OAuth 2.1**: The authentication protocol used by Obot for external service integrations
+- **Admin GUI**: Obot's administrative interface for managing MCP servers and configurations
+- **Profile**: A Suna concept representing a user's configured connection to an MCP server
+- **RLS (Row Level Security)**: A Supabase/PostgreSQL feature that restricts database row access based on user identity
+- **Tenant Isolation**: The security principle ensuring one user cannot access another user's data
+- **Audit Log**: A record of security-relevant operations for compliance and debugging
 
 ## Requirements
 
 ### Requirement 1
 
-**User Story:** As a platform operator, I want to configure Qwen3-VL-235B-A22B-Instruct as the primary LLM via SiliconFlow API, so that all agent interactions use this model.
+**User Story:** As a Suna platform operator, I want to deploy Obot as a sidecar service, so that I can provide self-hosted MCP gateway capabilities without relying on external managed services.
 
 #### Acceptance Criteria
 
-1. WHEN the backend initializes THEN the System SHALL load SiliconFlow API credentials from environment configuration
-2. WHEN an LLM request is made THEN the System SHALL route the request to SiliconFlow's OpenAI-compatible endpoint with model identifier `Qwen/Qwen3-VL-235B-A22B-Instruct`
-3. WHEN the SiliconFlow API returns a response THEN the System SHALL parse the response using OpenAI-compatible response format
-4. WHEN API credentials are missing or invalid THEN the System SHALL log a descriptive error and prevent agent startup
-5. WHEN configuring the model THEN the System SHALL set appropriate context window limits (262144 tokens) and max output token limits (262144 tokens)
+1. WHEN the Suna platform starts THEN the Obot sidecar SHALL be available at a configurable internal endpoint
+2. WHEN Obot is deployed THEN the system SHALL disable Obot's built-in chat interface and expose only the Admin GUI and MCP Gateway endpoints
+3. WHEN configuring Obot THEN the system SHALL support environment-based configuration for database, authentication, and model provider settings
+4. WHEN Obot starts THEN the system SHALL perform health checks and report readiness status to Suna
+5. IF Obot becomes unavailable THEN the system SHALL log the failure and gracefully degrade MCP functionality
 
 ### Requirement 2
 
-**User Story:** As a developer, I want Suna to use native OpenAI-style function calling instead of XML tool calling, so that tool invocations are more reliable and leverage the model's trained capabilities.
+**User Story:** As a Suna user, I want my identity to be automatically recognized by Obot, so that I can access MCP servers with proper credential isolation without creating a separate Obot account.
 
 #### Acceptance Criteria
 
-1. WHEN tools are registered THEN the System SHALL convert tool definitions to OpenAI function calling JSON schema format
-2. WHEN making an LLM request with tools THEN the System SHALL include tools in the `tools` parameter using OpenAI function format
-3. WHEN the model returns tool calls THEN the System SHALL parse them from the `tool_calls` field in the response message
-4. WHEN a tool call is parsed THEN the System SHALL extract function name, arguments, and tool_call_id from the native format
-5. WHEN tool results are returned THEN the System SHALL format them as tool role messages with matching tool_call_id
-6. WHEN streaming responses contain tool calls THEN the System SHALL buffer and assemble tool call chunks correctly
+1. WHEN a Suna user makes an MCP request THEN the system SHALL map the Suna user ID to a corresponding Obot user identity
+2. WHEN a new Suna user first accesses MCP functionality THEN the system SHALL create or retrieve the corresponding Obot user record
+3. WHEN mapping user identities THEN the system SHALL use a deterministic mapping function that produces consistent Obot user IDs for the same Suna user
+4. WHEN a Suna user is deleted THEN the system SHALL provide a mechanism to clean up the corresponding Obot user data
+5. WHEN authenticating with Obot THEN the system SHALL use JWT tokens signed with a shared secret or public key infrastructure
 
 ### Requirement 3
 
-**User Story:** As a developer, I want to remove the XML tool calling system, so that the codebase is simplified and optimized for native function calling.
+**User Story:** As a Suna backend developer, I want to replace Composio API calls with Obot API calls, so that the existing MCP integration functionality continues to work with the new backend.
 
 #### Acceptance Criteria
 
-1. WHEN the System processes LLM responses THEN the System SHALL use only native tool call parsing (not XML parsing)
-2. WHEN configuring the response processor THEN the System SHALL set `xml_tool_calling=False` and `native_tool_calling=True`
-3. WHEN the System generates prompts THEN the System SHALL exclude XML tool calling instructions from system prompts
-4. WHEN tool definitions are provided THEN the System SHALL format them only in OpenAI function schema format
+1. WHEN listing available MCP servers THEN the system SHALL query Obot's catalog API and return results in a format compatible with the existing Suna frontend
+2. WHEN a user connects to an MCP server THEN the system SHALL create the appropriate Obot MCP server instance with user-scoped credentials
+3. WHEN discovering tools from an MCP server THEN the system SHALL proxy the request through Obot's MCP Gateway
+4. WHEN executing MCP tools THEN the system SHALL route requests through Obot with proper user context
+5. WHEN an MCP server requires OAuth authentication THEN the system SHALL redirect the user through Obot's OAuth flow and store credentials in Obot
 
 ### Requirement 4
 
-**User Story:** As a user, I want Suna to directly process images using Qwen3-VL's native vision capabilities, so that image understanding is faster and more integrated.
+**User Story:** As a Suna user, I want to manage my MCP server connections through the existing Suna interface, so that I do not need to learn a new admin interface for basic operations.
 
 #### Acceptance Criteria
 
-1. WHEN a user provides an image in a message THEN the System SHALL include the image directly in the message content array using OpenAI vision format
-2. WHEN processing images THEN the System SHALL encode images as base64 data URLs or pass image URLs directly
-3. WHEN the model analyzes an image THEN the System SHALL receive the analysis in the standard text response without requiring a separate vision tool call
-4. WHEN multiple images are provided THEN the System SHALL include all images in the content array (respecting model limits)
-5. WHEN image resolution parameters are needed THEN the System SHALL support min_pixels and max_pixels configuration
+1. WHEN a user views their connected integrations THEN the system SHALL display MCP servers from Obot using the existing Suna profile UI
+2. WHEN a user initiates a new MCP connection THEN the system SHALL create the connection through Obot's API and store a reference in Suna's profile system
+3. WHEN a user disconnects an MCP server THEN the system SHALL remove the connection from both Obot and Suna's profile storage
+4. WHEN displaying connection status THEN the system SHALL query Obot for real-time authentication and health status
 
 ### Requirement 5
 
-**User Story:** As a developer, I want to remove the separate vision tool entirely, so that image analysis uses only the model's native multimodal capabilities.
+**User Story:** As a Suna platform administrator, I want to access Obot's Admin GUI, so that I can manage the MCP server catalog, configure authentication providers, and monitor usage.
 
 #### Acceptance Criteria
 
-1. WHEN configuring agent tools THEN the System SHALL not include any vision-specific tool in the available tools list
-2. WHEN image analysis is needed THEN the System SHALL rely on native multimodal message content (not tool calls)
-3. WHEN the vision tool code is removed THEN the System SHALL have no references to the legacy vision tool modules
+1. WHEN an admin accesses the Obot Admin GUI THEN the system SHALL authenticate the admin using Suna's admin role verification
+2. WHEN configuring MCP server catalogs THEN the admin SHALL be able to add, remove, and configure available MCP servers
+3. WHEN managing OAuth providers THEN the admin SHALL be able to configure client credentials for external services
+4. WHEN viewing usage analytics THEN the admin SHALL see aggregated MCP usage statistics across all Suna users
 
 ### Requirement 6
 
-**User Story:** As a platform operator, I want to optionally integrate Qwen3-Embedding models for semantic search, so that RAG functionality is enhanced.
+**User Story:** As a Suna agent, I want to call MCP tools during conversation execution, so that I can perform actions on external services on behalf of the user.
 
 #### Acceptance Criteria
 
-1. WHEN embedding configuration is provided THEN the System SHALL initialize the Qwen3-Embedding model client
-2. WHEN text needs embedding THEN the System SHALL call the embedding model and return vector representations
-3. WHEN embedding model is not configured THEN the System SHALL fall back to existing embedding behavior or disable semantic search
-4. WHEN embedding requests are made THEN the System SHALL support instruction-aware embedding with task prefixes
+1. WHEN an agent needs to call an MCP tool THEN the system SHALL resolve the tool through Obot's MCP Gateway with the user's credentials
+2. WHEN executing a tool call THEN the system SHALL pass the user's Obot identity for proper credential lookup
+3. WHEN a tool call fails due to authentication THEN the system SHALL return an appropriate error indicating re-authentication is required
+4. WHEN a tool call succeeds THEN the system SHALL return the result in the format expected by Suna's agent framework
 
 ### Requirement 7
 
-**User Story:** As a platform operator, I want to optionally integrate Qwen3-Reranker models for improved retrieval, so that search results are more relevant.
+**User Story:** As a Suna platform operator, I want Obot to integrate with Suna's existing database schema, so that user mappings and configuration are stored consistently.
 
 #### Acceptance Criteria
 
-1. WHEN reranker configuration is provided THEN the System SHALL initialize the Qwen3-Reranker model client
-2. WHEN search results need reranking THEN the System SHALL call the reranker model with query-document pairs
-3. WHEN reranker model is not configured THEN the System SHALL skip reranking and return results in original order
-4. WHEN reranking is performed THEN the System SHALL return relevance scores for each document
+1. WHEN storing user identity mappings THEN the system SHALL use Suna's Supabase database with appropriate foreign key relationships
+2. WHEN storing MCP profile references THEN the system SHALL extend the existing composio_profiles table or create a compatible obot_profiles table
+3. WHEN querying profile data THEN the system SHALL support the same query patterns used by the existing Composio integration
+4. WHEN Obot stores its own data THEN the system SHALL use a separate database or schema to avoid conflicts with Suna's data
 
 ### Requirement 8
 
-**User Story:** As a developer, I want the system prompt optimized for Qwen3-VL's capabilities, so that the model performs optimally.
+**User Story:** As a Suna platform operator, I want proper tenant isolation and data privacy controls, so that users cannot access other users' MCP credentials or configurations.
 
 #### Acceptance Criteria
 
-1. WHEN generating the system prompt THEN the System SHALL exclude XML tool calling syntax examples and instructions
-2. WHEN generating the system prompt THEN the System SHALL include guidance for native function calling format
-3. WHEN generating the system prompt THEN the System SHALL reference the model's native vision capabilities for image tasks
-4. WHEN generating the system prompt THEN the System SHALL maintain existing task management and workflow instructions
+1. WHEN storing Obot-related data in Supabase THEN the system SHALL enforce Row Level Security policies that restrict access to the owning user
+2. WHEN caching Obot tokens in the database THEN the system SHALL encrypt tokens at rest using application-level encryption
+3. WHEN making Obot API requests THEN the system SHALL validate user context server-side and reject requests with mismatched user identities
+4. WHEN a user performs MCP operations THEN the system SHALL record an audit log entry with user ID, operation type, and timestamp
+5. WHEN users make MCP API requests THEN the system SHALL enforce rate limits per user to prevent abuse
 
 ### Requirement 9
 
-**User Story:** As a platform operator, I want to use a hybrid model approach with Qwen3-VL-Thinking for planning and Qwen3-VL-Instruct for execution, so that complex tasks benefit from reasoning while execution remains fast.
+**User Story:** As a Suna platform operator, I want secure credential management, so that sensitive tokens and secrets are protected throughout their lifecycle.
 
 #### Acceptance Criteria
 
-1. WHEN a new complex task is received THEN the System SHALL invoke Qwen/Qwen3-VL-235B-A22B-Thinking to create a detailed task plan
-2. WHEN executing individual task steps THEN the System SHALL use Qwen/Qwen3-VL-235B-A22B-Instruct for tool execution
-3. WHEN the task plan is created THEN the System SHALL store it in the conversation context for the execution model to follow
-4. WHEN the Thinking model generates reasoning THEN the System SHALL capture the reasoning_content field from the response
-5. WHEN model selection is needed THEN the System SHALL route planning requests to the Thinking variant and execution requests to the Instruct variant
+1. WHEN storing the Obot bootstrap token THEN the system SHALL load the token from environment variables and restrict access to backend services only
+2. WHEN generating user-scoped Obot tokens THEN the system SHALL use short-lived tokens with automatic refresh
+3. WHEN a user disconnects an MCP server THEN the system SHALL revoke associated credentials in Obot and remove cached tokens from Suna
+4. WHEN Obot tokens expire THEN the system SHALL automatically refresh tokens without user intervention
 
-#### Future Enhancement: Adversarial Review Loop
-
-_Not in MVP scope - document for future implementation:_
-
-- Thinking model automatically adds "Final Review" step to every task plan
-- When execution reaches Final Review, Thinking model compares output against original requirements
-- If issues found: creates correction plan with new Final Review at end
-- Cap at 2-3 review iterations to prevent runaway costs
-- This creates a self-correcting adversarial loop for complex multi-step tasks
-
-### Requirement 10
-
-**User Story:** As a developer, I want clean removal of legacy LLM integrations, so that the codebase is simplified for the Qwen3-VL-only architecture.
-
-#### Acceptance Criteria
-
-1. WHEN the model registry initializes THEN the System SHALL register only Qwen3-VL models (Thinking and Instruct variants) as available
-2. WHEN model selection is requested THEN the System SHALL return the appropriate Qwen3-VL variant based on task type
-3. WHEN legacy model configurations exist THEN the System SHALL ignore them and use Qwen3-VL configuration
-4. WHEN API routing is configured THEN the System SHALL route all requests to SiliconFlow endpoint
-
-### Requirement 11
-
-**User Story:** As a developer, I want robust error handling for the SiliconFlow API integration, so that failures are handled gracefully.
-
-#### Acceptance Criteria
-
-1. WHEN the SiliconFlow API returns an error THEN the System SHALL parse the error response and provide a descriptive message
-2. WHEN rate limiting occurs THEN the System SHALL implement appropriate backoff and retry logic
-3. WHEN the API is unavailable THEN the System SHALL log the failure and notify the user through the agent interface
-4. WHEN token limits are exceeded THEN the System SHALL truncate context appropriately and retry
-
-### Requirement 12
-
-**User Story:** As a developer, I want streaming responses to work correctly with native function calling, so that users see real-time output.
-
-#### Acceptance Criteria
-
-1. WHEN streaming is enabled THEN the System SHALL process content chunks and yield them incrementally
-2. WHEN tool call chunks arrive during streaming THEN the System SHALL buffer them until complete
-3. WHEN a tool call is complete during streaming THEN the System SHALL execute it according to the configured strategy
-4. WHEN streaming completes THEN the System SHALL save the complete assistant message with all tool calls
-
-### Requirement 13
-
-**User Story:** As a developer, I want tool argument parsing to handle Qwen3-VL's JSON output format, so that tool calls execute correctly.
-
-#### Acceptance Criteria
-
-1. WHEN tool arguments are received THEN the System SHALL parse them as JSON objects
-2. WHEN tool arguments contain nested structures THEN the System SHALL preserve the structure during parsing
-3. WHEN tool arguments are malformed THEN the System SHALL log the error and skip the tool call gracefully
-4. WHEN serializing tool arguments for storage THEN the System SHALL maintain JSON format consistency
-
-
-# Design Document
+# Design Document: Obot MCP Integration
 
 ## Overview
 
-This design document outlines the technical architecture for optimizing Suna to use Qwen3-VL-235B-A22B-Instruct as the sole LLM provider via SiliconFlow's OpenAI-compatible API. The design focuses on three major changes:
+This design describes the integration of Obot as a self-hosted MCP Gateway sidecar for the Suna AI agent platform. The integration replaces the managed Composio service with Obot, providing enterprise-grade MCP server management including server discovery, authentication, credential management, and access control.
 
-1. **Native Function Calling**: Replace XML-based tool calling with OpenAI-style native function calling
-2. **Native Vision**: Leverage Qwen3-VL's multimodal capabilities directly instead of a separate vision tool
-3. **Simplified Architecture**: Remove legacy LLM integrations for a clean, single-provider setup
+The architecture follows a sidecar pattern where Obot runs alongside Suna as a companion service. Suna's backend communicates with Obot's REST API for MCP operations, while Obot handles the actual MCP server connections, OAuth flows, and credential storage.
 
-The SiliconFlow API provides full OpenAI compatibility, meaning existing LiteLLM infrastructure can be reused with minimal changes to the routing layer.
+### Key Integration Points with Obot
+
+Based on Obot's API structure, the integration will use:
+
+1. **MCP Catalog Entries API** (`/api/all-mcps/entries`) - For discovering available MCP servers
+2. **MCP Servers API** (`/api/mcp-servers`) - For creating/managing user-scoped MCP server instances
+3. **MCP Tools API** (`/api/mcp-servers/{id}/tools`) - For listing and executing tools
+4. **MCP Gateway** (`/mcp/{mcp_id}`) - For proxying MCP protocol requests
+5. **Bootstrap Token Authentication** - For initial admin setup and API access
+
+### User Identity Strategy
+
+Obot uses its own user management system with authentication providers. For Suna integration, we will:
+
+1. Use Obot's bootstrap token for admin operations
+2. Create Obot users programmatically via API when Suna users first access MCP
+3. Generate per-user JWT tokens for Obot API calls using Obot's token endpoint
+4. Store the Suna-to-Obot user mapping in Supabase
 
 ## Architecture
 
-### High-Level Architecture
+### Obot Deployment Configuration
 
-```
-+------------------------------------------------------------------+
-|                         Suna Agent                                |
-+------------------------------------------------------------------+
-|  +-------------+  +--------------+  +---------------------------+ |
-|  |   Prompt    |  |    Tool      |  |    Response               | |
-|  |  Generator  |  |   Registry   |  |    Processor              | |
-|  |  (no XML)   |  | (JSON schema)|  |  (native parsing only)    | |
-|  +------+------+  +------+-------+  +-----------+---------------+ |
-|         |                |                      |                 |
-|         +----------------+----------------------+                 |
-|                          |                                        |
-|                    +-----v-----+                                  |
-|                    |  LiteLLM  |                                  |
-|                    |  Router   |                                  |
-|                    +-----+-----+                                  |
-+--------------------------|----------------------------------------+
-                           |
-                    +------v------+
-                    | SiliconFlow |
-                    |     API     |
-                    +------+------+
-                           |
-              +------------+------------+
-              |            |            |
-        +-----v-----+ +----v----+ +-----v-----+
-        | Qwen3-VL  | | Qwen3   | |  Qwen3    |
-        | 235B-A22B | |Embedding| | Reranker  |
-        | (primary) | |(optional)| |(optional) |
-        +-----------+ +---------+ +-----------+
+Obot will be deployed as a Docker container alongside Suna with the following configuration:
+
+```yaml
+# docker-compose addition for Obot sidecar
+obot:
+  image: ghcr.io/obot-platform/obot:latest
+  ports:
+    - "8081:8080"  # Internal port, not exposed externally
+  environment:
+    # Disable chat UI, keep admin and gateway
+    OBOT_SERVER_ENABLE_AUTHENTICATION: "true"
+    OBOT_BOOTSTRAP_TOKEN: "${OBOT_BOOTSTRAP_TOKEN}"
+    OBOT_SERVER_AUTH_ADMIN_EMAILS: "${ADMIN_EMAILS}"
+    # Database (separate from Suna)
+    OBOT_DATABASE_DSN: "postgres://obot:password@postgres:5432/obot"
+    # Model provider (can use same as Suna or separate)
+    OPENAI_API_KEY: "${OPENAI_API_KEY}"
+  volumes:
+    - /var/run/docker.sock:/var/run/docker.sock  # For MCP server containers
+  depends_on:
+    - postgres
 ```
 
-### Request Flow
-
-1. User message arrives (potentially with images)
-2. **Model Router** determines if this is a planning or execution request
-3. For complex tasks: Route to **Qwen3-VL-Thinking** for task planning
-4. Thinking model creates detailed plan with reasoning_content
-5. Plan is stored in conversation context
-6. For execution: Route to **Qwen3-VL-Instruct** with plan context
-7. Tool Registry provides tools in OpenAI JSON schema format
-8. Images are embedded directly in message content array
-9. LiteLLM Router sends request to SiliconFlow endpoint
-10. Response Processor parses native tool_calls from response
-11. Tools execute and results return as tool role messages
-
-### Hybrid Model Strategy
-
-The system uses two model variants with distinct roles:
-
-- **Planning Phase**: `Qwen/Qwen3-VL-235B-A22B-Thinking`
-  - Used for initial task analysis and plan creation
-  - Captures reasoning_content for transparent decision-making
-  - Vision-capable for analyzing images during planning
-
-- **Execution Phase**: `Qwen/Qwen3-VL-235B-A22B-Instruct`
-  - Used for tool execution and step-by-step task completion
-  - Faster inference without extended reasoning
-  - Follows plan created by Thinking model
-
-### Model Router Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    User Message Arrives                      │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      ModelRouter                             │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ 1. Check conversation context for active_task_plan   │    │
-│  │ 2. If no plan exists → PLANNING phase                │    │
-│  │ 3. If plan exists → EXECUTION phase                  │    │
-│  └─────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
-                              │
-              ┌───────────────┴───────────────┐
-              ▼                               ▼
-┌─────────────────────────┐     ┌─────────────────────────┐
-│   PLANNING PHASE        │     │   EXECUTION PHASE       │
-│   Qwen3-VL-Thinking     │     │   Qwen3-VL-Instruct     │
-│                          │     │                          │
-│ • Analyze user request   │     │ • Read plan from context │
-│ • Create structured plan │     │ • Execute current step   │
-│ • Store plan in context  │     │ • Call tools as needed   │
-│ • Return reasoning       │     │ • Mark steps complete    │
-└─────────────────────────┘     └─────────────────────────┘
-              │                               │
-              ▼                               ▼
-┌─────────────────────────┐     ┌─────────────────────────┐
-│ Store TaskPlan in       │     │ Update plan progress    │
-│ conversation context    │     │ Check if more steps     │
-└─────────────────────────┘     └─────────────────────────┘
+Key environment variables for Suna backend:
+```env
+OBOT_BASE_URL=http://obot:8080/api
+OBOT_BOOTSTRAP_TOKEN=<generated-secure-token>
+OBOT_ENABLED=true
 ```
 
-### Model Router Decision Logic
-
-```python
-class ModelRouter:
-    THINKING_MODEL = "Qwen/Qwen3-VL-235B-A22B-Thinking"
-    INSTRUCT_MODEL = "Qwen/Qwen3-VL-235B-A22B-Instruct"
+```mermaid
+graph TB
+    subgraph "Suna Platform"
+        FE[Frontend/Mobile]
+        BE[Backend API]
+        DB[(Supabase DB)]
+        Agent[Agent Runtime]
+    end
     
-    def select_model(self, conversation_context: dict) -> str:
-        """Select appropriate model based on current phase."""
-        
-        # Check if there's an active task plan
-        active_plan = conversation_context.get("active_task_plan")
-        
-        if active_plan is None:
-            # No plan exists - need planning phase
-            return self.THINKING_MODEL
-        
-        if self._plan_is_complete(active_plan):
-            # Plan complete, new request needs new plan
-            return self.THINKING_MODEL
-        
-        # Plan exists and has remaining steps - execute
-        return self.INSTRUCT_MODEL
+    subgraph "Obot Sidecar"
+        OA[Obot API]
+        OG[MCP Gateway]
+        OAdmin[Admin GUI]
+        ODB[(Obot DB)]
+    end
     
-    def _plan_is_complete(self, plan: TaskPlan) -> bool:
-        """Check if all plan steps are marked complete."""
-        return all(step.status == "complete" for step in plan.steps)
+    subgraph "External Services"
+        MCP1[MCP Server 1]
+        MCP2[MCP Server 2]
+        OAuth[OAuth Providers]
+    end
+    
+    FE --> BE
+    BE --> OA
+    BE --> DB
+    Agent --> BE
+    
+    OA --> OG
+    OA --> ODB
+    OG --> MCP1
+    OG --> MCP2
+    OA --> OAuth
+    
+    OAdmin -.-> OA
 ```
 
-### Task Plan Data Model
+### Key Design Decisions
 
-```python
-@dataclass
-class TaskStep:
-    id: str                          # Unique step identifier
-    description: str                 # What this step accomplishes
-    status: str = "pending"          # pending | in_progress | complete | failed
-    tools_to_use: List[str] = None   # Suggested tools for this step
-    dependencies: List[str] = None   # Step IDs that must complete first
-    result: Optional[str] = None     # Output from step execution
+1. **Sidecar Deployment**: Obot runs as a separate container/process alongside Suna, communicating via internal HTTP API. This provides isolation and allows independent scaling.
 
-@dataclass
-class TaskPlan:
-    id: str                          # Unique plan identifier
-    original_request: str            # User's original message
-    reasoning: str                   # Thinking model's reasoning_content
-    steps: List[TaskStep]            # Ordered list of steps
-    current_step_index: int = 0      # Which step is being executed
-    created_at: datetime             # When plan was created
-    status: str = "active"           # active | complete | abandoned
-```
+2. **User Identity Mapping**: Suna user IDs (UUIDs from Supabase) are mapped to Obot users using a deterministic hash-based approach. This ensures consistent identity across requests without requiring user synchronization.
 
-### Conversation Context Storage
+3. **JWT-Based Authentication**: Suna generates JWT tokens for Obot API calls, signed with a shared secret. Obot validates these tokens and extracts user identity.
 
-The task plan is stored in the conversation's metadata, persisted to the database:
+4. **Profile Storage Split**: User-facing profile metadata is stored in Suna's Supabase (for UI queries), while actual MCP credentials and server state are stored in Obot's database.
 
-```python
-# In ThreadManager or conversation context
-conversation_context = {
-    "active_task_plan": {
-        "id": "plan_abc123",
-        "original_request": "Research competitors and create a report",
-        "reasoning": "This task requires multiple steps: 1) identify competitors...",
-        "steps": [
-            {"id": "step_1", "description": "Search for competitor companies", "status": "complete"},
-            {"id": "step_2", "description": "Gather data on each competitor", "status": "in_progress"},
-            {"id": "step_3", "description": "Compile findings into report", "status": "pending"}
-        ],
-        "current_step_index": 1,
-        "status": "active"
-    }
-}
-```
-
-### Planning Phase Flow
-
-1. User sends a new message (no active plan)
-2. ModelRouter selects Thinking model
-3. System prompt instructs Thinking model to:
-   - Analyze the request complexity
-   - Break down into discrete steps
-   - Output structured plan in JSON format
-4. Response processor extracts plan from `reasoning_content`
-5. Plan is stored in conversation context
-6. First step begins execution with Instruct model
-
-### Execution Phase Flow
-
-1. User message arrives (or auto-continue after tool execution)
-2. ModelRouter detects active plan → selects Instruct model
-3. System prompt includes:
-   - The full task plan
-   - Current step to execute
-   - Results from previous steps
-4. Instruct model executes current step (may call tools)
-5. Step result is recorded in plan
-6. If more steps remain → continue with Instruct
-7. If all steps complete → plan marked complete
-
-### Plan Injection into System Prompt
-
-When executing with Instruct model, the plan context is injected:
-
-```
-=== ACTIVE TASK PLAN ===
-Original Request: {original_request}
-
-Plan Steps:
-1. [COMPLETE] {step_1_description}
-   Result: {step_1_result}
-2. [IN PROGRESS] {step_2_description}  ← YOU ARE HERE
-3. [PENDING] {step_3_description}
-
-Focus on completing step 2. Use the available tools as needed.
-=== END TASK PLAN ===
-```
-
-### Edge Cases
-
-| Scenario | Handling |
-|----------|----------|
-| User sends new message mid-plan | Abandon current plan, create new plan for new request |
-| Step fails repeatedly | Mark step failed, Thinking model creates recovery plan |
-| Simple request (no planning needed) | Instruct model handles directly (single-step plan) |
-| User explicitly asks to continue | Resume from current step with Instruct model |
+5. **Disabled Chat Interface**: Obot's built-in chat UI is disabled via configuration, exposing only the Admin GUI and MCP Gateway endpoints.
 
 ## Components and Interfaces
 
-### 1. Model Registry (backend/core/ai_models/registry.py)
+### 1. Obot Client Service (`backend/core/obot/client.py`)
 
-Simplified to register only Qwen3-VL-235B-A22B-Instruct.
+A Python client for communicating with Obot's REST API. Based on Obot's actual API endpoints.
 
-Interface:
-- get_model() -> Model: Returns the single registered model
-- get_litellm_params(**overrides) -> Dict: Returns LiteLLM-compatible parameters
-- resolve_model_id(alias: str) -> str: Always returns Qwen3-VL model ID
+```python
+class ObotClient:
+    """Client for Obot MCP Gateway API"""
+    
+    def __init__(self, base_url: str, bootstrap_token: str):
+        self.base_url = base_url  # e.g., "http://obot:8080/api"
+        self.bootstrap_token = bootstrap_token
+        self._http_client = httpx.AsyncClient(timeout=30.0)
+    
+    # === Authentication ===
+    async def get_token_for_user(self, obot_user_id: str) -> str:
+        """Get API token for a specific Obot user"""
+        pass
+    
+    # === MCP Catalog Entries (GET /api/all-mcps/entries) ===
+    async def list_catalog_entries(self, token: str) -> List[MCPCatalogEntry]:
+        """List available MCP servers from all sources (catalogs + workspaces)"""
+        pass
+    
+    async def get_catalog_entry(self, token: str, entry_id: str) -> MCPCatalogEntry:
+        """Get details of a specific catalog entry (GET /api/all-mcps/entries/{entry_id})"""
+        pass
+    
+    # === MCP Servers (User-deployed instances) ===
+    async def list_mcp_servers(self, token: str) -> List[MCPServer]:
+        """List user's MCP server instances (GET /api/mcp-servers)"""
+        pass
+    
+    async def create_mcp_server(self, token: str, request: CreateMCPServerRequest) -> MCPServer:
+        """Create MCP server instance from catalog entry (POST /api/mcp-servers)"""
+        pass
+    
+    async def get_mcp_server(self, token: str, server_id: str) -> MCPServer:
+        """Get MCP server details (GET /api/mcp-servers/{mcp_server_id})"""
+        pass
+    
+    async def update_mcp_server(self, token: str, server_id: str, request: UpdateMCPServerRequest) -> MCPServer:
+        """Update MCP server configuration (PUT /api/mcp-servers/{mcp_server_id})"""
+        pass
+    
+    async def delete_mcp_server(self, token: str, server_id: str) -> None:
+        """Delete MCP server instance (DELETE /api/mcp-servers/{mcp_server_id})"""
+        pass
+    
+    # === MCP Server Tools ===
+    async def list_tools(self, token: str, server_id: str) -> List[MCPTool]:
+        """List tools from MCP server (GET /api/mcp-servers/{mcp_server_id}/tools)"""
+        pass
+    
+    async def set_tools(self, token: str, server_id: str, tool_names: List[str]) -> None:
+        """Set allowed tools for MCP server (PUT /api/mcp-servers/{mcp_server_id}/tools)"""
+        pass
+    
+    # === MCP Server Resources ===
+    async def list_resources(self, token: str, server_id: str) -> List[MCPResource]:
+        """List resources from MCP server (GET /api/mcp-servers/{mcp_server_id}/resources)"""
+        pass
+    
+    async def read_resource(self, token: str, server_id: str, resource_uri: str) -> Any:
+        """Read a specific resource (GET /api/mcp-servers/{mcp_server_id}/resources/{resource_uri})"""
+        pass
+    
+    # === MCP Server Prompts ===
+    async def list_prompts(self, token: str, server_id: str) -> List[MCPPrompt]:
+        """List prompts from MCP server (GET /api/mcp-servers/{mcp_server_id}/prompts)"""
+        pass
+    
+    async def get_prompt(self, token: str, server_id: str, prompt_name: str) -> MCPPrompt:
+        """Get a specific prompt (GET /api/mcp-servers/{mcp_server_id}/prompts/{prompt_name})"""
+        pass
+    
+    # === MCP Server Lifecycle ===
+    async def launch_server(self, token: str, server_id: str) -> None:
+        """Launch/start MCP server (POST /api/mcp-servers/{mcp_server_id}/launch)"""
+        pass
+    
+    async def check_oauth(self, token: str, server_id: str) -> bool:
+        """Check if OAuth is required (POST /api/mcp-servers/{mcp_server_id}/check-oauth)"""
+        pass
+    
+    async def get_oauth_url(self, token: str, server_id: str) -> str:
+        """Get OAuth authorization URL (POST /api/mcp-servers/{mcp_server_id}/oauth-url)"""
+        pass
+    
+    # === MCP Server Credentials ===
+    async def configure_credentials(self, token: str, server_id: str, credentials: dict) -> None:
+        """Configure credentials for MCP server (POST /api/mcp-servers/{mcp_server_id}/configure)"""
+        pass
+    
+    async def deconfigure_credentials(self, token: str, server_id: str) -> None:
+        """Remove credentials (POST /api/mcp-servers/{mcp_server_id}/deconfigure)"""
+        pass
+    
+    # === Health ===
+    async def check_health(self) -> bool:
+        """Check Obot service health (GET /api/version)"""
+        pass
+```
 
-### 2. LLM Service (backend/core/services/llm.py)
+### 2. User Identity Service (`backend/core/obot/identity_service.py`)
 
-Updated to route all requests to SiliconFlow.
+Handles mapping between Suna and Obot user identities. Since Obot has its own user management, we need to create Obot users for Suna users and maintain the mapping.
 
-Interface:
-- make_llm_api_call(messages, tools, stream, ...) -> Response: Main entry point
-- setup_provider_router(): Initializes LiteLLM router with SiliconFlow config
+```python
+class ObotIdentityService:
+    """Manages Suna-to-Obot user identity mapping"""
+    
+    def __init__(self, db: DBConnection, obot_client: ObotClient):
+        self.db = db
+        self.obot_client = obot_client
+    
+    async def get_or_create_obot_user(self, suna_user_id: str, email: Optional[str] = None) -> ObotUserMapping:
+        """
+        Get existing Obot user mapping or create new Obot user.
+        
+        1. Check obot_user_mappings table for existing mapping
+        2. If not found, create Obot user via API and store mapping
+        3. Return the mapping with Obot user ID and token
+        """
+        pass
+    
+    async def get_obot_token(self, suna_user_id: str) -> str:
+        """
+        Get valid Obot API token for a Suna user.
+        
+        1. Look up Obot user mapping
+        2. Check if cached token is still valid
+        3. If expired, refresh token via Obot API
+        4. Return valid token
+        """
+        pass
+    
+    async def delete_obot_user(self, suna_user_id: str) -> bool:
+        """
+        Delete Obot user when Suna user is deleted.
+        
+        1. Look up mapping
+        2. Delete Obot user via API (if supported)
+        3. Remove mapping from database
+        """
+        pass
+    
+    def generate_obot_username(self, suna_user_id: str, email: Optional[str] = None) -> str:
+        """
+        Generate deterministic Obot username from Suna user data.
+        Format: suna_{hash(suna_user_id)[:12]}
+        """
+        pass
+```
 
-### 3. Response Processor (backend/core/agentpress/response_processor.py)
+### 3. Obot Integration API (`backend/core/obot/api.py`)
 
-Simplified to handle only native function calling with config:
-- xml_tool_calling: False (disabled)
-- native_tool_calling: True (always enabled)
+FastAPI router exposing Obot functionality to Suna frontend.
 
-Interface:
-- process_streaming_response(llm_response, ...) -> AsyncGenerator
-- _parse_native_tool_calls(response) -> List[ToolCall]
-- _execute_tool(tool_call) -> ToolResult
+```python
+router = APIRouter(prefix="/obot", tags=["obot"])
 
-### 4. Tool Registry (backend/core/agentpress/tool_registry.py)
+@router.get("/catalog")
+async def list_catalog(user_id: str = Depends(verify_and_get_user_id_from_jwt)):
+    """List available MCP servers from Obot catalog"""
+    pass
 
-Updated to output only OpenAI function schema format.
+@router.get("/catalog/{entry_id}")
+async def get_catalog_entry(entry_id: str, user_id: str = Depends(...)):
+    """Get detailed info about a catalog entry"""
+    pass
 
-### 5. Native Tool Parser (backend/core/agentpress/native_tool_parser.py)
+@router.post("/servers")
+async def create_server(request: CreateServerRequest, user_id: str = Depends(...)):
+    """Create a new MCP server connection for the user"""
+    pass
 
-Handles parsing of OpenAI-style tool calls from responses.
+@router.get("/servers")
+async def list_servers(user_id: str = Depends(...)):
+    """List user's MCP server connections"""
+    pass
 
-### 6. Vision Message Handler (New Component)
+@router.delete("/servers/{server_id}")
+async def delete_server(server_id: str, user_id: str = Depends(...)):
+    """Delete an MCP server connection"""
+    pass
 
-Handles embedding images directly in messages for Qwen3-VL's native vision.
+@router.get("/servers/{server_id}/tools")
+async def list_tools(server_id: str, user_id: str = Depends(...)):
+    """List tools from an MCP server"""
+    pass
 
-### 7. Embedding Service (Optional)
+@router.post("/servers/{server_id}/tools/{tool_name}")
+async def call_tool(server_id: str, tool_name: str, request: ToolCallRequest, user_id: str = Depends(...)):
+    """Execute an MCP tool"""
+    pass
 
-Qwen3-Embedding integration for semantic search.
+@router.get("/servers/{server_id}/oauth")
+async def get_oauth_url(server_id: str, user_id: str = Depends(...)):
+    """Get OAuth URL for MCP server authentication"""
+    pass
 
-### 8. Reranker Service (Optional)
+@router.get("/health")
+async def health_check():
+    """Check Obot service health"""
+    pass
+```
 
-Qwen3-Reranker integration for improved retrieval.
+### 4. Obot Profile Service (`backend/core/obot/profile_service.py`)
 
+Manages user MCP profiles stored in Suna's database.
+
+```python
+class ObotProfileService:
+    """Manages Obot MCP profiles in Suna's database"""
+    
+    def __init__(self, db: DBConnection):
+        self.db = db
+    
+    async def create_profile(
+        self,
+        account_id: str,
+        obot_server_id: str,
+        catalog_entry_id: str,
+        display_name: str,
+        icon_url: Optional[str] = None
+    ) -> ObotProfile:
+        """Create a new Obot profile record"""
+        pass
+    
+    async def get_profiles(self, account_id: str) -> List[ObotProfile]:
+        """Get all profiles for a user"""
+        pass
+    
+    async def get_profile(self, profile_id: str, account_id: str) -> Optional[ObotProfile]:
+        """Get a specific profile"""
+        pass
+    
+    async def delete_profile(self, profile_id: str, account_id: str) -> bool:
+        """Delete a profile"""
+        pass
+    
+    async def update_profile_status(self, profile_id: str, status: str) -> None:
+        """Update profile connection status"""
+        pass
+```
+
+### 5. MCP Tool Wrapper (`backend/core/tools/obot_mcp_tool.py`)
+
+Wraps Obot MCP tools for use in Suna's agent framework.
+
+```python
+class ObotMCPToolWrapper(Tool):
+    """Wrapper for Obot MCP tools in Suna's agent framework"""
+    
+    def __init__(self, obot_client: ObotClient, server_id: str, tool_def: MCPTool):
+        self.obot_client = obot_client
+        self.server_id = server_id
+        self.tool_def = tool_def
+    
+    @property
+    def name(self) -> str:
+        return f"obot_{self.server_id}_{self.tool_def.name}"
+    
+    @property
+    def description(self) -> str:
+        return self.tool_def.description
+    
+    @property
+    def parameters(self) -> dict:
+        return self.tool_def.input_schema
+    
+    async def execute(self, user_id: str, **kwargs) -> ToolResult:
+        """Execute the MCP tool through Obot"""
+        pass
+```
 
 ## Data Models
 
-### ToolCall
-```python
-@dataclass
-class ToolCall:
-    id: str                      # Unique identifier from LLM
-    function_name: str           # Name of function to call
-    arguments: Dict[str, Any]    # Parsed JSON arguments
-    source: str = "native"       # Always "native" for this implementation
+### Obot Profile Table (Supabase)
+
+```sql
+CREATE TABLE obot_profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    account_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    obot_server_id VARCHAR(255) NOT NULL,
+    catalog_entry_id VARCHAR(255) NOT NULL,
+    display_name VARCHAR(255) NOT NULL,
+    icon_url TEXT,
+    status VARCHAR(50) DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    UNIQUE(account_id, obot_server_id)
+);
+
+CREATE INDEX idx_obot_profiles_account ON obot_profiles(account_id);
+CREATE INDEX idx_obot_profiles_server ON obot_profiles(obot_server_id);
 ```
 
-### ToolResult
-```python
-@dataclass
-class ToolResult:
-    tool_call_id: str           # Matches the ToolCall.id
-    success: bool               # Whether execution succeeded
-    content: Any                # Result content (will be JSON serialized)
-    error: Optional[str] = None # Error message if failed
+### Obot User Mapping Table (Supabase)
+
+```sql
+CREATE TABLE obot_user_mappings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    suna_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    obot_user_id VARCHAR(255) NOT NULL,
+    obot_username VARCHAR(255) NOT NULL,
+    -- Cache token to avoid repeated API calls
+    cached_token TEXT,
+    token_expires_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    UNIQUE(suna_user_id),
+    UNIQUE(obot_user_id)
+);
+
+CREATE INDEX idx_obot_mappings_suna ON obot_user_mappings(suna_user_id);
+CREATE INDEX idx_obot_mappings_obot ON obot_user_mappings(obot_user_id);
+
+-- Trigger to update updated_at
+CREATE OR REPLACE FUNCTION update_obot_mapping_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER obot_user_mappings_updated
+    BEFORE UPDATE ON obot_user_mappings
+    FOR EACH ROW
+    EXECUTE FUNCTION update_obot_mapping_timestamp();
 ```
 
-### ModelConfig
-```python
-@dataclass
-class ModelConfig:
-    model_id: str = "Qwen/Qwen3-VL-235B-A22B-Instruct"
-    api_base: str = "https://api.siliconflow.cn/v1"
-    api_key: Optional[str] = None
-    context_window: int = 262144
-    max_output_tokens: int = 262144
-    default_min_pixels: int = 512 * 32 * 32
-    default_max_pixels: int = 2048 * 32 * 32
-    tool_choice: str = "auto"
-```
+### Pydantic Models
 
-### StreamingChunk
+Based on Obot's API response structures:
+
 ```python
-@dataclass
-class StreamingChunk:
-    content: Optional[str] = None
-    tool_call_delta: Optional[Dict] = None
-    finish_reason: Optional[str] = None
-    usage: Optional[Dict] = None
+# === Obot User Mapping (Suna-side storage) ===
+class ObotUserMapping(BaseModel):
+    id: str
+    suna_user_id: str
+    obot_user_id: str
+    obot_username: str
+    token_expires_at: Optional[datetime]
+    created_at: datetime
+
+# === Obot Profile (Suna-side storage for UI) ===
+class ObotProfile(BaseModel):
+    id: str
+    account_id: str
+    obot_server_id: str
+    catalog_entry_id: str
+    display_name: str
+    icon_url: Optional[str]
+    status: str  # 'pending', 'connected', 'error', 'oauth_required'
+    created_at: datetime
+    updated_at: datetime
+
+# === MCP Catalog Entry (from Obot API) ===
+class MCPCatalogEntry(BaseModel):
+    """Maps to Obot's MCPServerCatalogEntry type"""
+    id: str
+    name: str
+    description: Optional[str]
+    icon: Optional[str]
+    runtime: str  # 'single-user', 'remote', 'composite'
+    editable: bool
+    catalog_name: Optional[str]
+    source_url: Optional[str]
+    user_count: int
+    env_vars: List[str] = []  # Required environment variables
+    
+class MCPCatalogEntryManifest(BaseModel):
+    """Detailed manifest for catalog entry"""
+    name: str
+    description: Optional[str]
+    icon: Optional[str]
+    runtime: str
+    env: List[str] = []
+    args: List[str] = []
+    oauth_apps: List[str] = []
+
+# === MCP Server (from Obot API) ===
+class MCPServer(BaseModel):
+    """Maps to Obot's MCPServer type"""
+    id: str
+    name: str
+    alias: Optional[str]
+    catalog_entry_id: Optional[str]
+    catalog_id: Optional[str]
+    status: str
+    configured: bool
+    oauth_required: bool
+    oauth_url: Optional[str]
+    missing_env_vars: List[str] = []
+    slug: Optional[str]
+
+# === MCP Tool (from Obot API) ===
+class MCPTool(BaseModel):
+    """Maps to Obot's Tool_Definition"""
+    name: str
+    description: str
+    input_schema: dict
+    enabled: bool = True
+
+# === MCP Resource (from Obot API) ===
+class MCPResource(BaseModel):
+    uri: str
+    name: str
+    description: Optional[str]
+    mime_type: Optional[str]
+
+# === MCP Prompt (from Obot API) ===
+class MCPPrompt(BaseModel):
+    name: str
+    description: Optional[str]
+    arguments: List[dict] = []
+
+# === API Request/Response Models ===
+class CreateMCPServerRequest(BaseModel):
+    catalog_entry_id: str
+    alias: Optional[str] = None
+    env: Optional[dict] = None
+
+class UpdateMCPServerRequest(BaseModel):
+    alias: Optional[str] = None
+    env: Optional[dict] = None
+
+class ToolCallRequest(BaseModel):
+    tool_name: str
+    arguments: dict
+
+class ToolCallResponse(BaseModel):
+    success: bool
+    result: Optional[Any]
+    error: Optional[str]
+    is_error: bool = False
 ```
 
 ## Correctness Properties
 
 *A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
 
-### Property 1: Tool schema conversion preserves semantics
-*For any* tool definition with name, description, and parameters, converting to OpenAI function schema format and back should preserve all semantic information.
-**Validates: Requirements 2.1**
+Based on the prework analysis, the following correctness properties have been identified:
 
-### Property 2: Native tool call parsing extracts all fields
-*For any* valid OpenAI-format tool call response containing id, function name, and arguments, parsing should extract all three fields correctly.
-**Validates: Requirements 2.3, 2.4**
+### Property 1: User Identity Mapping Consistency
 
-### Property 3: Tool result formatting maintains ID consistency
-*For any* tool execution result paired with a tool_call_id, the formatted tool message should contain the exact same tool_call_id.
+*For any* Suna user ID, the mapping function SHALL produce the same Obot user ID on every invocation, and different Suna user IDs SHALL produce different Obot user IDs (no collisions within practical limits).
+
+**Validates: Requirements 2.1, 2.2, 2.3**
+
+### Property 2: JWT Token Validity
+
+*For any* valid Suna user ID and role, the generated JWT token SHALL be verifiable using the shared secret and SHALL contain the correct user identity claims.
+
 **Validates: Requirements 2.5**
 
-### Property 4: Streaming tool call assembly produces complete calls
-*For any* sequence of streaming chunks containing partial tool call data, assembling them should produce a complete tool call equivalent to non-streaming.
-**Validates: Requirements 2.6, 11.2**
+### Property 3: Response Format Transformation
 
-### Property 5: Image encoding produces valid data URLs
-*For any* valid image (bytes or file path), encoding should produce a valid base64 data URL that can be decoded back to the original image data.
-**Validates: Requirements 4.2**
+*For any* valid Obot API response (catalog entries, servers, tools, tool results), the transformation function SHALL produce a response that conforms to Suna's expected API schema.
 
-### Property 6: Multi-image messages include all images
-*For any* set of N images (within model limits), the formatted message content array should contain exactly N image entries plus one text entry.
+**Validates: Requirements 3.1, 4.1, 6.4**
+
+### Property 4: User Context Preservation
+
+*For any* MCP operation (server creation, tool discovery, tool execution), the request to Obot SHALL include the correct user identity derived from the Suna user making the request.
+
+**Validates: Requirements 3.2, 3.4, 6.1, 6.2**
+
+### Property 5: Admin Access Control
+
+*For any* request to Obot Admin GUI endpoints, the system SHALL grant access only to users with admin role in Suna's role system.
+
+**Validates: Requirements 5.1**
+
+### Property 6: Connection Status Accuracy
+
+*For any* MCP server profile, the displayed connection status SHALL reflect the actual authentication and health status from Obot within a reasonable staleness window.
+
 **Validates: Requirements 4.4**
 
-### Property 7: JSON argument parsing preserves structure
-*For any* valid JSON string containing nested objects and arrays, parsing should produce a Python dict/list structure that serializes back to equivalent JSON.
-**Validates: Requirements 12.1, 12.2**
+### Property 7: Environment Configuration Parsing
 
-### Property 8: Model selection always returns Qwen3-VL
-*For any* model selection request regardless of tier or alias, the system should return the Qwen3-VL-235B-A22B-Instruct model configuration.
-**Validates: Requirements 9.2**
+*For any* valid environment variable configuration, the Obot client SHALL correctly parse and apply the configuration values for base URL, JWT secret, and timeout settings.
 
-### Property 9: API routing targets SiliconFlow endpoint
-*For any* LLM request, the request URL should be the SiliconFlow API base URL.
-**Validates: Requirements 1.2, 9.4**
+**Validates: Requirements 1.3**
 
-### Property 10: Error responses produce descriptive messages
-*For any* SiliconFlow API error response, parsing should extract a human-readable error message.
-**Validates: Requirements 10.1**
+### Property 8: Profile Query Compatibility
 
-### Property 11: Streaming yields chunks in order
-*For any* streaming response, content chunks should be yielded in the same order they are received.
-**Validates: Requirements 11.1**
+*For any* profile query by account ID, the query SHALL return all profiles associated with that account in a format compatible with the existing profile listing UI.
 
-### Property 12: Embedding vectors have correct dimensions
-*For any* text input to the embedding service, the returned vector should have the dimension specified by the model.
-**Validates: Requirements 6.2**
+**Validates: Requirements 7.3**
 
-### Property 13: Reranker returns scores for all documents
-*For any* query and list of N documents, reranking should return exactly N scores.
-**Validates: Requirements 7.4**
+### Property 9: Token Encryption Round-Trip
 
-### Property 14: Hybrid model routing selects correct variant
-*For any* request, planning requests should route to Thinking variant and execution requests should route to Instruct variant.
-**Validates: Requirements 9.2, 9.5**
+*For any* valid Obot token string, encrypting and then decrypting the token SHALL produce the original token value.
+
+**Validates: Requirements 8.2, 9.2**
+
+### Property 10: Tenant Isolation Enforcement
+
+*For any* two distinct user IDs, a request made with User A's authenticated context SHALL NOT be able to access User B's profiles, mappings, or MCP servers.
+
+**Validates: Requirements 8.1, 8.3**
+
+### Property 11: Audit Log Completeness
+
+*For any* MCP operation (server create, delete, tool call), the system SHALL create an audit log entry containing the user ID, operation type, and timestamp.
+
+**Validates: Requirements 8.4**
+
+### Property 12: Rate Limit Enforcement
+
+*For any* user exceeding the configured rate limit for an operation type, subsequent requests within the window SHALL be rejected with a 429 status code.
+
+**Validates: Requirements 8.5**
+
+## Security Architecture
+
+### Tenant Isolation
+
+The integration enforces strict tenant isolation at multiple layers:
+
+1. **Database Layer (RLS)**: All Obot-related tables use Row Level Security policies
+2. **Application Layer**: User context is validated server-side on every request
+3. **Obot Layer**: Each user gets a unique Obot identity with scoped credentials
+
+### Row Level Security Policies
+
+```sql
+-- RLS for obot_profiles
+ALTER TABLE obot_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can only access own profiles"
+ON obot_profiles FOR ALL
+USING (account_id = auth.uid());
+
+-- RLS for obot_user_mappings
+ALTER TABLE obot_user_mappings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can only access own mapping"
+ON obot_user_mappings FOR ALL
+USING (suna_user_id = auth.uid());
+```
+
+### Token Security
+
+Cached Obot tokens are encrypted at rest using Fernet symmetric encryption:
+
+```python
+from cryptography.fernet import Fernet
+
+class TokenEncryption:
+    def __init__(self, key: str):
+        self.fernet = Fernet(key.encode())
+    
+    def encrypt(self, token: str) -> str:
+        return self.fernet.encrypt(token.encode()).decode()
+    
+    def decrypt(self, encrypted: str) -> str:
+        return self.fernet.decrypt(encrypted.encode()).decode()
+```
+
+Environment variable: `OBOT_TOKEN_ENCRYPTION_KEY` (32-byte base64-encoded key)
+
+### Audit Logging
+
+All MCP operations are logged for compliance and debugging:
+
+```python
+class MCPAuditLog:
+    async def record(
+        self,
+        action: str,  # 'server_create', 'server_delete', 'tool_call', 'oauth_start'
+        user_id: str,
+        server_id: Optional[str],
+        tool_name: Optional[str],
+        success: bool,
+        error_message: Optional[str] = None
+    ) -> None:
+        """Record audit log entry to obot_audit_logs table"""
+        pass
+```
+
+Audit log table:
+```sql
+CREATE TABLE obot_audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id),
+    action VARCHAR(50) NOT NULL,
+    server_id VARCHAR(255),
+    tool_name VARCHAR(255),
+    success BOOLEAN NOT NULL,
+    error_message TEXT,
+    ip_address INET,
+    user_agent TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_obot_audit_user ON obot_audit_logs(user_id);
+CREATE INDEX idx_obot_audit_created ON obot_audit_logs(created_at);
+```
+
+### Rate Limiting
+
+Per-user rate limits prevent abuse:
+
+| Operation | Limit |
+|-----------|-------|
+| Catalog queries | 100/minute |
+| Server create/delete | 10/minute |
+| Tool calls | 60/minute |
+| OAuth initiations | 5/minute |
+
+Implementation uses Redis with sliding window:
+
+```python
+class ObotRateLimiter:
+    def __init__(self, redis_client: Redis):
+        self.redis = redis_client
+    
+    async def check_rate_limit(
+        self, 
+        user_id: str, 
+        operation: str, 
+        limit: int, 
+        window_seconds: int = 60
+    ) -> bool:
+        """Returns True if request is allowed, False if rate limited"""
+        key = f"obot_ratelimit:{user_id}:{operation}"
+        # Sliding window implementation
+        pass
+```
+
+### User Context Validation
+
+Every Obot API request validates user context server-side:
+
+```python
+async def _make_obot_request(
+    self,
+    method: str,
+    path: str,
+    authenticated_user_id: str,  # From JWT, never from request body
+    **kwargs
+) -> dict:
+    """
+    Make request to Obot with validated user context.
+    
+    SECURITY: authenticated_user_id must come from verified JWT,
+    never from client-provided data.
+    """
+    # Get user-scoped token (validates user exists in mapping)
+    token = await self.identity_service.get_obot_token(authenticated_user_id)
+    
+    # Make request with user's token
+    headers = {"Authorization": f"Bearer {token}"}
+    # ...
+```
 
 ## Error Handling
 
-### API Errors
+### Obot Unavailability
 
-| Error Type | HTTP Code | Handling Strategy |
-|------------|-----------|-------------------|
-| Invalid API Key | 401 | Log error, prevent startup |
-| Rate Limited | 429 | Exponential backoff, max 5 retries |
-| Context Too Long | 400 | Truncate oldest messages, retry |
-| Server Error | 5xx | Retry with backoff, max 3 retries |
-| Timeout | - | Retry once with extended timeout |
-| Malformed Response | - | Log error, graceful failure |
+When Obot is unavailable:
+1. Health check endpoint returns unhealthy status
+2. MCP-related API endpoints return 503 Service Unavailable
+3. Agent tool calls fail gracefully with appropriate error messages
+4. Frontend displays "MCP services temporarily unavailable" message
+
+### Authentication Errors
+
+When OAuth re-authentication is required:
+1. Tool calls return 401 with `oauth_required: true` flag
+2. Response includes OAuth URL for re-authentication
+3. Frontend prompts user to re-authenticate
 
 ### Tool Execution Errors
 
-1. Catch exception during tool execution
-2. Format error as tool result with success=False
-3. Return error message to LLM for retry or alternative
-4. Log error for debugging
-
-### Streaming Errors
-
-- Stream breaks mid-response: Save partial content, notify user
-- Tool call incomplete: Discard partial, continue with text
-- Connection lost: Attempt reconnection once, then fail gracefully
-
-## Reference Implementation: Qwen-Agent
-
-The `qwen-agent/Qwen-Agent/` directory contains Alibaba's official agent framework for Qwen models. The following components should be adapted for Suna's implementation:
-
-### High Priority - Adapt Directly
-
-#### 1. Native Function Calling Format
-**Source:** `qwen_agent/llm/fncall_prompts/nous_fncall_prompt.py`
-
-The Nous prompt format is the standard for Qwen3-VL function calling:
-
-```python
-FN_CALL_TEMPLATE = """# Tools
-
-You may call one or more functions to assist with the user query.
-
-You are provided with function signatures within <tools></tools> XML tags:
-<tools>
-{tool_descs}
-</tools>
-
-For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:
-<tool_call>
-{"name": <function-name>, "arguments": <args-json-object>}
-</tool_call>"""
-```
-
-Key patterns to adapt:
-- `preprocess_fncall_messages()` - Converts messages to function calling format
-- `postprocess_fncall_messages()` - Parses `<tool_call>` responses back to structured data
-- `thought_in_content` parameter - For parsing `<think>...</think>` blocks from reasoning models
-- `extract_fn()` - Robust extraction of function name/args from partial responses
-
-**Use in Tasks:** 4.1, 4.2, 4.4
-
-#### 2. Vision Message Handling
-**Source:** `qwen_agent/llm/qwenvl_oai.py`
-
-```python
-@staticmethod
-def convert_messages_to_dicts(messages: List[Message]) -> List[dict]:
-    # Converts multimodal messages to OpenAI vision format
-    for item in content:
-        t, v = item.get_type_and_value()
-        if t == 'image':
-            new_content.append({'type': 'image_url', 'image_url': {'url': v}})
-```
-
-Key patterns to adapt:
-- `convert_messages_to_dicts()` - Formats messages with images for API
-- `conv_multimodel_value()` - Handles file://, http://, and base64 encoding
-- `encode_image_as_base64()` - With `max_short_side_length` parameter
-
-**Use in Tasks:** 7.1, 7.4
-
-#### 3. Thinking Model Integration
-**Source:** `examples/assistant_qwq.py`
-
-```python
-llm_cfg = {
-    'model': 'qwq-32b',
-    'generate_cfg': {
-        'fncall_prompt_type': 'nous',
-        'thought_in_content': True,  # For models without reasoning_content field
-    },
-}
-```
-
-Key patterns to adapt:
-- `reasoning_content` field handling in responses
-- `thought_in_content` parsing for `<think>` blocks
-- Integration with function calling for reasoning models
-
-**Use in Tasks:** 11.1, 11.8
-
-### Medium Priority - Reference Patterns
-
-#### 4. Router Agent Pattern
-**Source:** `qwen_agent/agents/router.py`
-
-```python
-ROUTER_PROMPT = '''你有下列帮手：
-{agent_descs}
-
-当你可以直接回答用户时，请忽略帮手，直接回复；但当你的能力无法达成用户的请求时，请选择其中一个来帮你回答'''
-```
-
-Key patterns to reference:
-- Stop word-based routing detection (`'stop': ['Reply:', 'Reply:\n']`)
-- Agent handoff with context preservation
-- `supplement_name_special_token()` for tracking agent responses
-
-**Use in Tasks:** 11.2, 11.3
-
-#### 5. MCP Manager Improvements
-**Source:** `qwen_agent/tools/mcp_manager.py`
-
-Key patterns to reference:
-- Singleton pattern with async event loop in separate thread
-- Auto-reconnection on session timeout (`send_ping()` health check)
-- Clean process cleanup with `atexit` and signal handlers
-- Resource listing and reading support
-
-**Use in Tasks:** Compare with existing Suna MCP implementation
-
-#### 6. FnCallAgent Loop
-**Source:** `qwen_agent/agents/fncall_agent.py`
-
-```python
-while True and num_llm_calls_available > 0:
-    num_llm_calls_available -= 1
-    output_stream = self._call_llm(messages=messages, functions=[...])
-    # ... detect tool, execute, append result
-    if not used_any_tool:
-        break
-```
-
-Key patterns to reference:
-- `MAX_LLM_CALL_PER_RUN` limit for safety
-- Tool detection with `_detect_tool()`
-- Memory integration for file handling
-
-**Use in Tasks:** Reference for agent run loop improvements
-
-### Low Priority - Optional Enhancements
-
-#### 7. Retrieval Tool (RAG)
-**Source:** `qwen_agent/tools/retrieval.py`
-
-Key patterns for Qwen3-Embedding/Reranker integration:
-- Hybrid search (BM25 + semantic)
-- `max_ref_token` for context limits
-- Document parsing pipeline
-
-**Use in Tasks:** 15, 16
-
-#### 8. Code Interpreter Patterns
-**Source:** `qwen_agent/tools/code_interpreter.py`
-
-Key patterns to reference:
-- Jupyter kernel lifecycle management
-- Timeout handling with countdown timer
-- Cross-platform event loop handling (`AnyThreadEventLoopPolicy`)
-
-**Use in Tasks:** Compare with e2b code interpreter
-
-#### 9. Tool Base Class
-**Source:** `qwen_agent/tools/base.py`
-
-Key patterns to reference:
-- `@register_tool` decorator pattern
-- `is_tool_schema()` validation function
-- `BaseToolWithFileAccess` for file-handling tools
-
-**Use in Tasks:** Reference for tool registry improvements
-
-### File Reference Summary
-
-| Component | Source File | Suna Target | Priority |
-|-----------|-------------|-------------|----------|
-| Function calling prompt | `llm/fncall_prompts/nous_fncall_prompt.py` | `agentpress/native_tool_parser.py` | High |
-| Vision message handling | `llm/qwenvl_oai.py` | `agentpress/vision_handler.py` (new) | High |
-| Thinking model config | `examples/assistant_qwq.py` | `ai_models/registry.py` | High |
-| Router pattern | `agents/router.py` | `agentpress/model_router.py` (new) | Medium |
-| MCP improvements | `tools/mcp_manager.py` | `mcp_module/` | Medium |
-| Agent loop | `agents/fncall_agent.py` | `run.py` | Medium |
-| RAG/Retrieval | `tools/retrieval.py` | `services/qwen_embedding.py` | Low |
-| Code interpreter | `tools/code_interpreter.py` | Compare with e2b | Low |
+When MCP tool execution fails:
+1. Error is logged with full context
+2. Agent receives structured error response
+3. Error type is categorized (auth, timeout, validation, server error)
 
 ## Testing Strategy
 
 ### Dual Testing Approach
 
-- **Unit tests**: Verify specific examples, edge cases, integration points
-- **Property-based tests**: Verify universal properties across all valid inputs
+This implementation uses both unit tests and property-based tests:
+
+- **Unit tests** verify specific examples, edge cases, and integration points
+- **Property-based tests** verify universal properties that should hold across all inputs
 
 ### Property-Based Testing Framework
 
-**Framework**: hypothesis (Python)
-**Minimum iterations**: 100 per property test
+The implementation will use **Hypothesis** for Python property-based testing.
+
+Configuration:
+- Minimum 100 iterations per property test
+- Explicit seed logging for reproducibility
+- Custom strategies for domain-specific types
 
 ### Test Categories
 
-1. **Tool Schema Tests**: Schema conversion round-trip
-2. **Tool Call Parsing Tests**: Native parsing completeness, malformed handling
-3. **Streaming Tests**: Chunk assembly, partial buffering
-4. **Vision Tests**: Image encoding round-trip, URL passthrough
-5. **Integration Tests**: End-to-end flows, error recovery
+1. **Unit Tests**
+   - ObotClient API method tests with mocked responses
+   - UserIdentityMapper edge cases (empty strings, special characters)
+   - Profile service CRUD operations
+   - Error handling scenarios
+
+2. **Property-Based Tests**
+   - User identity mapping consistency (Property 1)
+   - JWT token generation and validation (Property 2)
+   - Response transformation correctness (Property 3)
+   - User context preservation (Property 4)
+   - Environment configuration parsing (Property 7)
+
+3. **Integration Tests**
+   - End-to-end MCP server connection flow
+   - OAuth authentication flow
+   - Tool execution through agent framework
 
 ### Test Annotations
 
-Each property-based test must include:
+Each property-based test will be annotated with:
 ```python
-# **Feature: qwen3-vl-optimization, Property {N}: {property_text}**
-# **Validates: Requirements X.Y**
+# **Feature: obot-mcp-integration, Property 1: User Identity Mapping Consistency**
+# **Validates: Requirements 2.1, 2.2, 2.3**
 ```
 
-
-# Implementation Plan
-
-- [ ] 1. Configure SiliconFlow API integration
-  - [ ] 1.1 Add SiliconFlow environment variables to config
-    - Add SILICONFLOW_API_KEY and SILICONFLOW_API_BASE to backend/core/utils/config.py
-    - Update backend/.env.example with new variables
-    - _Requirements: 1.1, 1.4_
-  - [ ] 1.2 Update LiteLLM router for SiliconFlow
-    - Modify backend/core/services/llm.py to route to SiliconFlow endpoint
-    - Configure model as "openai/Qwen/Qwen3-VL-235B-A22B-Instruct"
-    - Set context window to 262144 tokens
-    - _Requirements: 1.2, 1.3, 1.5_
-  - [ ]* 1.3 Write property test for API routing
-    - **Property 9: API routing targets SiliconFlow endpoint**
-    - **Validates: Requirements 1.2, 9.4**
-
-- [ ] 2. Simplify model registry for Qwen3-VL only
-  - [ ] 2.1 Refactor model registry for Qwen3-VL models
-    - Update backend/core/ai_models/registry.py to register Qwen3-VL Thinking and Instruct
-    - Remove all legacy model definitions (Anthropic, OpenAI, etc.)
-    - Update model aliases to resolve to appropriate Qwen3-VL variant
-    - _Requirements: 10.1, 10.2, 10.3_
-  - [ ] 2.2 Update ai_models.py for Qwen3-VL config
-    - Add SILICONFLOW provider to ModelProvider enum
-    - Configure ModelConfig with SiliconFlow settings for both variants
-    - _Requirements: 1.5, 10.1_
-  - [ ]* 2.3 Write property test for model selection
-    - **Property 8: Model selection always returns Qwen3-VL**
-    - **Validates: Requirements 10.2**
-
-- [ ] 3. Checkpoint - Ensure API connectivity works
-  - Ensure all tests pass, ask the user if questions arise.
-
-- [ ] 4. Implement native function calling
-  - [ ] 4.1 Update ProcessorConfig defaults
-    - Set xml_tool_calling=False, native_tool_calling=True in response_processor.py
-    - Remove XML-related configuration options
-    - _Requirements: 3.1, 3.2_
-  - [ ] 4.2 Update tool registry for OpenAI schema format
-    - Modify get_tools_for_llm() to return OpenAI function format only
-    - Remove any XML formatting code
-    - Reference: `qwen-agent/Qwen-Agent/qwen_agent/llm/fncall_prompts/nous_fncall_prompt.py` for FN_CALL_TEMPLATE
-    - _Requirements: 2.1, 2.2, 3.4_
-  - [ ]* 4.3 Write property test for tool schema conversion
-    - **Property 1: Tool schema conversion preserves semantics**
-    - **Validates: Requirements 2.1**
-  - [ ] 4.4 Enhance native tool parser
-    - Update parse_tool_calls() for robust field extraction
-    - Add format_tool_result() for tool role messages
-    - Reference: `qwen-agent/Qwen-Agent/qwen_agent/llm/fncall_prompts/nous_fncall_prompt.py` for postprocess_fncall_messages() and extract_fn()
-    - _Requirements: 2.3, 2.4, 2.5_
-  - [ ]* 4.5 Write property test for tool call parsing
-    - **Property 2: Native tool call parsing extracts all fields**
-    - **Validates: Requirements 2.3, 2.4**
-  - [ ]* 4.6 Write property test for tool result formatting
-    - **Property 3: Tool result formatting maintains ID consistency**
-    - **Validates: Requirements 2.5**
-
-- [ ] 5. Update streaming for native tool calls
-  - [ ] 5.1 Refactor streaming response processor
-    - Remove XML chunk detection and parsing
-    - Keep only native tool call buffering logic
-    - _Requirements: 2.6, 12.1, 12.2, 12.3, 12.4_
-  - [ ]* 5.2 Write property test for streaming assembly
-    - **Property 4: Streaming tool call assembly produces complete calls**
-    - **Validates: Requirements 2.6, 12.2**
-  - [ ]* 5.3 Write property test for streaming order
-    - **Property 11: Streaming yields chunks in order**
-    - **Validates: Requirements 12.1**
-
-- [ ] 6. Checkpoint - Verify native function calling works
-  - Ensure all tests pass, ask the user if questions arise.
-
-- [ ] 7. Implement native vision support
-  - [ ] 7.1 Create VisionMessageHandler class
-    - Create new module backend/core/agentpress/vision_handler.py
-    - Implement format_message_with_images() method
-    - Support both URL and base64 image encoding
-    - Reference: `qwen-agent/Qwen-Agent/qwen_agent/llm/qwenvl_oai.py` for convert_messages_to_dicts() and conv_multimodel_value()
-    - _Requirements: 4.1, 4.2, 4.4_
-  - [ ]* 7.2 Write property test for image encoding
-    - **Property 5: Image encoding produces valid data URLs**
-    - **Validates: Requirements 4.2**
-  - [ ]* 7.3 Write property test for multi-image messages
-    - **Property 6: Multi-image messages include all images**
-    - **Validates: Requirements 4.4**
-  - [ ] 7.4 Integrate vision handler into message processing
-    - Update thread_manager.py to use VisionMessageHandler
-    - Handle image attachments in user messages
-    - _Requirements: 4.1, 4.3_
-
-- [ ] 8. Remove legacy vision tool
-  - [ ] 8.1 Remove vision tool files
-    - Delete backend/core/tools/sb_vision_tool.py
-    - Delete backend/core/tools/sb_vision_tool_agentcore.py
-    - Remove vision tool from tool_registry.py
-    - _Requirements: 5.1, 5.2, 5.3_
-  - [ ] 8.2 Update tool imports and references
-    - Remove vision tool imports from __init__.py files
-    - Update any code that references vision tools
-    - _Requirements: 5.3_
-
-- [ ] 9. Remove XML tool calling code
-  - [ ] 9.1 Remove XML parser module
-    - Delete or deprecate backend/core/agentpress/xml_tool_parser.py
-    - Remove XML imports from response_processor.py
-    - _Requirements: 3.1, 3.3_
-  - [ ] 9.2 Clean up response processor
-    - Remove all XML-related code paths
-    - Remove XML chunk detection logic
-    - _Requirements: 3.1_
-
-- [ ] 10. Update system prompt
-  - [ ] 10.1 Rewrite prompt for native function calling
-    - Remove XML tool calling syntax from backend/core/prompts/prompt.py
-    - Add guidance for native function calling
-    - Reference native vision capabilities
-    - _Requirements: 8.1, 8.2, 8.3, 8.4_
-
-- [ ] 11. Implement hybrid model routing (Thinking + Instruct)
-  - [ ] 11.1 Add Qwen3-VL-Thinking to model registry
-    - Register Qwen/Qwen3-VL-235B-A22B-Thinking as the planning model
-    - Configure for reasoning_content capture from response
-    - Reference: `qwen-agent/Qwen-Agent/examples/assistant_qwq.py` for thinking model config with thought_in_content
-    - _Requirements: 9.1, 9.4_
-  - [ ] 11.2 Create TaskPlan and TaskStep data models
-    - Create backend/core/agentpress/task_plan.py with TaskPlan and TaskStep dataclasses
-    - Include fields: id, original_request, reasoning, steps, current_step_index, status
-    - Add serialization methods for database storage
-    - _Requirements: 9.3_
-  - [ ] 11.3 Create ModelRouter class
-    - Create backend/core/agentpress/model_router.py
-    - Implement select_model() that checks conversation context for active_task_plan
-    - Return Thinking model when no plan exists, Instruct model when executing
-    - Reference: `qwen-agent/Qwen-Agent/qwen_agent/agents/router.py` for routing pattern with stop words
-    - _Requirements: 9.2, 9.5_
-  - [ ]* 11.4 Write property test for model routing
-    - **Property 14: Hybrid model routing selects correct variant**
-    - **Validates: Requirements 9.2, 9.5**
-  - [ ] 11.5 Integrate ModelRouter into agent run loop
-    - Update backend/core/run.py to use ModelRouter for model selection
-    - Pass conversation context to router before each LLM call
-    - _Requirements: 9.5_
-  - [ ] 11.6 Implement task plan storage in conversation context
-    - Store TaskPlan in thread metadata after Thinking model creates it
-    - Load active plan when resuming conversation
-    - _Requirements: 9.3_
-  - [ ] 11.7 Implement plan injection into system prompt
-    - Update PromptManager to inject active plan context for Instruct model
-    - Include completed steps, current step, and pending steps
-    - _Requirements: 9.2, 9.3_
-  - [ ] 11.8 Implement plan extraction from Thinking model response
-    - Parse reasoning_content from Thinking model response
-    - Extract structured plan and create TaskPlan object
-    - Reference: `qwen-agent/Qwen-Agent/qwen_agent/llm/fncall_prompts/nous_fncall_prompt.py` for reasoning_content and thought_in_content handling
-    - _Requirements: 9.4_
-
-- [ ] 12. Checkpoint - Verify core functionality
-  - Ensure all tests pass, ask the user if questions arise.
-
-- [ ] 13. Implement JSON argument parsing improvements
-  - [ ] 13.1 Enhance argument parsing robustness
-    - Update parse_native_tool_call_arguments() for nested structures
-    - Add error handling for malformed JSON
-    - _Requirements: 13.1, 13.2, 13.3, 13.4_
-  - [ ]* 13.2 Write property test for JSON parsing
-    - **Property 7: JSON argument parsing preserves structure**
-    - **Validates: Requirements 13.1, 13.2**
-
-- [ ] 14. Implement error handling
-  - [ ] 14.1 Add SiliconFlow-specific error handling
-    - Update error_processor.py for SiliconFlow error formats
-    - Implement rate limit backoff logic
-    - Add context truncation for token limit errors
-    - _Requirements: 11.1, 11.2, 11.3, 11.4_
-  - [ ]* 14.2 Write property test for error parsing
-    - **Property 10: Error responses produce descriptive messages**
-    - **Validates: Requirements 11.1**
-
-- [ ] 15. Optional: Implement Qwen3-Embedding service
-  - [ ] 15.1 Create embedding service module
-    - Create backend/core/services/qwen_embedding.py
-    - Implement embed() method with instruction support
-    - Reference: `qwen-agent/Qwen-Agent/qwen_agent/tools/retrieval.py` for RAG patterns
-    - _Requirements: 6.1, 6.2, 6.4_
-  - [ ]* 15.2 Write property test for embedding dimensions
-    - **Property 12: Embedding vectors have correct dimensions**
-    - **Validates: Requirements 6.2**
-  - [ ] 15.3 Integrate with knowledge base
-    - Update knowledge_base module to use Qwen3-Embedding
-    - Add fallback behavior when not configured
-    - _Requirements: 6.3_
-
-- [ ] 16. Optional: Implement Qwen3-Reranker service
-  - [ ] 16.1 Create reranker service module
-    - Create backend/core/services/qwen_reranker.py
-    - Implement rerank() method
-    - _Requirements: 7.1, 7.2, 7.4_
-  - [ ]* 16.2 Write property test for reranker scores
-    - **Property 13: Reranker returns scores for all documents**
-    - **Validates: Requirements 7.4**
-  - [ ] 16.3 Integrate with search functionality
-    - Update search to use reranker when configured
-    - Add fallback behavior when not configured
-    - _Requirements: 7.3_
-
-- [ ] 17. Final cleanup and documentation
-  - [ ] 17.1 Remove unused legacy code
-    - Remove commented-out model definitions
-    - Clean up unused imports
-    - _Requirements: 9.3_
-  - [ ] 17.2 Update environment documentation
-    - Update backend/README.md with new configuration
-    - Update backend/.env.example
-    - _Requirements: 1.1_
-
-- [ ] 18. Final Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.

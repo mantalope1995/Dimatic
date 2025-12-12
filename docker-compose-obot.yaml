@@ -1,0 +1,85 @@
+# ============================================================================
+# OBOT SIDECAR - DOCKER COMPOSE OVERRIDE
+# ============================================================================
+# This Docker Compose file adds Obot MCP Gateway as a sidecar service.
+#
+# Usage:
+#   docker compose -f docker-compose.yaml -f docker-compose-obot.yaml up -d
+#
+# Environment Variables Required:
+#   - OBOT_BOOTSTRAP_TOKEN: Generated secure token for admin access
+#   - OBOT_SERVER_AUTH_ADMIN_EMAILS: Comma-separated admin email addresses
+#   - OBOT_DATABASE_DSN: PostgreSQL connection string for Obot's database
+#   - OPENAI_API_KEY: API key for the model provider
+#
+# Access:
+#   - Obot Admin GUI: Proxied through /admin/obot/* (requires admin role)
+#   - Obot API (internal): http://obot:8080/api
+# ============================================================================
+
+services:
+  obot:
+    image: ghcr.io/obot-platform/obot:latest
+    platform: linux/amd64
+    ports:
+      - "8081:8080"  # Expose for development; remove in production
+    environment:
+      # Authentication
+      OBOT_SERVER_ENABLE_AUTHENTICATION: "true"
+      OBOT_BOOTSTRAP_TOKEN: "${OBOT_BOOTSTRAP_TOKEN}"
+      OBOT_SERVER_AUTH_ADMIN_EMAILS: "${OBOT_SERVER_AUTH_ADMIN_EMAILS:-}"
+      
+      # Database - uses separate database from Suna
+      OBOT_SERVER_DSN: "${OBOT_DATABASE_DSN:-postgres://obot:obot@postgres:5432/obot?sslmode=disable}"
+      
+      # Model provider (can use same as Suna or separate)
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      
+      # Disable Obot's built-in chat UI, keep only Admin GUI and API
+      OBOT_SERVER_DISABLE_CHAT: "true"
+      
+      # MCP server configuration
+      OBOT_MCP_REGISTRY_URL: "https://registry.mcpservers.com"
+    volumes:
+      # For MCP server containers that run inside Docker
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Persistent data storage for Obot
+      - obot_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/version"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - default
+    # Note: Obot can work without depending on postgres if using external database
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
+
+  # Update backend to enable Obot integration
+  backend:
+    environment:
+      - OBOT_ENABLED=true
+      - OBOT_BASE_URL=http://obot:8080/api
+      - OBOT_BOOTSTRAP_TOKEN=${OBOT_BOOTSTRAP_TOKEN}
+      - OBOT_TOKEN_ENCRYPTION_KEY=${OBOT_TOKEN_ENCRYPTION_KEY}
+    depends_on:
+      obot:
+        condition: service_healthy
+
+  # Update worker to enable Obot integration
+  worker:
+    environment:
+      - OBOT_ENABLED=true
+      - OBOT_BASE_URL=http://obot:8080/api
+      - OBOT_BOOTSTRAP_TOKEN=${OBOT_BOOTSTRAP_TOKEN}
+      - OBOT_TOKEN_ENCRYPTION_KEY=${OBOT_TOKEN_ENCRYPTION_KEY}
+    depends_on:
+      obot:
+        condition: service_healthy
+
+volumes:
+  obot_data:

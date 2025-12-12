@@ -20,6 +20,9 @@ The key challenge is mapping Suna's Supabase-based user identity system to Obot'
 - **OAuth 2.1**: The authentication protocol used by Obot for external service integrations
 - **Admin GUI**: Obot's administrative interface for managing MCP servers and configurations
 - **Profile**: A Suna concept representing a user's configured connection to an MCP server
+- **RLS (Row Level Security)**: A Supabase/PostgreSQL feature that restricts database row access based on user identity
+- **Tenant Isolation**: The security principle ensuring one user cannot access another user's data
+- **Audit Log**: A record of security-relevant operations for compliance and debugging
 
 ## Requirements
 
@@ -102,4 +105,27 @@ The key challenge is mapping Suna's Supabase-based user identity system to Obot'
 2. WHEN storing MCP profile references THEN the system SHALL extend the existing composio_profiles table or create a compatible obot_profiles table
 3. WHEN querying profile data THEN the system SHALL support the same query patterns used by the existing Composio integration
 4. WHEN Obot stores its own data THEN the system SHALL use a separate database or schema to avoid conflicts with Suna's data
+
+### Requirement 8
+
+**User Story:** As a Suna platform operator, I want proper tenant isolation and data privacy controls, so that users cannot access other users' MCP credentials or configurations.
+
+#### Acceptance Criteria
+
+1. WHEN storing Obot-related data in Supabase THEN the system SHALL enforce Row Level Security policies that restrict access to the owning user
+2. WHEN caching Obot tokens in the database THEN the system SHALL encrypt tokens at rest using application-level encryption
+3. WHEN making Obot API requests THEN the system SHALL validate user context server-side and reject requests with mismatched user identities
+4. WHEN a user performs MCP operations THEN the system SHALL record an audit log entry with user ID, operation type, and timestamp
+5. WHEN users make MCP API requests THEN the system SHALL enforce rate limits per user to prevent abuse
+
+### Requirement 9
+
+**User Story:** As a Suna platform operator, I want secure credential management, so that sensitive tokens and secrets are protected throughout their lifecycle.
+
+#### Acceptance Criteria
+
+1. WHEN storing the Obot bootstrap token THEN the system SHALL load the token from environment variables and restrict access to backend services only
+2. WHEN generating user-scoped Obot tokens THEN the system SHALL use short-lived tokens with automatic refresh
+3. WHEN a user disconnects an MCP server THEN the system SHALL revoke associated credentials in Obot and remove cached tokens from Suna
+4. WHEN Obot tokens expire THEN the system SHALL automatically refresh tokens without user intervention
 

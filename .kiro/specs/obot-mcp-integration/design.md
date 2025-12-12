@@ -605,6 +605,173 @@ Based on the prework analysis, the following correctness properties have been id
 
 **Validates: Requirements 7.3**
 
+### Property 9: Token Encryption Round-Trip
+
+*For any* valid Obot token string, encrypting and then decrypting the token SHALL produce the original token value.
+
+**Validates: Requirements 8.2, 9.2**
+
+### Property 10: Tenant Isolation Enforcement
+
+*For any* two distinct user IDs, a request made with User A's authenticated context SHALL NOT be able to access User B's profiles, mappings, or MCP servers.
+
+**Validates: Requirements 8.1, 8.3**
+
+### Property 11: Audit Log Completeness
+
+*For any* MCP operation (server create, delete, tool call), the system SHALL create an audit log entry containing the user ID, operation type, and timestamp.
+
+**Validates: Requirements 8.4**
+
+### Property 12: Rate Limit Enforcement
+
+*For any* user exceeding the configured rate limit for an operation type, subsequent requests within the window SHALL be rejected with a 429 status code.
+
+**Validates: Requirements 8.5**
+
+## Security Architecture
+
+### Tenant Isolation
+
+The integration enforces strict tenant isolation at multiple layers:
+
+1. **Database Layer (RLS)**: All Obot-related tables use Row Level Security policies
+2. **Application Layer**: User context is validated server-side on every request
+3. **Obot Layer**: Each user gets a unique Obot identity with scoped credentials
+
+### Row Level Security Policies
+
+```sql
+-- RLS for obot_profiles
+ALTER TABLE obot_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can only access own profiles"
+ON obot_profiles FOR ALL
+USING (account_id = auth.uid());
+
+-- RLS for obot_user_mappings
+ALTER TABLE obot_user_mappings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can only access own mapping"
+ON obot_user_mappings FOR ALL
+USING (suna_user_id = auth.uid());
+```
+
+### Token Security
+
+Cached Obot tokens are encrypted at rest using Fernet symmetric encryption:
+
+```python
+from cryptography.fernet import Fernet
+
+class TokenEncryption:
+    def __init__(self, key: str):
+        self.fernet = Fernet(key.encode())
+    
+    def encrypt(self, token: str) -> str:
+        return self.fernet.encrypt(token.encode()).decode()
+    
+    def decrypt(self, encrypted: str) -> str:
+        return self.fernet.decrypt(encrypted.encode()).decode()
+```
+
+Environment variable: `OBOT_TOKEN_ENCRYPTION_KEY` (32-byte base64-encoded key)
+
+### Audit Logging
+
+All MCP operations are logged for compliance and debugging:
+
+```python
+class MCPAuditLog:
+    async def record(
+        self,
+        action: str,  # 'server_create', 'server_delete', 'tool_call', 'oauth_start'
+        user_id: str,
+        server_id: Optional[str],
+        tool_name: Optional[str],
+        success: bool,
+        error_message: Optional[str] = None
+    ) -> None:
+        """Record audit log entry to obot_audit_logs table"""
+        pass
+```
+
+Audit log table:
+```sql
+CREATE TABLE obot_audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id),
+    action VARCHAR(50) NOT NULL,
+    server_id VARCHAR(255),
+    tool_name VARCHAR(255),
+    success BOOLEAN NOT NULL,
+    error_message TEXT,
+    ip_address INET,
+    user_agent TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_obot_audit_user ON obot_audit_logs(user_id);
+CREATE INDEX idx_obot_audit_created ON obot_audit_logs(created_at);
+```
+
+### Rate Limiting
+
+Per-user rate limits prevent abuse:
+
+| Operation | Limit |
+|-----------|-------|
+| Catalog queries | 100/minute |
+| Server create/delete | 10/minute |
+| Tool calls | 60/minute |
+| OAuth initiations | 5/minute |
+
+Implementation uses Redis with sliding window:
+
+```python
+class ObotRateLimiter:
+    def __init__(self, redis_client: Redis):
+        self.redis = redis_client
+    
+    async def check_rate_limit(
+        self, 
+        user_id: str, 
+        operation: str, 
+        limit: int, 
+        window_seconds: int = 60
+    ) -> bool:
+        """Returns True if request is allowed, False if rate limited"""
+        key = f"obot_ratelimit:{user_id}:{operation}"
+        # Sliding window implementation
+        pass
+```
+
+### User Context Validation
+
+Every Obot API request validates user context server-side:
+
+```python
+async def _make_obot_request(
+    self,
+    method: str,
+    path: str,
+    authenticated_user_id: str,  # From JWT, never from request body
+    **kwargs
+) -> dict:
+    """
+    Make request to Obot with validated user context.
+    
+    SECURITY: authenticated_user_id must come from verified JWT,
+    never from client-provided data.
+    """
+    # Get user-scoped token (validates user exists in mapping)
+    token = await self.identity_service.get_obot_token(authenticated_user_id)
+    
+    # Make request with user's token
+    headers = {"Authorization": f"Bearer {token}"}
+    # ...
+```
+
 ## Error Handling
 
 ### Obot Unavailability
