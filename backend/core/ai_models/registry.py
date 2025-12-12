@@ -34,7 +34,7 @@ class ModelRegistry:
             provider=ModelProvider.SILICONFLOW,
             aliases=["qwen3-vl-instruct", "Qwen3-VL-Instruct", "qwen-vl-instruct", "kortix/basic", "kortix/power", "qwen3-vl-thinking", "Qwen3-VL-Thinking", "qwen-vl-thinking", "kortix/thinking"],
             context_window=262_144,
-            max_output_tokens=262_144,
+            max_output_tokens=32_768,
             capabilities=[
                 ModelCapability.CHAT,
                 ModelCapability.FUNCTION_CALLING,
