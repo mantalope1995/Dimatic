@@ -1,0 +1,184 @@
+# Implementation Plan
+
+- [ ] 1. Set up Obot sidecar infrastructure
+  - [ ] 1.1 Add Obot service to docker-compose.yaml
+    - Add obot container (ghcr.io/obot-platform/obot:latest) with environment variables
+    - Configure OBOT_SERVER_ENABLE_AUTHENTICATION, OBOT_BOOTSTRAP_TOKEN, OBOT_SERVER_DSN
+    - Mount Docker socket for MCP server containers (/var/run/docker.sock)
+    - Set up internal networking (obot:8080 accessible from backend)
+    - _Requirements: 1.1, 1.2, 1.3_
+  - [ ] 1.2 Create Supabase migration for Obot tables
+    - Create `obot_user_mappings` table with suna_user_id, obot_user_id, cached_token fields
+    - Create `obot_profiles` table with obot_server_id, catalog_entry_id, status fields
+    - Add indexes and foreign key constraints to auth.users
+    - Add update timestamp triggers
+    - _Requirements: 7.1, 7.2_
+  - [ ] 1.3 Add Obot configuration to backend environment
+    - Add OBOT_BASE_URL (default: http://obot:8080/api), OBOT_BOOTSTRAP_TOKEN, OBOT_ENABLED to .env.example
+    - Create backend/core/obot/__init__.py module structure
+    - Add obot config loading to backend/core/suna_config.py
+    - _Requirements: 1.3_
+
+- [ ] 2. Implement Obot client and identity service
+  - [ ] 2.1 Create ObotClient class (`backend/core/obot/client.py`)
+    - Implement async httpx client with base_url and bootstrap_token
+    - Add _request() helper with Authorization header injection
+    - Implement check_health() - GET /api/version
+    - Handle HTTP errors and timeouts gracefully
+    - _Requirements: 1.4, 3.1_
+  - [ ] 2.2 Write property test for ObotClient configuration parsing
+    - **Property 7: Environment Configuration Parsing**
+    - **Validates: Requirements 1.3**
+  - [ ] 2.3 Implement catalog entry methods in ObotClient
+    - list_catalog_entries() - GET /api/all-mcps/entries (returns MCPServerCatalogEntryList)
+    - get_catalog_entry() - GET /api/all-mcps/entries/{entry_id} (returns MCPServerCatalogEntry)
+    - Map Obot types (MCPServerCatalogEntry, MCPServerCatalogEntryManifest) to Pydantic models
+    - _Requirements: 3.1_
+  - [ ] 2.4 Implement MCP server methods in ObotClient
+    - list_mcp_servers() - GET /api/mcp-servers (returns MCPServerList)
+    - create_mcp_server() - POST /api/mcp-servers (body: catalogEntryID, alias, env)
+    - get_mcp_server() - GET /api/mcp-servers/{mcp_server_id}
+    - update_mcp_server() - PUT /api/mcp-servers/{mcp_server_id}
+    - delete_mcp_server() - DELETE /api/mcp-servers/{mcp_server_id}
+    - Map Obot MCPServer type with manifest, configured, missingRequiredEnvVars fields
+    - _Requirements: 3.2, 4.2, 4.3_
+  - [ ] 2.5 Implement MCP tools methods in ObotClient
+    - list_tools() - GET /api/mcp-servers/{mcp_server_id}/tools (returns MCPServerTool[])
+    - set_tools() - PUT /api/mcp-servers/{mcp_server_id}/tools (body: tool names array)
+    - Map MCPServerTool with name, description, params, enabled fields
+    - _Requirements: 3.3, 6.1_
+  - [ ] 2.6 Implement OAuth and lifecycle methods in ObotClient
+    - launch_server() - POST /api/mcp-servers/{mcp_server_id}/launch
+    - check_oauth() - POST /api/mcp-servers/{mcp_server_id}/check-oauth
+    - get_oauth_url() - POST /api/mcp-servers/{mcp_server_id}/oauth-url
+    - configure_credentials() - POST /api/mcp-servers/{mcp_server_id}/configure (body: env vars)
+    - deconfigure_credentials() - POST /api/mcp-servers/{mcp_server_id}/deconfigure
+    - _Requirements: 3.5, 4.4_
+  - [ ] 2.7 Create ObotIdentityService class (`backend/core/obot/identity_service.py`)
+    - Implement get_or_create_obot_user() - lookup in obot_user_mappings, create if not exists
+    - Generate deterministic obot_username from suna_user_id (format: suna_{hash[:12]})
+    - Implement get_obot_token() with token caching in database
+    - Implement delete_obot_user() for cleanup on Suna user deletion
+    - _Requirements: 2.1, 2.2, 2.4_
+  - [ ] 2.8 Write property test for user identity mapping
+    - **Property 1: User Identity Mapping Consistency**
+    - **Validates: Requirements 2.1, 2.2, 2.3**
+  - [ ] 2.9 Write property test for JWT token generation
+    - **Property 2: JWT Token Validity**
+    - **Validates: Requirements 2.5**
+
+- [ ] 3. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 4. Implement Obot profile service
+  - [ ] 4.1 Create ObotProfileService class (`backend/core/obot/profile_service.py`)
+    - Implement create_profile() with Supabase insert
+    - Implement get_profiles() with account filtering
+    - Implement get_profile() with ownership check
+    - Implement delete_profile() with cascade to Obot
+    - Implement update_profile_status() for status sync
+    - _Requirements: 4.1, 4.2, 4.3, 7.2, 7.3_
+  - [ ] 4.2 Write property test for profile query compatibility
+    - **Property 8: Profile Query Compatibility**
+    - **Validates: Requirements 7.3**
+
+- [ ] 5. Implement Obot integration API
+  - [ ] 5.1 Create API router (`backend/core/obot/api.py`)
+    - Set up FastAPI router with /obot prefix and tags=["obot"]
+    - Add verify_and_get_user_id_from_jwt dependency for authentication
+    - Initialize ObotClient and ObotIdentityService
+    - _Requirements: 3.1_
+  - [ ] 5.2 Implement catalog endpoints
+    - GET /obot/catalog - List MCPServerCatalogEntry items, transform to Suna format
+    - GET /obot/catalog/{entry_id} - Get entry with manifest details (name, description, icon, runtime, env)
+    - Return runtime type (uvx, npx, containerized, remote, composite) and required env vars
+    - _Requirements: 3.1_
+  - [ ] 5.3 Write property test for response format transformation
+    - **Property 3: Response Format Transformation**
+    - **Validates: Requirements 3.1, 4.1, 6.4**
+  - [ ] 5.4 Implement server management endpoints
+    - POST /obot/servers - Create MCPServer from catalogEntryID, store profile in obot_profiles
+    - GET /obot/servers - List user's servers, join with obot_profiles for display names
+    - GET /obot/servers/{server_id} - Get server with configured status, missingRequiredEnvVars
+    - DELETE /obot/servers/{server_id} - Delete from Obot and obot_profiles
+    - _Requirements: 3.2, 4.2, 4.3_
+  - [ ] 5.5 Write property test for user context preservation
+    - **Property 4: User Context Preservation**
+    - **Validates: Requirements 3.2, 3.4, 6.1, 6.2**
+  - [ ] 5.6 Implement tool endpoints
+    - GET /obot/servers/{server_id}/tools - List MCPServerTool items with name, description, enabled
+    - PUT /obot/servers/{server_id}/tools - Set enabled tools (array of tool names)
+    - POST /obot/servers/{server_id}/tools/{tool_name}/call - Execute tool (body: arguments dict)
+    - _Requirements: 3.3, 6.1, 6.2_
+  - [ ] 5.7 Implement OAuth and credentials endpoints
+    - GET /obot/servers/{server_id}/oauth-url - Get OAuth authorization URL
+    - POST /obot/servers/{server_id}/configure - Set env var credentials
+    - POST /obot/servers/{server_id}/launch - Start server and check health
+    - GET /obot/servers/{server_id}/status - Get configured, missingRequiredEnvVars, deploymentStatus
+    - _Requirements: 3.5, 4.4_
+  - [ ] 5.8 Write property test for connection status accuracy
+    - **Property 6: Connection Status Accuracy**
+    - **Validates: Requirements 4.4**
+  - [ ] 5.9 Implement health endpoint
+    - GET /obot/health - Check Obot /api/version endpoint, return healthy/unhealthy
+    - _Requirements: 1.4, 1.5_
+  - [ ] 5.10 Register router in main API
+    - Import obot router in backend/core/api.py
+    - Add router with prefix, conditionally based on OBOT_ENABLED config
+    - _Requirements: 3.1_
+
+- [ ] 6. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 7. Implement MCP tool wrapper for agent framework
+  - [ ] 7.1 Create ObotMCPToolWrapper class (`backend/core/tools/obot_mcp_tool.py`)
+    - Extend agentpress Tool base class
+    - Map MCPServerTool to Tool interface (name, description, parameters from input_schema)
+    - Implement execute() - call Obot tool endpoint with user token
+    - Return ToolResult with content from Obot response
+    - Handle 401/403 errors with re-auth indication (oauth_required flag)
+    - _Requirements: 6.1, 6.2, 6.3, 6.4_
+  - [ ] 7.2 Create tool factory function
+    - Implement create_obot_tools(obot_client, server_id, user_id) -> List[Tool]
+    - Fetch tools from Obot, filter by enabled=True
+    - Cache tool definitions per server_id with TTL
+    - _Requirements: 6.1_
+  - [ ] 7.3 Integrate with agent tool registry
+    - Update backend/core/tools/tool_registry.py to register Obot tools
+    - Add load_obot_tools() in agent_setup.py for agents with Obot profiles
+    - Pass user context through tool execution chain
+    - _Requirements: 6.1, 6.2_
+  - [ ] 7.4 Write unit tests for tool wrapper
+    - Test tool execution with mocked Obot client
+    - Test error handling for auth failures (401 -> oauth_required)
+    - Test response format conversion (Obot result -> ToolResult)
+    - _Requirements: 6.3, 6.4_
+
+- [ ] 8. Implement admin access proxy
+  - [ ] 8.1 Create admin proxy endpoint
+    - Add /admin/obot/* proxy route for Admin GUI access
+    - Implement admin role verification
+    - _Requirements: 5.1, 5.2, 5.3_
+  - [ ] 8.2 Write property test for admin access control
+    - **Property 5: Admin Access Control**
+    - **Validates: Requirements 5.1**
+  - [ ] 8.3 Configure Obot Admin GUI access
+    - Document admin access URL and authentication flow
+    - _Requirements: 5.2, 5.3, 5.4_
+
+- [ ] 9. Implement graceful degradation
+  - [ ] 9.1 Add circuit breaker for Obot client
+    - Implement connection failure detection
+    - Add retry logic with exponential backoff
+    - _Requirements: 1.5_
+  - [ ] 9.2 Implement fallback behavior
+    - Return appropriate errors when Obot unavailable
+    - Log failures for monitoring
+    - _Requirements: 1.5_
+  - [ ] 9.3 Write unit tests for error handling
+    - Test Obot unavailability scenarios
+    - Test graceful degradation behavior
+    - _Requirements: 1.5_
+
+- [ ] 10. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
