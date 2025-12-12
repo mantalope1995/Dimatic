@@ -8,7 +8,7 @@ from core.utils.logger import logger
 # Note: Using openai/ prefix because SiliconFlow API is OpenAI SDK-compatible
 _BASIC_MODEL_ID = "Qwen/Qwen3-VL-235B-A22B-Instruct"
 _POWER_MODEL_ID = "Qwen/Qwen3-VL-235B-A22B-Instruct"
-_THINKING_MODEL_ID = "Qwen/Qwen3-VL-235B-A22B-Thinking"
+_THINKING_MODEL_ID = "Qwen/Qwen3-VL-235B-A22B-Instruct"
 
 # Default model IDs (these are aliases that resolve to actual IDs)
 FREE_MODEL_ID = "kortix/basic"
@@ -32,7 +32,7 @@ class ModelRegistry:
             id="Qwen/Qwen3-VL-235B-A22B-Instruct",
             name="Qwen3-VL-235B-A22B-Instruct",
             provider=ModelProvider.SILICONFLOW,
-            aliases=["qwen3-vl-instruct", "Qwen3-VL-Instruct", "qwen-vl-instruct", "kortix/basic", "kortix/power"],
+            aliases=["qwen3-vl-instruct", "Qwen3-VL-Instruct", "qwen-vl-instruct", "kortix/basic", "kortix/power", "qwen3-vl-thinking", "Qwen3-VL-Thinking", "qwen-vl-thinking", "kortix/thinking"],
             context_window=262_144,
             max_output_tokens=262_144,
             capabilities=[
@@ -61,39 +61,7 @@ class ModelRegistry:
             )
         ))
         
-        # Qwen3-VL-235B-A22B-Thinking - Planning model with extended reasoning
-        self.register(Model(
-            id="Qwen/Qwen3-VL-235B-A22B-Thinking",
-            name="Qwen3-VL-235B-A22B-Thinking",
-            provider=ModelProvider.SILICONFLOW,
-            aliases=["qwen3-vl-thinking", "Qwen3-VL-Thinking", "qwen-vl-thinking", "kortix/thinking"],
-            context_window=262_144,
-            max_output_tokens=262_144,
-            capabilities=[
-                ModelCapability.CHAT,
-                ModelCapability.FUNCTION_CALLING,
-                ModelCapability.VISION,
-                ModelCapability.THINKING,
-                ModelCapability.STRUCTURED_OUTPUT,
-            ],
-            pricing=ModelPricing(
-                input_cost_per_million_tokens=0.50,  # Estimated pricing for thinking model
-                output_cost_per_million_tokens=1.50,  # Estimated pricing for thinking model
-            ),
-            tier_availability=["paid"],  # Thinking model for paid tiers
-            priority=101,
-            recommended=False,  # Not recommended for general use, only for planning
-            enabled=True,
-            config=ModelConfig(
-                api_key=siliconflow_api_key,
-                api_base=siliconflow_api_base,
-                # Vision parameters for Qwen3-VL
-                extra_body={
-                    "min_pixels": 512 * 32 * 32,
-                    "max_pixels": 2048 * 32 * 32,
-                },
-            )
-        ))
+
     
     def register(self, model: Model) -> None:
         self._models[model.id] = model

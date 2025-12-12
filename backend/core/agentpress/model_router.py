@@ -11,7 +11,7 @@ class ModelRouter:
     Qwen3-VL-Instruct: Used for executing steps defined in the plan.
     """
     
-    THINKING_MODEL = "Qwen/Qwen3-VL-235B-A22B-Thinking"
+    THINKING_MODEL = "Qwen/Qwen3-VL-235B-A22B-Instruct"
     INSTRUCT_MODEL = "Qwen/Qwen3-VL-235B-A22B-Instruct"
     
     def select_model(self, conversation_context: Dict[str, Any], requested_model: str = None) -> str:
