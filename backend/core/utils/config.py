@@ -353,6 +353,21 @@ class Configuration:
     DAYTONA_SERVER_URL: Optional[str] = None
     DAYTONA_TARGET: Optional[str] = None
     
+    # AWS AgentCore configuration (optional - replaces Daytona for sandbox functionality)
+    AWS_REGION: Optional[str] = "ap-southeast-2"
+    AGENTCORE_CODE_INTERPRETER_TOOL_ID: Optional[str] = None
+    AGENTCORE_BROWSER_TOOL_ID: Optional[str] = None
+    AGENTCORE_EXECUTION_ROLE_ARN: Optional[str] = None
+    AGENTCORE_S3_BUCKET: Optional[str] = None
+    
+    @property
+    def USE_AGENTCORE(self) -> bool:
+        """Determine if AgentCore should be used based on configuration."""
+        return (
+            self.AGENTCORE_CODE_INTERPRETER_TOOL_ID is not None and
+            self.AGENTCORE_BROWSER_TOOL_ID is not None
+        )
+    
     # Search and other API keys (all optional tools)
     TAVILY_API_KEY: Optional[str] = None
     RAPID_API_KEY: Optional[str] = None

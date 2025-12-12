@@ -521,6 +521,7 @@ class SetupWizard:
             self.run_step(2, self.check_requirements)
             self.run_step(3, self.collect_supabase_info)
             self.run_step(4, self.collect_daytona_info)
+            self.run_step(4.1, self.collect_agentcore_info)
             self.run_step(5, self.collect_llm_api_keys)
             # Optional tools - users can skip these
             self.run_step_optional(6, self.collect_morph_api_key, "Morph API Key (Optional)")
@@ -1038,21 +1039,106 @@ class SetupWizard:
 
         print_success("Daytona information saved.")
 
+    def collect_agentcore_info(self):
+        """Collects AWS AgentCore configuration."""
+        print_step(4.1, self.total_steps, "Collecting AWS AgentCore Information")
+
+        # Check if we already have values configured
+        has_existing = any([
+            self.env_vars.get("agentcore", {}).get("AGENTCORE_CODE_INTERPRETER_TOOL_ID"),
+            self.env_vars.get("agentcore", {}).get("AGENTCORE_BROWSER_TOOL_ID"),
+            self.env_vars.get("agentcore", {}).get("AGENTCORE_EXECUTION_ROLE_ARN")
+        ])
+        
+        if has_existing:
+            print_info(
+                "Found existing AgentCore configuration. Press Enter to keep current values or type new ones."
+            )
+        else:
+            print_info(
+                "Suna can use AWS AgentCore for sandboxing functionality (replaces Daytona).")
+            print_info(
+                "This provides enterprise-grade security and serverless scaling.")
+            print_info(
+                "If you don't have AgentCore set up yet, you can skip this and configure later.")
+            print_info(
+                "See: https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/")
+        
+        # Initialize agentcore section if it doesn't exist
+        if "agentcore" not in self.env_vars:
+            self.env_vars["agentcore"] = {}
+
+        # AWS Region
+        self.env_vars["agentcore"]["AWS_REGION"] = self._get_input(
+            "Enter your AWS region (e.g., us-west-2): ",
+            lambda x: len(x) >= 3,
+            "Invalid AWS region format.",
+            allow_empty=True,
+            default_value=self.env_vars["agentcore"].get("AWS_REGION", "us-west-2"),
+        )
+        
+        # Code Interpreter Tool ID
+        self.env_vars["agentcore"]["AGENTCORE_CODE_INTERPRETER_TOOL_ID"] = self._get_input(
+            "Enter AgentCore Code Interpreter Tool ID (optional): ",
+            lambda x: True,  # Allow empty
+            "",
+            allow_empty=True,
+            default_value=self.env_vars["agentcore"].get("AGENTCORE_CODE_INTERPRETER_TOOL_ID", ""),
+        )
+        
+        # Browser Tool ID
+        self.env_vars["agentcore"]["AGENTCORE_BROWSER_TOOL_ID"] = self._get_input(
+            "Enter AgentCore Browser Tool ID (optional): ",
+            lambda x: True,  # Allow empty
+            "",
+            allow_empty=True,
+            default_value=self.env_vars["agentcore"].get("AGENTCORE_BROWSER_TOOL_ID", ""),
+        )
+        
+        # Execution Role ARN
+        self.env_vars["agentcore"]["AGENTCORE_EXECUTION_ROLE_ARN"] = self._get_input(
+            "Enter AgentCore Execution Role ARN (optional): ",
+            lambda x: True,  # Allow empty for now
+            "",
+            allow_empty=True,
+            default_value=self.env_vars["agentcore"].get("AGENTCORE_EXECUTION_ROLE_ARN", ""),
+        )
+        
+        # S3 Bucket
+        self.env_vars["agentcore"]["AGENTCORE_S3_BUCKET"] = self._get_input(
+            "Enter AgentCore S3 Bucket for file storage (optional): ",
+            lambda x: True,  # Allow empty
+            "",
+            allow_empty=True,
+            default_value=self.env_vars["agentcore"].get("AGENTCORE_S3_BUCKET", ""),
+        )
+
+        # Check what's configured
+        configured_agentcore = []
+        if self.env_vars["agentcore"]["AWS_REGION"]:
+            configured_agentcore.append("AWS Region")
+        if self.env_vars["agentcore"]["AGENTCORE_CODE_INTERPRETER_TOOL_ID"]:
+            configured_agentcore.append("Code Interpreter Tool")
+        if self.env_vars["agentcore"]["AGENTCORE_BROWSER_TOOL_ID"]:
+            configured_agentcore.append("Browser Tool")
+        if self.env_vars["agentcore"]["AGENTCORE_EXECUTION_ROLE_ARN"]:
+            configured_agentcore.append("Execution Role")
+        if self.env_vars["agentcore"]["AGENTCORE_S3_BUCKET"]:
+            configured_agentcore.append("S3 Bucket")
+        
+        if configured_agentcore:
+            print_success(f"AgentCore configured: {', '.join(configured_agentcore)}")
+        else:
+            print_info("AgentCore not fully configured - will use Daytona fallback if available.")
+
+        print_success("AgentCore information saved.")
+
         print_warning(
-            "IMPORTANT: You must create a Suna snapshot in Daytona for it to work properly."
+            "IMPORTANT: You must create AgentCore tools for this to work properly."
         )
         print_info(
-            f"Visit {Colors.GREEN}https://app.daytona.io/dashboard/snapshots{Colors.ENDC}{Colors.CYAN} to create a snapshot."
+            "See AWS Bedrock AgentCore documentation for setup instructions."
         )
-        print_info("Create a snapshot with these exact settings:")
-        print_info(
-            f"   - Name:\t\t{Colors.GREEN}kortix/suna:0.1.3.25{Colors.ENDC}")
-        print_info(
-            f"   - Snapshot name:\t{Colors.GREEN}kortix/suna:0.1.3.25{Colors.ENDC}")
-        print_info(
-            f"   - Entrypoint:\t{Colors.GREEN}/usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf{Colors.ENDC}"
-        )
-        input("Press Enter to continue once you have created the snapshot...")
 
     def collect_llm_api_keys(self):
         """Collects LLM API keys for various providers."""
@@ -1521,6 +1607,7 @@ class SetupWizard:
             **self.env_vars["mcp"],
             **self.env_vars["composio"],
             **self.env_vars["daytona"],
+            **self.env_vars["agentcore"],
             **self.env_vars["kortix"],
             **self.env_vars.get("vapi", {}),
             **self.env_vars.get("stripe", {}),

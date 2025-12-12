@@ -130,15 +130,24 @@ class ToolManager:
                 self.thread_manager.add_tool(SandboxImageSearchTool, function_names=enabled_methods, thread_manager=self.thread_manager, project_id=self.project_id)
         
         # Register other sandbox tools from centralized registry
-        from core.tools.tool_registry import SANDBOX_TOOLS, get_tool_class
+        # Use dynamic tool selection based on AgentCore configuration
+        from core.tools.tool_registry import get_all_tools_with_agentcore
         
         # Tools that need thread_id
-        tools_needing_thread_id = {'sb_vision_tool', 'sb_image_edit_tool', 'sb_design_tool'}
+        tools_needing_thread_id = {'sb_vision_tool', 'sb_image_edit_tool', 'sb_design_tool', 'sb_vision_tool_agentcore', 'sb_image_edit_tool_agentcore'}
         
         sandbox_tools = []
-        for tool_name, module_path, class_name in SANDBOX_TOOLS:
+        all_sandbox_tools = get_all_tools_with_agentcore()
+        
+        # Filter for sandbox-related tools (AgentCore or Daytona)
+        sandbox_tool_names = [name for name in all_sandbox_tools.keys() if name.startswith('sb_') and name not in ['sb_upload_file_tool']]
+        
+        for tool_name in sandbox_tool_names:
+            if tool_name in ['web_search_tool', 'image_search_tool']:  # Skip search tools, they're handled above
+                continue
+                
             try:
-                tool_class = get_tool_class(module_path, class_name)
+                tool_class = all_sandbox_tools[tool_name]
                 kwargs = {
                     'project_id': self.project_id,
                     'thread_manager': self.thread_manager
@@ -146,8 +155,8 @@ class ToolManager:
                 if tool_name in tools_needing_thread_id:
                     kwargs['thread_id'] = self.thread_id
                 sandbox_tools.append((tool_name, tool_class, kwargs))
-            except (ImportError, AttributeError) as e:
-                logger.warning(f"❌ Failed to load tool {tool_name} ({class_name}): {e}")
+            except Exception as e:
+                logger.warning(f"❌ Failed to load tool {tool_name}: {e}")
         
         for tool_name, tool_class, kwargs in sandbox_tools:
             if tool_name not in disabled_tools:

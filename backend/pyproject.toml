@@ -46,6 +46,7 @@ dependencies = [
   "daytona-api-client>=0.115.0",
   "daytona-api-client-async>=0.115.0",
   "boto3>=1.40.74",
+  "bedrock-agentcore>=0.1.0",
   "openai>=1.99.5",
   "nest-asyncio==1.6.0",
   "vncdotool==1.2.0",
@@ -91,7 +92,11 @@ dependencies = [
   "anthropic>=0.69.0",
   "novu-py>=3.11.0",
   "psutil>=5.9.0",
-]
+  ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["core*", "supabase*"]
 
 [project.urls]
 homepage = "https://www.dimatic.com.au/"

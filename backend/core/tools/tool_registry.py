@@ -20,7 +20,7 @@ CORE_TOOLS = [
     ('task_list_tool', 'core.tools.task_list_tool', 'TaskListTool'),
 ]
 
-# Sandbox tools - File system, shell, and workspace operations
+# Sandbox tools - File system, shell, and workspace operations (Daytona.io)
 SANDBOX_TOOLS = [
     ('sb_shell_tool', 'core.tools.sb_shell_tool', 'SandboxShellTool'),
     ('sb_files_tool', 'core.tools.sb_files_tool', 'SandboxFilesTool'),
@@ -32,6 +32,15 @@ SANDBOX_TOOLS = [
     ('sb_presentation_tool', 'core.tools.sb_presentation_tool', 'SandboxPresentationTool'),
     ('sb_upload_file_tool', 'core.tools.sb_upload_file_tool', 'SandboxUploadFileTool'),
     # ('sb_docs_tool', 'core.tools.sb_docs_tool', 'SandboxDocsTool'),
+]
+
+# AgentCore tools - AWS AgentCore based sandbox operations
+AGENTCORE_TOOLS = [
+    ('sb_shell_tool', 'core.tools.sb_shell_tool_agentcore', 'AgentCoreShellTool'),
+    ('sb_files_tool', 'core.tools.sb_files_tool_agentcore', 'AgentCoreFilesTool'),
+    ('sb_vision_tool', 'core.tools.sb_vision_tool_agentcore', 'AgentCoreVisionTool'),
+    ('sb_browser_tool', 'core.tools.sb_browser_tool_agentcore', 'AgentCoreBrowserTool'),
+    ('sb_browser_tool_stagehand', 'core.tools.sb_browser_tool_stagehand_agentcore', 'AgentCoreStagehandTool'),
 ]
 
 # Search and research tools
@@ -126,8 +135,69 @@ def get_tools_by_category() -> Dict[str, List[Tuple[str, str, str]]]:
     return {
         'core': CORE_TOOLS,
         'sandbox': SANDBOX_TOOLS,
+        'agentcore': AGENTCORE_TOOLS,
         'search': SEARCH_TOOLS,
         'utility': UTILITY_TOOLS,
         'agent_builder': AGENT_BUILDER_TOOLS,
     }
+
+
+def get_all_tools_with_agentcore() -> Dict[str, Type[Tool]]:
+    """
+    Get tools dynamically choosing between Daytona and AgentCore based on configuration.
+    
+    Returns:
+        Dict mapping tool names (str) to tool classes (Type[Tool])
+    """
+    from core.utils.config import config
+    from core.utils.logger import logger
+    
+    # Start with core tools
+    tools_map = {}
+    for tool_name, module_path, class_name in CORE_TOOLS:
+        try:
+            tools_map[tool_name] = get_tool_class(module_path, class_name)
+        except (ImportError, AttributeError) as e:
+            logger.debug(f"Skipping tool {tool_name}: {e}")
+    
+    # Add search, utility, and agent builder tools
+    for tools_list in [SEARCH_TOOLS, UTILITY_TOOLS, AGENT_BUILDER_TOOLS]:
+        for tool_name, module_path, class_name in tools_list:
+            try:
+                tools_map[tool_name] = get_tool_class(module_path, class_name)
+            except (ImportError, AttributeError) as e:
+                logger.debug(f"Skipping tool {tool_name}: {e}")
+    
+    # Choose sandbox backend based on configuration
+    # Use AgentCore if configured, otherwise fallback to Daytona
+    use_agentcore = config.USE_AGENTCORE
+    
+    if use_agentcore:
+        logger.info("🚀 Using AWS AgentCore for sandbox tools")
+        # Use AgentCore tools
+        for tool_name, module_path, class_name in AGENTCORE_TOOLS:
+            try:
+                tools_map[tool_name] = get_tool_class(module_path, class_name)
+                logger.debug(f"✅ Loaded AgentCore tool: {tool_name}")
+            except (ImportError, AttributeError) as e:
+                logger.warning(f"⚠️ Failed to load AgentCore tool {tool_name}: {e}")
+                # Fall back to Daytona tools if AgentCore tools fail to load
+                try:
+                    daytona_tool = next((t for t in SANDBOX_TOOLS if t[0] == tool_name), None)
+                    if daytona_tool:
+                        tools_map[tool_name] = get_tool_class(daytona_tool[1], daytona_tool[2])
+                        logger.info(f"🔄 Fell back to Daytona tool for: {tool_name}")
+                except (ImportError, AttributeError):
+                    logger.error(f"❌ Failed to load both AgentCore and Daytona tools for: {tool_name}")
+    else:
+        logger.info("🏖️ Using Daytona.io for sandbox tools")
+        # Use Daytona tools
+        for tool_name, module_path, class_name in SANDBOX_TOOLS:
+            try:
+                tools_map[tool_name] = get_tool_class(module_path, class_name)
+                logger.debug(f"✅ Loaded Daytona tool: {tool_name}")
+            except (ImportError, AttributeError) as e:
+                logger.warning(f"⚠️ Failed to load Daytona tool {tool_name}: {e}")
+    
+    return tools_map
 
