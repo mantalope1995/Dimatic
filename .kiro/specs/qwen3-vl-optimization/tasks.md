@@ -1,0 +1,218 @@
+# Implementation Plan
+
+- [ ] 1. Configure SiliconFlow API integration
+  - [ ] 1.1 Add SiliconFlow environment variables to config
+    - Add SILICONFLOW_API_KEY and SILICONFLOW_API_BASE to backend/core/utils/config.py
+    - Update backend/.env.example with new variables
+    - _Requirements: 1.1, 1.4_
+  - [ ] 1.2 Update LiteLLM router for SiliconFlow
+    - Modify backend/core/services/llm.py to route to SiliconFlow endpoint
+    - Configure model as "openai/Qwen/Qwen3-VL-235B-A22B-Instruct"
+    - Set context window to 262144 tokens
+    - _Requirements: 1.2, 1.3, 1.5_
+  - [ ]* 1.3 Write property test for API routing
+    - **Property 9: API routing targets SiliconFlow endpoint**
+    - **Validates: Requirements 1.2, 9.4**
+
+- [ ] 2. Simplify model registry for Qwen3-VL only
+  - [ ] 2.1 Refactor model registry for Qwen3-VL models
+    - Update backend/core/ai_models/registry.py to register Qwen3-VL Thinking and Instruct
+    - Remove all legacy model definitions (Anthropic, OpenAI, etc.)
+    - Update model aliases to resolve to appropriate Qwen3-VL variant
+    - _Requirements: 10.1, 10.2, 10.3_
+  - [ ] 2.2 Update ai_models.py for Qwen3-VL config
+    - Add SILICONFLOW provider to ModelProvider enum
+    - Configure ModelConfig with SiliconFlow settings for both variants
+    - _Requirements: 1.5, 10.1_
+  - [ ]* 2.3 Write property test for model selection
+    - **Property 8: Model selection always returns Qwen3-VL**
+    - **Validates: Requirements 10.2**
+
+- [ ] 3. Checkpoint - Ensure API connectivity works
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 4. Implement native function calling
+  - [ ] 4.1 Update ProcessorConfig defaults
+    - Set xml_tool_calling=False, native_tool_calling=True in response_processor.py
+    - Remove XML-related configuration options
+    - _Requirements: 3.1, 3.2_
+  - [ ] 4.2 Update tool registry for OpenAI schema format
+    - Modify get_tools_for_llm() to return OpenAI function format only
+    - Remove any XML formatting code
+    - Reference: `qwen-agent/Qwen-Agent/qwen_agent/llm/fncall_prompts/nous_fncall_prompt.py` for FN_CALL_TEMPLATE
+    - _Requirements: 2.1, 2.2, 3.4_
+  - [ ]* 4.3 Write property test for tool schema conversion
+    - **Property 1: Tool schema conversion preserves semantics**
+    - **Validates: Requirements 2.1**
+  - [ ] 4.4 Enhance native tool parser
+    - Update parse_tool_calls() for robust field extraction
+    - Add format_tool_result() for tool role messages
+    - Reference: `qwen-agent/Qwen-Agent/qwen_agent/llm/fncall_prompts/nous_fncall_prompt.py` for postprocess_fncall_messages() and extract_fn()
+    - _Requirements: 2.3, 2.4, 2.5_
+  - [ ]* 4.5 Write property test for tool call parsing
+    - **Property 2: Native tool call parsing extracts all fields**
+    - **Validates: Requirements 2.3, 2.4**
+  - [ ]* 4.6 Write property test for tool result formatting
+    - **Property 3: Tool result formatting maintains ID consistency**
+    - **Validates: Requirements 2.5**
+
+- [ ] 5. Update streaming for native tool calls
+  - [ ] 5.1 Refactor streaming response processor
+    - Remove XML chunk detection and parsing
+    - Keep only native tool call buffering logic
+    - _Requirements: 2.6, 12.1, 12.2, 12.3, 12.4_
+  - [ ]* 5.2 Write property test for streaming assembly
+    - **Property 4: Streaming tool call assembly produces complete calls**
+    - **Validates: Requirements 2.6, 12.2**
+  - [ ]* 5.3 Write property test for streaming order
+    - **Property 11: Streaming yields chunks in order**
+    - **Validates: Requirements 12.1**
+
+- [ ] 6. Checkpoint - Verify native function calling works
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 7. Implement native vision support
+  - [ ] 7.1 Create VisionMessageHandler class
+    - Create new module backend/core/agentpress/vision_handler.py
+    - Implement format_message_with_images() method
+    - Support both URL and base64 image encoding
+    - Reference: `qwen-agent/Qwen-Agent/qwen_agent/llm/qwenvl_oai.py` for convert_messages_to_dicts() and conv_multimodel_value()
+    - _Requirements: 4.1, 4.2, 4.4_
+  - [ ]* 7.2 Write property test for image encoding
+    - **Property 5: Image encoding produces valid data URLs**
+    - **Validates: Requirements 4.2**
+  - [ ]* 7.3 Write property test for multi-image messages
+    - **Property 6: Multi-image messages include all images**
+    - **Validates: Requirements 4.4**
+  - [ ] 7.4 Integrate vision handler into message processing
+    - Update thread_manager.py to use VisionMessageHandler
+    - Handle image attachments in user messages
+    - _Requirements: 4.1, 4.3_
+
+- [ ] 8. Remove legacy vision tool
+  - [ ] 8.1 Remove vision tool files
+    - Delete backend/core/tools/sb_vision_tool.py
+    - Delete backend/core/tools/sb_vision_tool_agentcore.py
+    - Remove vision tool from tool_registry.py
+    - _Requirements: 5.1, 5.2, 5.3_
+  - [ ] 8.2 Update tool imports and references
+    - Remove vision tool imports from __init__.py files
+    - Update any code that references vision tools
+    - _Requirements: 5.3_
+
+- [ ] 9. Remove XML tool calling code
+  - [ ] 9.1 Remove XML parser module
+    - Delete or deprecate backend/core/agentpress/xml_tool_parser.py
+    - Remove XML imports from response_processor.py
+    - _Requirements: 3.1, 3.3_
+  - [ ] 9.2 Clean up response processor
+    - Remove all XML-related code paths
+    - Remove XML chunk detection logic
+    - _Requirements: 3.1_
+
+- [ ] 10. Update system prompt
+  - [ ] 10.1 Rewrite prompt for native function calling
+    - Remove XML tool calling syntax from backend/core/prompts/prompt.py
+    - Add guidance for native function calling
+    - Reference native vision capabilities
+    - _Requirements: 8.1, 8.2, 8.3, 8.4_
+
+- [ ] 11. Implement hybrid model routing (Thinking + Instruct)
+  - [ ] 11.1 Add Qwen3-VL-Thinking to model registry
+    - Register Qwen/Qwen3-VL-235B-A22B-Thinking as the planning model
+    - Configure for reasoning_content capture from response
+    - Reference: `qwen-agent/Qwen-Agent/examples/assistant_qwq.py` for thinking model config with thought_in_content
+    - _Requirements: 9.1, 9.4_
+  - [ ] 11.2 Create TaskPlan and TaskStep data models
+    - Create backend/core/agentpress/task_plan.py with TaskPlan and TaskStep dataclasses
+    - Include fields: id, original_request, reasoning, steps, current_step_index, status
+    - Add serialization methods for database storage
+    - _Requirements: 9.3_
+  - [ ] 11.3 Create ModelRouter class
+    - Create backend/core/agentpress/model_router.py
+    - Implement select_model() that checks conversation context for active_task_plan
+    - Return Thinking model when no plan exists, Instruct model when executing
+    - Reference: `qwen-agent/Qwen-Agent/qwen_agent/agents/router.py` for routing pattern with stop words
+    - _Requirements: 9.2, 9.5_
+  - [ ]* 11.4 Write property test for model routing
+    - **Property 14: Hybrid model routing selects correct variant**
+    - **Validates: Requirements 9.2, 9.5**
+  - [ ] 11.5 Integrate ModelRouter into agent run loop
+    - Update backend/core/run.py to use ModelRouter for model selection
+    - Pass conversation context to router before each LLM call
+    - _Requirements: 9.5_
+  - [ ] 11.6 Implement task plan storage in conversation context
+    - Store TaskPlan in thread metadata after Thinking model creates it
+    - Load active plan when resuming conversation
+    - _Requirements: 9.3_
+  - [ ] 11.7 Implement plan injection into system prompt
+    - Update PromptManager to inject active plan context for Instruct model
+    - Include completed steps, current step, and pending steps
+    - _Requirements: 9.2, 9.3_
+  - [ ] 11.8 Implement plan extraction from Thinking model response
+    - Parse reasoning_content from Thinking model response
+    - Extract structured plan and create TaskPlan object
+    - Reference: `qwen-agent/Qwen-Agent/qwen_agent/llm/fncall_prompts/nous_fncall_prompt.py` for reasoning_content and thought_in_content handling
+    - _Requirements: 9.4_
+
+- [ ] 12. Checkpoint - Verify core functionality
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 13. Implement JSON argument parsing improvements
+  - [ ] 13.1 Enhance argument parsing robustness
+    - Update parse_native_tool_call_arguments() for nested structures
+    - Add error handling for malformed JSON
+    - _Requirements: 13.1, 13.2, 13.3, 13.4_
+  - [ ]* 13.2 Write property test for JSON parsing
+    - **Property 7: JSON argument parsing preserves structure**
+    - **Validates: Requirements 13.1, 13.2**
+
+- [ ] 14. Implement error handling
+  - [ ] 14.1 Add SiliconFlow-specific error handling
+    - Update error_processor.py for SiliconFlow error formats
+    - Implement rate limit backoff logic
+    - Add context truncation for token limit errors
+    - _Requirements: 11.1, 11.2, 11.3, 11.4_
+  - [ ]* 14.2 Write property test for error parsing
+    - **Property 10: Error responses produce descriptive messages**
+    - **Validates: Requirements 11.1**
+
+- [ ] 15. Optional: Implement Qwen3-Embedding service
+  - [ ] 15.1 Create embedding service module
+    - Create backend/core/services/qwen_embedding.py
+    - Implement embed() method with instruction support
+    - Reference: `qwen-agent/Qwen-Agent/qwen_agent/tools/retrieval.py` for RAG patterns
+    - _Requirements: 6.1, 6.2, 6.4_
+  - [ ]* 15.2 Write property test for embedding dimensions
+    - **Property 12: Embedding vectors have correct dimensions**
+    - **Validates: Requirements 6.2**
+  - [ ] 15.3 Integrate with knowledge base
+    - Update knowledge_base module to use Qwen3-Embedding
+    - Add fallback behavior when not configured
+    - _Requirements: 6.3_
+
+- [ ] 16. Optional: Implement Qwen3-Reranker service
+  - [ ] 16.1 Create reranker service module
+    - Create backend/core/services/qwen_reranker.py
+    - Implement rerank() method
+    - _Requirements: 7.1, 7.2, 7.4_
+  - [ ]* 16.2 Write property test for reranker scores
+    - **Property 13: Reranker returns scores for all documents**
+    - **Validates: Requirements 7.4**
+  - [ ] 16.3 Integrate with search functionality
+    - Update search to use reranker when configured
+    - Add fallback behavior when not configured
+    - _Requirements: 7.3_
+
+- [ ] 17. Final cleanup and documentation
+  - [ ] 17.1 Remove unused legacy code
+    - Remove commented-out model definitions
+    - Clean up unused imports
+    - _Requirements: 9.3_
+  - [ ] 17.2 Update environment documentation
+    - Update backend/README.md with new configuration
+    - Update backend/.env.example
+    - _Requirements: 1.1_
+
+- [ ] 18. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
