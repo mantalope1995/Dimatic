@@ -915,108 +915,12 @@ class AgentRunner:
                 thread_data_result = await client.table('threads').select('metadata').eq('thread_id', self.config.thread_id).single().execute()
                 thread_metadata = thread_data_result.data.get('metadata', {}) if thread_data_result.data else {}
                 
-                # Initialize router and select model
-                router = ModelRouter()
-                selected_model = router.select_model(thread_metadata, llm_model)
+                # ==================================
+                # --- All Context Injection Removed ---
+                # User requested to remove all context injection logic.
+                # The agent will rely on the base system prompt and message history.
                 
-                # If the router changed the model, update it
-                if selected_model != llm_model:
-                    logger.info(f"🔄 Model Router switched model: {llm_model} -> {selected_model}")
-                    llm_model = selected_model
-
-                # DETERMINE PROMPTING STRATEGY
-                # Check actual plan state to decide between Planning (Thinking) and Execution (Instruct) prompts
-                # We cannot rely solely on model ID comparison if Thinking and Instruct models are the same
-                
-                is_execution_mode = False
-                active_plan_data = thread_metadata.get('active_task_plan')
-                
-                if active_plan_data:
-                    try:
-                        plan = TaskPlan.from_dict(active_plan_data)
-                        # If plan is active/in-progress, we are in Execution mode
-                        if plan.status not in ["complete", "failed", "abandoned"]:
-                            is_execution_mode = True
-                    except Exception:
-                        # If plan parsing fails, default to planning mode
-                        pass
-                    
-                # Apply appropriate system prompt additions
-                if not is_execution_mode:
-                    # PLANNING MODE: Add instruction to system prompt to output plan in specific format
-                    plan_instruction = """
-                    
-                    IMPORTANT: You are in PLANNING MODE.
-                    You must analyze the user's request and create a detailed step-by-step plan.
-                    
-                    Your response MUST include a 'reasoning_content' section (if supported) or use <plan> tags.
-                    Structure your plan using the following JSON format inside <plan> tags:
-                    
-                    <plan>
-                    {
-                        "reasoning": "Detailed reasoning about the approach...",
-                        "steps": [
-                            {
-                                "id": "step_1",
-                                "description": "Description of step 1",
-                                "tools_to_use": ["tool_name"]
-                            },
-                            ...
-                        ]
-                    }
-                    </plan>
-                    """
-                    # Modifying system prompt copy to avoid side effects
-                    if isinstance(system_message, dict) and 'content' in system_message:
-                        system_message = system_message.copy()
-                        system_message['content'] += plan_instruction
-                        
-                else:
-                    # EXECUTION MODE: Inject active plan context
-                    if active_plan_data:
-                        try:
-                            # Re-parse plan (it's safe, we checked it above)
-                            plan = TaskPlan.from_dict(active_plan_data)
-                            
-                            # Format plan for context
-                            plan_context = f"""
-                            
-                            === ACTIVE TASK PLAN ===
-                            Original Request: {plan.original_request}
-                            
-                            Plan Status:
-                            """
-                            
-                            for i, step in enumerate(plan.steps):
-                                status_mark = "[ ]"
-                                if step.status == "complete":
-                                    status_mark = "[x]"
-                                elif step.status == "in_progress":
-                                    status_mark = "[>]"
-                                elif step.status == "failed":
-                                    status_mark = "[!]"
-                                    
-                                plan_context += f"{i+1}. {status_mark} {step.description}\n"
-                                if step.result:
-                                    plan_context += f"   Result: {step.result[:200]}...\n"
-                            
-                            current_step = plan.get_current_step()
-                            if current_step:
-                                plan_context += f"\n👉 CURRENT STEP: {current_step.description}\n"
-                                plan_context += f"\nCOMPLETION INSTRUCTION: When you have verified this step is complete, you MUST output the following tag at the end of your response:\n"
-                                plan_context += f'<step_update id="{current_step.id}" status="complete" result="[Brief summary of valid result]"/>\n'
-                                
-                            plan_context += "=== END TASK PLAN ===\n"
-                            
-                            if isinstance(system_message, dict) and 'content' in system_message:
-                                system_message = system_message.copy()
-                                system_message['content'] += plan_context
-                                
-                        except Exception as e:
-                            logger.error(f"Failed to inject task plan context: {e}")
-                
-                # ----------------------------------------------------
-
+                 # ----------------------------------------------------
                 logger.debug(f"Starting thread execution for {self.config.thread_id}")
                 response = await self.thread_manager.run_thread(
                     thread_id=self.config.thread_id,
