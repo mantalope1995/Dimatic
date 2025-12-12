@@ -3,6 +3,7 @@ export enum EnvMode {
   LOCAL = 'local',
   STAGING = 'staging',
   PRODUCTION = 'production',
+  TESTING = 'testing',
 }
 
 // Subscription tier structure - tier keys only, no price IDs
@@ -28,6 +29,7 @@ interface Config {
   ENV_MODE: EnvMode;
   IS_LOCAL: boolean;
   IS_STAGING: boolean;
+  IS_TESTING: boolean;
   SUBSCRIPTION_TIERS: SubscriptionTiers;
 }
 
@@ -76,6 +78,8 @@ function getEnvironmentMode(): EnvMode {
       return EnvMode.STAGING;
     case 'PRODUCTION':
       return EnvMode.PRODUCTION;
+    case 'TESTING':
+      return EnvMode.TESTING;
     default:
       return EnvMode.LOCAL;
   }
@@ -87,6 +91,7 @@ export const config: Config = {
   ENV_MODE: currentEnvMode,
   IS_LOCAL: currentEnvMode === EnvMode.LOCAL,
   IS_STAGING: currentEnvMode === EnvMode.STAGING,
+  IS_TESTING: currentEnvMode === EnvMode.TESTING,
   SUBSCRIPTION_TIERS: TIERS,  // Same tiers for all environments
 };
 
@@ -100,4 +105,8 @@ export const isStagingMode = (): boolean => {
 
 export const isProductionMode = (): boolean => {
   return config.ENV_MODE === EnvMode.PRODUCTION;
+};
+
+export const isTestingMode = (): boolean => {
+  return config.IS_TESTING;
 };
