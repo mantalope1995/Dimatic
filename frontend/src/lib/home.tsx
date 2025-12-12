@@ -5,7 +5,7 @@ import { pricingTiers, type PricingTier } from '@/lib/pricing-config';
 export type { PricingTier } from '@/lib/pricing-config';
 
 export const siteConfig = {
-  name: 'Dimatic - Stop guessing, start knowing.',
+  name: 'Dimatic.',
   description: 'Built for complex tasks, designed for everything. The ultimate AI assistant that handles it all—from simple requests to complex projects.',
   cta: 'Start Free',
   url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3015',

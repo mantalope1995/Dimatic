@@ -5,7 +5,7 @@ import Image from 'next/image';
 
 export const metadata: Metadata = {
   title: 'Dimatic',
-  description: 'Dimatic - Stop guessing, start knowing.',
+  description: 'Dimatic.',
   keywords: [
     'Suna',
     'Dimatic Suna',
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: 'Dimatic',
-    description: 'Dimatic - Stop guessing, start knowing.',
+    description: 'Dimatic.',
     type: 'website',
     url: 'https://dimatic.com.au/suna',
     siteName: 'Dimatic',
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Dimatic',
-    description: 'Dimatic - Stop guessing, start knowing.',
+    description: 'Dimatic.',
     images: ['/banner.png'],
   },
   alternates: {
