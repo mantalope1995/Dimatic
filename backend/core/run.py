@@ -923,10 +923,27 @@ class AgentRunner:
                 if selected_model != llm_model:
                     logger.info(f"🔄 Model Router switched model: {llm_model} -> {selected_model}")
                     llm_model = selected_model
+
+                # DETERMINE PROMPTING STRATEGY
+                # Check actual plan state to decide between Planning (Thinking) and Execution (Instruct) prompts
+                # We cannot rely solely on model ID comparison if Thinking and Instruct models are the same
+                
+                is_execution_mode = False
+                active_plan_data = thread_metadata.get('active_task_plan')
+                
+                if active_plan_data:
+                    try:
+                        plan = TaskPlan.from_dict(active_plan_data)
+                        # If plan is active/in-progress, we are in Execution mode
+                        if plan.status not in ["complete", "failed", "abandoned"]:
+                            is_execution_mode = True
+                    except Exception:
+                        # If plan parsing fails, default to planning mode
+                        pass
                     
-                # If using Thinking model, append formatting instructions
-                if selected_model == ModelRouter.THINKING_MODEL:
-                    # Add instruction to system prompt to output plan in specific format
+                # Apply appropriate system prompt additions
+                if not is_execution_mode:
+                    # PLANNING MODE: Add instruction to system prompt to output plan in specific format
                     plan_instruction = """
                     
                     IMPORTANT: You are in PLANNING MODE.
@@ -954,11 +971,11 @@ class AgentRunner:
                         system_message = system_message.copy()
                         system_message['content'] += plan_instruction
                         
-                # If using Instruct model, inject active plan context
-                elif selected_model == ModelRouter.INSTRUCT_MODEL:
-                    active_plan_data = thread_metadata.get('active_task_plan')
+                else:
+                    # EXECUTION MODE: Inject active plan context
                     if active_plan_data:
                         try:
+                            # Re-parse plan (it's safe, we checked it above)
                             plan = TaskPlan.from_dict(active_plan_data)
                             
                             # Format plan for context
