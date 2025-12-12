@@ -297,8 +297,6 @@ services:
       - NEXT_PUBLIC_URL=${NEXT_PUBLIC_URL}
       - NEXT_PUBLIC_ENV_MODE=${NEXT_PUBLIC_ENV_MODE}
       - KORTIX_ADMIN_API_KEY=${KORTIX_ADMIN_API_KEY}
-      - SILICONFLOW_API_KEY=${SILICONFLOW_API_KEY}
-      - SILICONFLOW_API_BASE=${SILICONFLOW_API_BASE}
     depends_on:
       - backend
     # Traefik labels handled by Dokploy automatically

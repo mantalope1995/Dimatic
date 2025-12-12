@@ -684,7 +684,18 @@ class ResponseProcessor:
 
             # Only auto-continue for 'length' or 'tool_calls' finish reasons (not 'stop' or others)
             # Don't auto-continue if agent should terminate (ask/complete tool executed)
-            should_auto_continue = (can_auto_continue and finish_reason in ['length', 'tool_calls'] and not agent_should_terminate)
+            # Check for plan or step update in content (indicates we should continue to execution)
+            has_plan_content = "<plan>" in accumulated_content or "<step_update" in accumulated_content
+            
+            # Auto-continue if:
+            # 1. Enabled (can_auto_continue)
+            # 2. Reason is length/tool_calls OR (reason is stop AND we have a plan/update)
+            # 3. Agent is NOT terminating (ask/complete not called)
+            should_auto_continue = (
+                can_auto_continue and 
+                not agent_should_terminate and 
+                (finish_reason in ['length', 'tool_calls'] or (finish_reason == 'stop' and has_plan_content))
+            )
 
             # Save assistant message if:
             # 1. Not cancelled by user
