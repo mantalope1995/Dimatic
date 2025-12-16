@@ -16,7 +16,7 @@ export type MarkdownProps = {
  * but hidden from users at render time.
  */
 function stripThinkingTokens(content: string): string {
-  return content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  return content.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '').trim();
 }
 
 export const Markdown: React.FC<MarkdownProps> = React.memo(({
@@ -24,11 +24,11 @@ export const Markdown: React.FC<MarkdownProps> = React.memo(({
   className = ''
 }) => {
   const processedContent = stripThinkingTokens(children);
-  
+
   if (!processedContent) {
     return null;
   }
-  
+
   return (
     <div className={cn('prose prose-sm dark:prose-invert max-w-none', className)}>
       <ReactMarkdown
