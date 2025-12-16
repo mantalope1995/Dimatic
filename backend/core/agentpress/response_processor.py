@@ -32,8 +32,8 @@ from core.agentpress.native_tool_parser import (
     convert_buffer_to_metadata_tool_calls
 )
 from core.agentpress.error_processor import ErrorProcessor
-from langfuse.client import StatefulTraceClient
 from core.services.langfuse import langfuse
+from typing import Any
 from core.utils.json_helpers import (
     ensure_dict, ensure_list, safe_json_parse, 
     to_json_string, format_for_yield
@@ -105,7 +105,7 @@ class ProcessorConfig:
 class ResponseProcessor:
     """Processes LLM responses, extracting and executing tool calls."""
     
-    def __init__(self, tool_registry: ToolRegistry, add_message_callback: Callable, trace: Optional[StatefulTraceClient] = None, agent_config: Optional[dict] = None):
+    def __init__(self, tool_registry: ToolRegistry, add_message_callback: Callable, trace: Optional[Any] = None, agent_config: Optional[dict] = None):
         """Initialize the ResponseProcessor.
         
         Args:

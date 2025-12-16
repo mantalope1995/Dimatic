@@ -14,8 +14,8 @@ from core.agentpress.response_processor import ResponseProcessor, ProcessorConfi
 from core.agentpress.error_processor import ErrorProcessor
 from core.services.supabase import DBConnection
 from core.utils.logger import logger
-from langfuse.client import StatefulGenerationClient, StatefulTraceClient
 from core.services.langfuse import langfuse
+from typing import Any
 from datetime import datetime, timezone
 from core.billing.credits.integration import billing_integration
 from litellm.utils import token_counter
@@ -26,7 +26,7 @@ ToolChoice = Literal["auto", "required", "none"]
 class ThreadManager:
     """Manages conversation threads with LLM models and tool execution."""
 
-    def __init__(self, trace: Optional[StatefulTraceClient] = None, agent_config: Optional[dict] = None):
+    def __init__(self, trace: Optional[Any] = None, agent_config: Optional[dict] = None):
         self.db = DBConnection()
         self.tool_registry = ToolRegistry()
         
@@ -287,7 +287,7 @@ class ThreadManager:
         processor_config: Optional[ProcessorConfig] = None,
         tool_choice: ToolChoice = "auto",
         native_max_auto_continues: int = 25,
-        generation: Optional[StatefulGenerationClient] = None,
+        generation: Optional[Any] = None,
         latest_user_message_content: Optional[str] = None,
         cancellation_event: Optional[asyncio.Event] = None,
     ) -> Union[Dict[str, Any], AsyncGenerator]:
@@ -335,7 +335,7 @@ class ThreadManager:
     async def _execute_run(
         self, thread_id: str, system_prompt: Dict[str, Any], llm_model: str,
         llm_temperature: float, llm_max_tokens: Optional[int], tool_choice: ToolChoice,
-        config: ProcessorConfig, stream: bool, generation: Optional[StatefulGenerationClient],
+        config: ProcessorConfig, stream: bool, generation: Optional[Any],
         auto_continue_state: Dict[str, Any], temporary_message: Optional[Dict[str, Any]] = None,
         latest_user_message_content: Optional[str] = None, cancellation_event: Optional[asyncio.Event] = None
     ) -> Union[Dict[str, Any], AsyncGenerator]:
@@ -660,7 +660,7 @@ class ThreadManager:
     async def _auto_continue_generator(
         self, thread_id: str, system_prompt: Dict[str, Any], llm_model: str,
         llm_temperature: float, llm_max_tokens: Optional[int], tool_choice: ToolChoice,
-        config: ProcessorConfig, stream: bool, generation: Optional[StatefulGenerationClient],
+        config: ProcessorConfig, stream: bool, generation: Optional[Any],
         auto_continue_state: Dict[str, Any], temporary_message: Optional[Dict[str, Any]],
         native_max_auto_continues: int, latest_user_message_content: Optional[str] = None,
         cancellation_event: Optional[asyncio.Event] = None

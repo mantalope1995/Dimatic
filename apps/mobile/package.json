@@ -4,7 +4,6 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "expo start -c",
-    "postinstall": "patch-package",
     "android": "expo start -c --android",
     "ios": "expo start -c --ios",
     "web": "expo start -c --web",

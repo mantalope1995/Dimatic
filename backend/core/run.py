@@ -23,7 +23,7 @@ from core.utils.logger import logger
 from core.billing.credits.integration import billing_integration
 
 from core.services.langfuse import langfuse
-from langfuse.client import StatefulTraceClient
+from typing import Any
 
 from core.tools.mcp_tool_wrapper import MCPToolWrapper
 from core.tools.task_list_tool import TaskListTool
@@ -44,7 +44,7 @@ class AgentConfig:
     max_iterations: int = 100
     model_name: str = "openai/gpt-5-mini"
     agent_config: Optional[dict] = None
-    trace: Optional[StatefulTraceClient] = None
+    trace: Optional[Any] = None
     account_id: Optional[str] = None  # If provided, skip thread query in setup()
 
 class ToolManager:
@@ -1043,7 +1043,7 @@ async def run_agent(
     max_iterations: int = 100,
     model_name: str = "openai/gpt-5-mini",
     agent_config: Optional[dict] = None,    
-    trace: Optional[StatefulTraceClient] = None,
+    trace: Optional[Any] = None,
     cancellation_event: Optional[asyncio.Event] = None,
     account_id: Optional[str] = None  # If provided, skips thread query in setup()
 ):
