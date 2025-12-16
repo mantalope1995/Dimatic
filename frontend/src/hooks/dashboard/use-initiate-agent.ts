@@ -85,14 +85,16 @@ export const useInitiateAgentWithInvalidation = () => {
   const baseMutation = useInitiateAgentMutation();
   
   return useMutation({
-    mutationFn: baseMutation.mutateAsync,
+    mutationFn: async (formData: FormData) => {
+      return await baseMutation.mutateAsync(formData);
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
       queryClient.invalidateQueries({ queryKey: threadKeys.all });
       queryClient.invalidateQueries({ queryKey: dashboardKeys.agents });
     },
     onError: (error) => {
-      if (error instanceof BillingError || 
+      if (error instanceof BillingError ||
           error instanceof AgentRunLimitError ||
           error instanceof ProjectLimitError ||
           error instanceof ThreadLimitError ||
