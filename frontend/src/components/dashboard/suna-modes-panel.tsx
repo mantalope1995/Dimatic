@@ -1243,7 +1243,7 @@ export function SunaModesPanel({
       {/* Mode Tabs - Only show when no mode is selected */}
       {!selectedMode && (
         <div className="flex items-center justify-center animate-in fade-in-0 zoom-in-95 duration-300 px-2 sm:px-0">
-          <div className="grid grid-cols-3 gap-2 sm:inline-flex sm:gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:inline-flex sm:gap-2">
             {modes.map((mode) => (
               <Button
                 key={mode.id}

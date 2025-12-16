@@ -56,11 +56,11 @@ export function QuickActionBar({
 
   return (
     <View className="">
-      <ScrollView 
+      <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 12, gap: 8 }}
-        className="flex-row"
+        className="flex-row flex-wrap"
       >
         {enhancedActions.map((action) => (
           <QuickActionCard key={action.id} action={action} />
