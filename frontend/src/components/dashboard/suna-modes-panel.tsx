@@ -1635,4 +1635,3 @@ export function SunaModesPanel({
     </div>
   );
 }
-
