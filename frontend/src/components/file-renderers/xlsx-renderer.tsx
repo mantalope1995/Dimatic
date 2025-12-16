@@ -90,7 +90,7 @@ export function XlsxRenderer({
           arrayBuffer = await resp.arrayBuffer();
         }
 
-        const XLSX = await import('xlsx');
+        const XLSX = await import('xlsx-js-style');
         const workbook = XLSX.read(arrayBuffer, { type: 'array' });
         const sheetNames: string[] = workbook.SheetNames || [];
         const sheets = sheetNames.map((name) => {
