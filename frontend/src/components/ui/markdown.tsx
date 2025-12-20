@@ -14,9 +14,19 @@ export type MarkdownProps = {
  * Strips thinking tokens from content (e.g., <think>...</think> from MiniMax-M2)
  * These are preserved in message history for reasoning chain continuity,
  * but hidden from users at render time.
+ * 
+ * Handles both complete blocks (<think>...</think>) and incomplete/streaming
+ * blocks (<think>... without closing tag yet) to prevent flashing in UI.
  */
 function stripThinkingTokens(content: string): string {
-  return content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  // First, strip complete thinking blocks
+  let result = content.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  
+  // Then, strip incomplete thinking blocks (opened but not yet closed during streaming)
+  // This handles the flash issue where content appears before the closing tag arrives
+  result = result.replace(/<think>[\s\S]*$/gi, '');
+  
+  return result.trim();
 }
 
 export const Markdown: React.FC<MarkdownProps> = React.memo(({
