@@ -4,12 +4,12 @@ import { useState } from 'react';
 import { SectionHeader } from '@/components/home/section-header';
 import { FooterSection } from '@/components/home/sections/footer-section';
 import { motion } from 'motion/react';
-import { 
-  ArrowRight, 
-  Check, 
-  Clock, 
-  Shield, 
-  Users, 
+import {
+  ArrowRight,
+  Check,
+  Clock,
+  Shield,
+  Users,
   Zap,
   Star,
   Calendar,
@@ -20,8 +20,9 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { KortixEnterpriseModal } from '@/components/sidebar/kortix-enterprise-modal';
-import { KortixLogo } from '@/components/sidebar/kortix-logo';
+import { EnterpriseModal } from '@/components/home/enterprise-modal';
+import { DimaticLogo } from '@/components/home/dimatic-logo';
+
 
 // Hero Section Component
 const CustomHeroSection = () => {
@@ -32,32 +33,32 @@ const CustomHeroSection = () => {
           <div className="flex flex-col items-center justify-center gap-6 pt-12 max-w-4xl mx-auto">
             {/* Kortix Logo */}
             <div className="mb-8">
-              <KortixLogo size={48} />
+              <DimaticLogo size={48} />
             </div>
-            
+
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20">
               <Sparkles className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium text-primary">Enterprise Implementation Services</span>
             </div>
-            
+
             <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-medium tracking-tighter text-balance text-center">
               <span className="text-primary">Enterprise AI Workers.</span>
               <br />
               <span className="text-secondary">Delivered in days.</span>
             </h1>
-            
+
             <p className="text-lg md:text-xl text-center text-muted-foreground font-medium text-balance leading-relaxed tracking-tight max-w-3xl">
               Skip the learning curve. Our AI specialists design, develop and deploy enterprise-grade AI workers that integrate seamlessly with your operations.
             </p>
-            
+
             <div className="flex flex-col items-center gap-6 pt-6">
-              <KortixEnterpriseModal>
+              <EnterpriseModal>
                 <Button size="lg">
                   <Calendar className="w-4 h-4 mr-2" />
                   Schedule Strategy Call
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
-              </KortixEnterpriseModal>
+              </EnterpriseModal>
               <div className="flex flex-col sm:flex-row items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-primary"></div>
@@ -110,7 +111,7 @@ const ValuePropSection = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="p-8">
               <div className="space-y-6">
                 <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center">
@@ -142,7 +143,7 @@ const ProcessSection = () => {
     },
     {
       icon: <Zap className="w-8 h-8" />,
-      title: "Engineering Excellence", 
+      title: "Engineering Excellence",
       description: "Full-stack development with enterprise security, scalability design, comprehensive testing, performance optimization, and seamless integration with existing systems.",
       phase: "Build"
     },
@@ -182,7 +183,7 @@ const ProcessSection = () => {
                     {step.icon}
                   </div>
                 </div>
-                
+
                 <div className="flex-1 space-y-3">
                   <div className="flex items-center gap-3">
                     <h3 className="text-xl font-semibold">{step.title}</h3>
@@ -208,7 +209,7 @@ const BenefitsSection = () => {
   const benefits = [
     "Dedicated solution architect and technical lead for your project",
     "Enterprise-grade AI worker design with scalability considerations",
-    "White-glove support with dedicated success manager", 
+    "White-glove support with dedicated success manager",
     "Comprehensive team training and knowledge transfer",
     "Quarterly business reviews and performance optimization",
     "Deep integration with existing technology stack and workflows"
@@ -263,7 +264,7 @@ const TestimonialsSection = () => {
     },
     {
       quote: "ROI was evident within the first month. The AI workers handle our most complex processes flawlessly.",
-      author: "Marcus Rodriguez", 
+      author: "Marcus Rodriguez",
       company: "Global Manufacturing Corp",
       avatar: "💡"
     },
@@ -276,7 +277,7 @@ const TestimonialsSection = () => {
     {
       quote: "Professional, reliable, and innovative. The custom solution exceeded our expectations completely.",
       author: "James Wellington",
-      company: "Strategic Ventures Group", 
+      company: "Strategic Ventures Group",
       avatar: "🎯"
     }
   ];
@@ -311,11 +312,11 @@ const TestimonialsSection = () => {
                         <Star key={i} className="w-4 h-4 fill-primary text-primary" />
                       ))}
                     </div>
-                    
+
                     <blockquote className="text-lg font-medium leading-relaxed">
                       "{testimonial.quote}"
                     </blockquote>
-                    
+
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-lg">
                         {testimonial.avatar}
@@ -367,7 +368,7 @@ const SelfServiceSection = () => {
                 </Button>
               </div>
             </div>
-            
+
             <div className="p-8 space-y-6">
               <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center">
                 <Headphones className="w-6 h-6 text-secondary" />
@@ -409,13 +410,13 @@ const FinalCTASection = () => {
             <div className="text-center space-y-6">
               <div className="space-y-4">
                 <div className="space-y-6">
-                  <KortixEnterpriseModal>
+                  <EnterpriseModal>
                     <Button size="lg">
                       <Calendar className="w-4 h-4 mr-2" />
                       Book Your Strategy Session
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
-                  </KortixEnterpriseModal>
+                  </EnterpriseModal>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center max-w-2xl mx-auto">
                     <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-accent/20">
                       <Shield className="w-6 h-6 text-primary" />

@@ -6,7 +6,6 @@ import { FlickeringGrid } from '@/components/home/ui/flickering-grid';
 import { Globe } from '@/components/home/ui/globe';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
-import { config } from '@/lib/config';
 
 export const Highlight = ({
   children,
@@ -39,7 +38,7 @@ interface UpgradePlan {
 export interface PricingTier {
   name: string;
   price: string;
-  yearlyPrice?: string; // Add yearly price support
+  yearlyPrice?: string;
   description: string;
   buttonText: string;
   buttonColor: string;
@@ -48,13 +47,13 @@ export interface PricingTier {
   hours: string;
   features: string[];
   stripePriceId: string;
-  yearlyStripePriceId?: string; // Add yearly price ID support
-  monthlyCommitmentStripePriceId?: string; // Add monthly commitment with yearly commitment support
+  yearlyStripePriceId?: string;
+  monthlyCommitmentStripePriceId?: string;
   upgradePlans: UpgradePlan[];
-  hidden?: boolean; // Optional property to hide plans from display while keeping them in code
-  billingPeriod?: 'monthly' | 'yearly'; // Add billing period support
-  originalYearlyPrice?: string; // For showing crossed-out price
-  discountPercentage?: number; // For showing discount badge
+  hidden?: boolean;
+  billingPeriod?: 'monthly' | 'yearly';
+  originalYearlyPrice?: string;
+  discountPercentage?: number;
 }
 
 export const siteConfig = {
@@ -66,7 +65,6 @@ export const siteConfig = {
   links: {
     email: 'support@kortix.ai',
     twitter: 'https://x.com/kortixai',
-    // discord: 'https://discord.gg/kortixai',
     github: 'https://github.com/Kortix-ai/Suna',
     instagram: 'https://instagram.com/kortixai',
   },
@@ -74,9 +72,6 @@ export const siteConfig = {
     links: [
       { id: 1, name: 'Home', href: '#hero' },
       { id: 2, name: 'Process', href: '#process' },
-      // { id: 3, name: 'Use Cases', href: '#use-cases' },
-      // { id: 4, name: 'Open Source', href: '#open-source' },
-      // { id: 5, name: 'Pricing', href: '#pricing' },
       { id: 6, name: 'Enterprise', href: '/enterprise' },
     ],
   },
@@ -109,11 +104,13 @@ export const siteConfig = {
     ),
     badge: '100% OPEN SOURCE',
     githubUrl: 'https://github.com/kortix-ai/suna',
-    title: 'Dimatic – Build, manage and train your digital assistants.',
+    title: 'Dimatic – Build, manage and train your digital assistants.',
     description:
-      'Dimatic – AI made easy.',
+      'Dimatic – AI made easy.',
     inputPlaceholder: 'Ask Suna to...',
   },
+  // Pricing items - stripePriceId fields are kept for type compatibility but not used
+  // Actual checkout happens in the app, not on the landing page
   cloudPricingItems: [
     {
       name: 'Plus',
@@ -125,7 +122,6 @@ export const siteConfig = {
       buttonText: 'Get started',
       buttonColor: 'bg-primary text-white dark:text-black',
       isPopular: true,
-      /** @deprecated */
       hours: '2 hours',
       features: [
         '$20 AI token credits/m',
@@ -136,9 +132,9 @@ export const siteConfig = {
         'Premium AI Models',
         'Advanced AI Capabilities',
       ],
-      stripePriceId: config.SUBSCRIPTION_TIERS.TIER_2_20.priceId,
-      yearlyStripePriceId: config.SUBSCRIPTION_TIERS.TIER_2_20_YEARLY.priceId,
-      monthlyCommitmentStripePriceId: config.SUBSCRIPTION_TIERS.TIER_2_17_YEARLY_COMMITMENT.priceId,
+      stripePriceId: 'price_plus_monthly',
+      yearlyStripePriceId: 'price_plus_yearly',
+      monthlyCommitmentStripePriceId: 'price_plus_yearly_commitment',
       upgradePlans: [],
     },
     {
@@ -151,7 +147,6 @@ export const siteConfig = {
       buttonText: 'Get started',
       buttonColor: 'bg-secondary text-white',
       isPopular: false,
-      /** @deprecated */
       hours: '6 hours',
       features: [
         '$50 AI token credits/m',
@@ -162,9 +157,9 @@ export const siteConfig = {
         'Premium AI Models',
         'Advanced AI Capabilities',
       ],
-      stripePriceId: config.SUBSCRIPTION_TIERS.TIER_6_50.priceId,
-      yearlyStripePriceId: config.SUBSCRIPTION_TIERS.TIER_6_50_YEARLY.priceId,
-      monthlyCommitmentStripePriceId: config.SUBSCRIPTION_TIERS.TIER_6_42_YEARLY_COMMITMENT.priceId,
+      stripePriceId: 'price_pro_monthly',
+      yearlyStripePriceId: 'price_pro_yearly',
+      monthlyCommitmentStripePriceId: 'price_pro_yearly_commitment',
       upgradePlans: [],
     },
     {
@@ -187,8 +182,8 @@ export const siteConfig = {
         'Premium AI Models',
         'Advanced AI Capabilities',
       ],
-      stripePriceId: config.SUBSCRIPTION_TIERS.TIER_12_100.priceId,
-      yearlyStripePriceId: config.SUBSCRIPTION_TIERS.TIER_12_100_YEARLY.priceId,
+      stripePriceId: 'price_business_monthly',
+      yearlyStripePriceId: 'price_business_yearly',
       upgradePlans: [],
       hidden: true,
     },
@@ -213,9 +208,9 @@ export const siteConfig = {
         'Priority Support',
         'Advanced AI Capabilities',
       ],
-      stripePriceId: config.SUBSCRIPTION_TIERS.TIER_25_200.priceId,
-      yearlyStripePriceId: config.SUBSCRIPTION_TIERS.TIER_25_200_YEARLY.priceId,
-      monthlyCommitmentStripePriceId: config.SUBSCRIPTION_TIERS.TIER_25_170_YEARLY_COMMITMENT.priceId,
+      stripePriceId: 'price_ultra_monthly',
+      yearlyStripePriceId: 'price_ultra_yearly',
+      monthlyCommitmentStripePriceId: 'price_ultra_yearly_commitment',
       upgradePlans: [],
     },
     {
@@ -238,8 +233,8 @@ export const siteConfig = {
         'Priority support',
         'Advanced AI Capabilities',
       ],
-      stripePriceId: config.SUBSCRIPTION_TIERS.TIER_50_400.priceId,
-      yearlyStripePriceId: config.SUBSCRIPTION_TIERS.TIER_50_400_YEARLY.priceId,
+      stripePriceId: 'price_enterprise_monthly',
+      yearlyStripePriceId: 'price_enterprise_yearly',
       upgradePlans: [],
       hidden: true,
     },
@@ -264,8 +259,8 @@ export const siteConfig = {
         'Advanced AI Capabilities',
         'Dedicated account manager',
       ],
-      stripePriceId: config.SUBSCRIPTION_TIERS.TIER_125_800.priceId,
-      yearlyStripePriceId: config.SUBSCRIPTION_TIERS.TIER_125_800_YEARLY.priceId,
+      stripePriceId: 'price_scale_monthly',
+      yearlyStripePriceId: 'price_scale_yearly',
       upgradePlans: [],
       hidden: true,
     },
@@ -291,13 +286,14 @@ export const siteConfig = {
         'Dedicated account manager',
         'Custom deployment',
       ],
-      stripePriceId: config.SUBSCRIPTION_TIERS.TIER_200_1000.priceId,
-      yearlyStripePriceId: config.SUBSCRIPTION_TIERS.TIER_200_1000_YEARLY.priceId,
+      stripePriceId: 'price_max_monthly',
+      yearlyStripePriceId: 'price_max_yearly',
       upgradePlans: [],
       hidden: true,
     },
   ],
   companyShowcase: {
+
     companyLogos: [
       {
         id: 1,

@@ -1,4 +1,4 @@
-import { ThemeProvider } from '@/components/home/theme-provider';
+import { ThemeProvider } from '@/components/theme-provider';
 import { siteConfig } from '@/lib/site';
 import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
@@ -9,8 +9,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import Script from 'next/script';
-import { PostHogIdentify } from '@/components/posthog-identify';
-import '@/lib/polyfills'; // Load polyfills early
+import '@/lib/polyfills';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -33,7 +32,7 @@ export const metadata: Metadata = {
     template: `%s - ${siteConfig.name}`,
   },
   description:
-    'Kortix is a fully open source AI assistant that helps you accomplish real-world tasks with ease. Through natural conversation, Kortix becomes your digital companion for research, data analysis, and everyday challenges.',
+    'Dimatic is a fully open source AI assistant that helps you accomplish real-world tasks with ease. Through natural conversation, Dimatic becomes your digital companion for research, data analysis, and everyday challenges.',
   keywords: [
     'AI',
     'artificial intelligence',
@@ -45,13 +44,11 @@ export const metadata: Metadata = {
     'research',
     'data analysis',
   ],
-  authors: [{ name: 'Kortix Team', url: 'https://suna.so' }],
-  creator:
-    'Kortix Team',
-  publisher:
-    'Kortix Team',
+  authors: [{ name: 'Dimatic Team', url: 'https://dimatic.ai' }],
+  creator: 'Dimatic Team',
+  publisher: 'Dimatic Team',
   category: 'Technology',
-  applicationName: 'Suna',
+  applicationName: 'Dimatic',
   formatDetection: {
     telephone: false,
     email: false,
@@ -66,17 +63,17 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'Suna - Open Source Generalist AI Worker',
+    title: 'Dimatic - Open Source Generalist AI Worker',
     description:
-      'Suna is a fully open source AI assistant that helps you accomplish real-world tasks with ease through natural conversation.',
+      'Dimatic is a fully open source AI assistant that helps you accomplish real-world tasks with ease through natural conversation.',
     url: siteConfig.url,
-    siteName: 'Suna',
+    siteName: 'Dimatic',
     images: [
       {
         url: '/banner.png',
         width: 1200,
         height: 630,
-        alt: 'Suna - Open Source Generalist AI Worker',
+        alt: 'Dimatic - Open Source Generalist AI Worker',
         type: 'image/png',
       },
     ],
@@ -85,17 +82,17 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Suna - Open Source Generalist AI Worker',
+    title: 'Dimatic - Open Source Generalist AI Worker',
     description:
-      'Suna is a fully open source AI assistant that helps you accomplish real-world tasks with ease through natural conversation.',
-    creator: '@kortixai',
-    site: '@kortixai',
+      'Dimatic is a fully open source AI assistant that helps you accomplish real-world tasks with ease through natural conversation.',
+    creator: '@dimatic',
+    site: '@dimatic',
     images: [
       {
         url: '/banner.png',
         width: 1200,
         height: 630,
-        alt: 'Suna - Open Source Generalist AI Worker',
+        alt: 'Dimatic - Open Source Generalist AI Worker',
       },
     ],
   },
@@ -103,7 +100,6 @@ export const metadata: Metadata = {
     icon: [{ url: '/favicon.png', sizes: 'any' }],
     shortcut: '/favicon.png',
   },
-  // manifest: "/manifest.json",
   alternates: {
     canonical: siteConfig.url,
   },
@@ -139,7 +135,6 @@ export default function RootLayout({
             style={{ display: 'none', visibility: 'hidden' }}
           />
         </noscript>
-        {/* End Google Tag Manager (noscript) */}
 
         <ThemeProvider
           attribute="class"
@@ -154,7 +149,6 @@ export default function RootLayout({
           <Analytics />
           <GoogleAnalytics gaId="G-6ETJFB3PT3" />
           <SpeedInsights />
-          <PostHogIdentify />
         </ThemeProvider>
       </body>
     </html>
