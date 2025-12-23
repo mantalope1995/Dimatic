@@ -38,7 +38,7 @@ DEFAULT_PNG_COMPRESS_LEVEL = 6
 
 @tool_metadata(
     display_name="Image Vision",
-    description="View and analyze images to understand their content",
+    description="View and analyse images to understand their content",
     icon="Eye",
     color="bg-pink-100 dark:bg-pink-800/50",
     weight=40,
@@ -131,7 +131,7 @@ class SandboxVisionTool(SandboxToolsBase):
         """Call understand_image MCP server for image analysis.
         
         Args:
-            image_url: Public URL of the image to analyze
+            image_url: Public URL of the image to analyse
             
         Returns:
             Analysis text from the MCP server
@@ -158,7 +158,7 @@ class SandboxVisionTool(SandboxToolsBase):
                 raise Exception(f"MCP server returned error: {error_msg}")
                 
         except Exception as e:
-            raise Exception(f"Failed to analyze image via understand_image MCP: {str(e)}")
+            raise Exception(f"Failed to analyse image via understand_image MCP: {str(e)}")
     
     async def compress_image(self, image_bytes: bytes, mime_type: str, file_path: str) -> Tuple[bytes, str]:
         """Compress an image to reduce its size while maintaining reasonable quality.
@@ -312,7 +312,7 @@ class SandboxVisionTool(SandboxToolsBase):
         "type": "function",
         "function": {
             "name": "load_image",
-            "description": """Loads an image file into conversation context from the /workspace directory or from a URL so you can see and analyze it.
+            "description": """Loads an image file into conversation context from the /workspace directory or from a URL so you can see and analyse it.
 
 ⚠️ HARD LIMIT: Maximum 3 images can be loaded in context at any time. Images consume 1000+ tokens each.
 

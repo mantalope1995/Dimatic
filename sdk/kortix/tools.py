@@ -34,7 +34,7 @@ _AgentPressTools_descriptions = {
     "sb_shell_tool": "Execute shell commands",
     # "sb_web_dev_tool": "Create and manage modern web applications with Next.js and shadcn/ui",  # DEACTIVATED
     "sb_expose_tool": "Expose local services to the internet",
-    "sb_vision_tool": "Analyze and understand images",
+    "sb_vision_tool": "Analyse and understand images",
     "browser_tool": "Browse websites and interact with web pages",
     "web_search_tool": "Search the web for information",
     "sb_image_edit_tool": "Edit and manipulate images",

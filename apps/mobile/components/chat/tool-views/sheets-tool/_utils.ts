@@ -64,8 +64,8 @@ function getActionName(toolName: string): string {
   if (name.includes('create')) return 'Created';
   if (name.includes('update')) return 'Updated';
   if (name.includes('view')) return 'Viewing';
-  if (name.includes('analyze')) return 'Analyzed';
-  if (name.includes('visualize')) return 'Visualized';
+  if (name.includes('analyse')) return 'Analysed';
+  if (name.includes('visualise')) return 'Visualised';
   if (name.includes('format')) return 'Formatted';
   
   return 'Sheet';

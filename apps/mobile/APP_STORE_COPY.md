@@ -20,7 +20,7 @@ Alternative options:
 ## Promotional Text
 **Meet Kortix – Your Super AI Worker That Never Sleeps**
 
-While other AI tools just chat, Kortix takes action. Research, analyze, create, automate – Kortix is your ultra-intelligent colleague that handles complex tasks while you focus on what matters.
+While other AI tools just chat, Kortix takes action. Research, analyse, create, automate – Kortix is your ultra-intelligent colleague that handles complex tasks while you focus on what matters.
 
 Plus, Kortix integrates with all your favorite apps (Gmail, Drive, Notion, Slack, and more) so it can perform actions directly in them. Your AI worker doesn't just create – it works in your actual apps.
 
@@ -32,7 +32,7 @@ Plus, Kortix integrates with all your favorite apps (Gmail, Drive, Notion, Slack
 
 Kortix: Your Super AI Worker That Delivers Real Results
 
-Forget simple chatbots. Kortix is your ultra-intelligent AI worker that doesn't just respond – it executes, researches, analyzes, creates, and delivers. It's like having a genius colleague in your pocket that works 24/7, handling your toughest tasks while you focus on what truly matters.
+Forget simple chatbots. Kortix is your ultra-intelligent AI worker that doesn't just respond – it executes, researches, analyses, creates, and delivers. It's like having a genius colleague in your pocket that works 24/7, handling your toughest tasks while you focus on what truly matters.
 
 WHY KORTIX IS DIFFERENT
 
@@ -52,7 +52,7 @@ AI Slides & Presentations
 
 AI Spreadsheets & Data Analysis
 • Build intelligent spreadsheets with formulas and insights
-• Analyze datasets and generate visualizations
+• Analyse datasets and generate visualizations
 • Process financial data, budgets, and forecasts
 • Create charts, graphs, and data dashboards
 
@@ -70,7 +70,7 @@ AI Images & Visuals
 
 Research & Intelligence Reports
 • Conduct comprehensive web research
-• Find and analyze information from multiple sources
+• Find and analyse information from multiple sources
 • Generate detailed research reports with citations
 • Monitor topics and track industry trends
 

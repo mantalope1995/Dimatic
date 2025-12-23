@@ -142,8 +142,8 @@ export const getToolIcon = (toolName: string): ElementType => {
     case 'create-sheet':
     case 'update-sheet':
     case 'view-sheet':
-    case 'analyze-sheet':
-    case 'visualize-sheet':
+    case 'analyse-sheet':
+    case 'visualise-sheet':
     case 'format-sheet':
       return Table2;
 
@@ -393,8 +393,8 @@ const TOOL_DISPLAY_NAMES = new Map([
   ['create-sheet', 'Creating Sheet'],
   ['update-sheet', 'Updating Sheet'],
   ['view-sheet', 'Viewing Sheet'],
-  ['analyze-sheet', 'Analyzing Sheet'],
-  ['visualize-sheet', 'Visualizing Sheet'],
+  ['analyse-sheet', 'Analysing Sheet'],
+  ['visualise-sheet', 'Visualising Sheet'],
   ['format-sheet', 'Formatting Sheet'],
   
 

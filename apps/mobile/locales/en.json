@@ -168,8 +168,8 @@
     },
     "data": {
       "title": "Data Analysis",
-      "description": "Analyze data, create visualizations, and generate actionable intelligence.",
-      "example": "Analyze quarterly sales data"
+      "description": "Analyse data, create visualizations, and generate actionable intelligence.",
+      "example": "Analyse quarterly sales data"
     },
     "docs": {
       "title": "Document Creation",
@@ -374,7 +374,7 @@
       "data": [
         "Build a financial model projecting ARR growth with different pricing scenarios",
         "Create an interactive sales dashboard tracking metrics by region and quarter",
-        "Analyze customer reviews and visualize sentiment trends over time",
+        "Analyse customer reviews and visualise sentiment trends over time",
         "Design a content calendar tracking campaigns with ROI and engagement charts",
         "Build a cohort analysis showing user retention and churn patterns",
         "Create a marketing attribution model comparing channel performance"
@@ -396,7 +396,7 @@
         "Find CIOs at mid-market healthcare IT companies planning cloud migration"
       ],
       "research": [
-        "Analyze emerging trends in quantum computing and potential business applications",
+        "Analyse emerging trends in quantum computing and potential business applications",
         "Research top 10 competitors in the AI-powered CRM space with feature comparison",
         "Investigate regulatory requirements for launching a fintech app in the EU",
         "Compile market analysis on electric vehicle adoption rates across major markets",

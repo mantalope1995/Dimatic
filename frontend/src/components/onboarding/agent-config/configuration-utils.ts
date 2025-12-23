@@ -23,7 +23,7 @@ export const getConfigurationFields = (agentId: string): ConfigurationField[] =>
       { key: 'reportingFrequency', label: 'Reporting Frequency', type: 'select', options: ['Daily', 'Weekly', 'Bi-weekly', 'Monthly'], default: 'Weekly' }
     ],
     sage: [
-      { key: 'dataTypes', label: 'Data Types to Analyze', type: 'multiselect', options: ['Website Analytics', 'Sales Data', 'Customer Data', 'Marketing Metrics', 'Financial Data', 'Operational Data'] },
+      { key: 'dataTypes', label: 'Data Types to Analyse', type: 'multiselect', options: ['Website Analytics', 'Sales Data', 'Customer Data', 'Marketing Metrics', 'Financial Data', 'Operational Data'] },
       { key: 'reportingStyle', label: 'Reporting Style', type: 'select', options: ['Executive Summary', 'Detailed Reports', 'Visual Dashboards', 'Data-Driven Insights'], default: 'Executive Summary' },
       { key: 'analysisFrequency', label: 'Analysis Frequency', type: 'select', options: ['Real-time', 'Daily', 'Weekly', 'Monthly'], default: 'Weekly' },
       { key: 'kpiTracking', label: 'KPI Focus', type: 'multiselect', options: ['Revenue', 'Growth', 'Customer Acquisition', 'Retention', 'Conversion', 'Efficiency'] }

@@ -138,8 +138,8 @@ const toolViewRegistry: Record<string, ToolViewComponent> = {
   'create-sheet': SheetsToolView,
   'update-sheet': SheetsToolView,
   'view-sheet': SheetsToolView,
-  'analyze-sheet': SheetsToolView,
-  'visualize-sheet': SheetsToolView,
+  'analyse-sheet': SheetsToolView,
+  'visualise-sheet': SheetsToolView,
   'format-sheet': SheetsToolView,
   
   // Phone/Voice tools (Vapi)

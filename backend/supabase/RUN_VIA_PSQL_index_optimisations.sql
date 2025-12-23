@@ -99,17 +99,17 @@ ON messages(thread_id, type, is_llm_message, created_at DESC)
 WHERE type = 'summary';
 
 -- ============================================================================
--- Analyze tables to update statistics for query planner
+-- Analyse tables to update statistics for query planner
 -- ============================================================================
 
-ANALYZE agent_runs;
-ANALYZE messages;
-ANALYZE threads;
-ANALYZE credit_ledger;
-ANALYZE agent_triggers;
-ANALYZE agents;
-ANALYZE agent_versions;
-ANALYZE agent_templates;
+ANALYSE agent_runs;
+ANALYSE messages;
+ANALYSE threads;
+ANALYSE credit_ledger;
+ANALYSE agent_triggers;
+ANALYSE agents;
+ANALYSE agent_versions;
+ANALYSE agent_templates;
 
 -- ============================================================================
 -- Mark migration as applied (so supabase db push skips it)

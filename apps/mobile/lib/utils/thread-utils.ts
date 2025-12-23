@@ -57,10 +57,10 @@ function threadToConversation(thread: Thread): Conversation {
 
 /**
  * Gets an appropriate icon for a thread based on its content
- * Currently returns default icon, but can be extended to analyze thread content
+ * Currently returns default icon, but can be extended to analyse thread content
  */
 export function getThreadIcon(thread: Thread) {
-  // Future: Analyze thread.project.name or first message to determine icon
+  // Future: Analyse thread.project.name or first message to determine icon
   // For now, use default MessageCircle
   return MessageCircle;
 }

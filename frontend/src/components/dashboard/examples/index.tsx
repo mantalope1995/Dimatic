@@ -45,7 +45,7 @@ const allPrompts: PromptExample[] = [
     icon: <Calendar className="text-rose-700 dark:text-rose-400" size={16} />,
   },
   {
-    title: 'Analyze news coverage',
+    title: 'Analyse news coverage',
     query: '1. Search {{news_outlet}} for {{topic}} articles from past {{time_period}}\n2. Categorize coverage and identify key themes\n3. Track expert sources and data points\n4. Create timeline of major developments\n5. Generate report with insights and coverage gaps',
     icon: <PenTool className="text-indigo-700 dark:text-indigo-400" size={16} />,
   },
@@ -56,22 +56,22 @@ const allPrompts: PromptExample[] = [
   },
   {
     title: 'Develop market strategy',
-    query: '1. Create go-to-market strategy for {{product_type}} launch\n2. Analyze target market and competitive landscape\n3. Design market entry and pricing strategy\n4. Build financial projections and timeline\n5. Create presentation with recommendations',
+    query: '1. Create go-to-market strategy for {{product_type}} launch\n2. Analyse target market and competitive landscape\n3. Design market entry and pricing strategy\n4. Build financial projections and timeline\n5. Create presentation with recommendations',
     icon: <Target className="text-cyan-700 dark:text-cyan-400" size={16} />,
   },
   {
     title: 'Research company intelligence',
-    query: '1. Research {{company_name}} comprehensively\n2. Gather recent news, funding, and leadership info\n3. Analyze competitive position and market share\n4. Research key personnel background\n5. Create detailed profile with actionable insights',
+    query: '1. Research {{company_name}} comprehensively\n2. Gather recent news, funding, and leadership info\n3. Analyse competitive position and market share\n4. Research key personnel background\n5. Create detailed profile with actionable insights',
     icon: <Briefcase className="text-teal-700 dark:text-teal-400" size={16} />,
   },
   {
     title: 'Audit calendar productivity',
-    query: '1. Analyze {{calendar_app}} data from past {{months}} months\n2. Assess meeting frequency and focus time\n3. Identify optimization opportunities\n4. Analyze meeting effectiveness patterns\n5. Generate recommendations and implementation plan',
+    query: '1. Analyse {{calendar_app}} data from past {{months}} months\n2. Assess meeting frequency and focus time\n3. Identify optimization opportunities\n4. Analyse meeting effectiveness patterns\n5. Generate recommendations and implementation plan',
     icon: <Calendar className="text-violet-700 dark:text-violet-400" size={16} />,
   },
   {
     title: 'Research industry trends',
-    query: '1. Research {{industry}} trends from {{data_sources}}\n2. Gather investment activity and technology developments\n3. Analyze market drivers and opportunities\n4. Identify emerging themes and gaps\n5. Create comprehensive report with recommendations',
+    query: '1. Research {{industry}} trends from {{data_sources}}\n2. Gather investment activity and technology developments\n3. Analyse market drivers and opportunities\n4. Identify emerging themes and gaps\n5. Create comprehensive report with recommendations',
     icon: <TrendingUp className="text-pink-700 dark:text-pink-400" size={16} />,
   },
   {
@@ -81,12 +81,12 @@ const allPrompts: PromptExample[] = [
   },
   {
     title: 'Research legal compliance',
-    query: '1. Research {{legal_topic}} across {{jurisdictions}}\n2. Compare state requirements and fees\n3. Analyze decision factors and implications\n4. Gather practical implementation details\n5. Create comparison spreadsheet with recommendations',
+    query: '1. Research {{legal_topic}} across {{jurisdictions}}\n2. Compare state requirements and fees\n3. Analyse decision factors and implications\n4. Gather practical implementation details\n5. Create comparison spreadsheet with recommendations',
     icon: <Settings className="text-red-700 dark:text-red-400" size={16} />,
   },
   {
     title: 'Compile data analysis',
-    query: '1. Gather {{data_topic}} from {{data_sources}}\n2. Clean and standardize datasets\n3. Analyze patterns and calculate trends\n4. Create spreadsheet with visualizations\n5. Provide strategic recommendations',
+    query: '1. Gather {{data_topic}} from {{data_sources}}\n2. Clean and standardize datasets\n3. Analyse patterns and calculate trends\n4. Create spreadsheet with visualizations\n5. Provide strategic recommendations',
     icon: <BarChart3 className="text-slate-700 dark:text-slate-400" size={16} />,
   },
   {
@@ -96,12 +96,12 @@ const allPrompts: PromptExample[] = [
   },
   {
     title: 'Compare products',
-    query: '1. Research {{product_category}} options comprehensively\n2. Gather scientific studies and expert opinions\n3. Analyze benefits, drawbacks, and costs\n4. Research current expert consensus\n5. Create comparison report with personalized recommendations',
+    query: '1. Research {{product_category}} options comprehensively\n2. Gather scientific studies and expert opinions\n3. Analyse benefits, drawbacks, and costs\n4. Research current expert consensus\n5. Create comparison report with personalized recommendations',
     icon: <Brain className="text-fuchsia-700 dark:text-fuchsia-400" size={16} />,
   },
   {
-    title: 'Analyze market opportunities',
-    query: '1. Research {{market_topic}} for investment opportunities\n2. Analyze market size, growth, and key players\n3. Identify investment themes and risks\n4. Assess market challenges and barriers\n5. Create investment presentation with recommendations',
+    title: 'Analyse market opportunities',
+    query: '1. Research {{market_topic}} for investment opportunities\n2. Analyse market size, growth, and key players\n3. Identify investment themes and risks\n4. Assess market challenges and barriers\n5. Create investment presentation with recommendations',
     icon: <Rocket className="text-green-600 dark:text-green-300" size={16} />,
   },
   {
@@ -116,7 +116,7 @@ const allPrompts: PromptExample[] = [
   },
   {
     title: 'Build professional website',
-    query: '1. Research {{person_name}} online comprehensively\n2. Analyze professional brand and achievements\n3. Design website structure and content\n4. Create optimized pages with portfolio\n5. Implement SEO and performance features',
+    query: '1. Research {{person_name}} online comprehensively\n2. Analyse professional brand and achievements\n3. Design website structure and content\n4. Create optimized pages with portfolio\n5. Implement SEO and performance features',
     icon: <Globe className="text-red-600 dark:text-red-300" size={16} />,
   },
 ];

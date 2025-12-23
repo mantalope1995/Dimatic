@@ -261,7 +261,7 @@ class SandboxWebSearchTool(SandboxToolsBase):
                     },
                     "include_html": {
                         "type": "boolean",
-                        "description": "Whether to include the full raw HTML content alongside the extracted text. Set to true when you need to analyze page structure, extract specific HTML elements, or work with complex layouts. Default is false for cleaner text extraction.",
+                        "description": "Whether to include the full raw HTML content alongside the extracted text. Set to true when you need to analyse page structure, extract specific HTML elements, or work with complex layouts. Default is false for cleaner text extraction.",
                         "default": False
                     }
                 },

@@ -9,7 +9,7 @@ import Animated, {
   Easing
 } from 'react-native-reanimated';
 
-const TEXTS = ["Thinking", "Planning", "Strategising", "Analyzing", "Processing"];
+const TEXTS = ["Thinking", "Planning", "Strategising", "Analysing", "Processing"];
 const TYPE_DELAY = 100;
 const ERASE_DELAY = 50;
 const PAUSE_DELAY = 1000;

@@ -81,7 +81,7 @@ const CATEGORY_CONFIG: Record<string, { icon: any; icon_color: string; tagline: 
   },
   'Marketing': {
     icon: ShoppingCart,
-    tagline: 'Create campaigns, analyze results, grow faster.',
+    tagline: 'Create campaigns, analyse results, grow faster.',
     icon_color: 'text-pink-500 dark:text-pink-600',
     color: 'from-pink-500/20 to-rose-500/10'
   },

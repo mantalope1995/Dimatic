@@ -433,7 +433,7 @@
         "title": "Research",
         "description": "Researches topics comprehensively. From market trends to competitive analysis to deep dives. Gathers sources, synthesizes findings, or refines existing research with quick updates.",
         "capabilities": {
-          "0": "Analyze market trends",
+          "0": "Analyse market trends",
           "1": "Competitive research",
           "2": "Deep topic dives",
           "3": "Gather sources",
@@ -479,7 +479,7 @@
       "subtitle": "Everything you need to know about how credits work on Kortix",
       "understandingCredits": {
         "title": "Understanding Credits",
-        "description": "Credits serve as Kortix's universal currency for platform operations. Every action your AI agents perform—from analyzing data to generating code—consumes credits based on the task's complexity and the resources required."
+        "description": "Credits serve as Kortix's universal currency for platform operations. Every action your AI agents perform—from analysing data to generating code—consumes credits based on the task's complexity and the resources required."
       },
       "howCreditsWork": {
         "title": "How Credits Work",
@@ -704,8 +704,8 @@
     "createSheet": "Creating Sheet",
     "updateSheet": "Updating Sheet",
     "viewSheet": "Viewing Sheet",
-    "analyzeSheet": "Analyzing Sheet",
-    "visualizeSheet": "Visualizing Sheet",
+    "analyseSheet": "Analysing Sheet",
+    "visualiseSheet": "Visualising Sheet",
     "formatSheet": "Formatting Sheet",
     "updateAgent": "Updating Agent",
     "getCurrentAgentConfig": "Getting Agent Config",

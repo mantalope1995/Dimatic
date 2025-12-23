@@ -104,7 +104,7 @@ export const SmartContextStep = () => {
                 <div className="absolute top-3 right-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background/80 backdrop-blur-sm px-2 py-1 rounded-md">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Analyzing...
+                    Analysing...
                   </div>
                 </div>
               )}

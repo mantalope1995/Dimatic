@@ -10,7 +10,7 @@ from core.agentpress.thread_manager import ThreadManager
 
 @tool_metadata(
     display_name="Academic Research",
-    description="Search and analyze academic papers, authors, and scientific research",
+    description="Search and analyse academic papers, authors, and scientific research",
     icon="GraduationCap",
     color="bg-emerald-100 dark:bg-emerald-800/50",
     weight=270,

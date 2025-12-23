@@ -5,7 +5,7 @@ from typing import Optional, List, Dict, Any
 
 
 class JsonAnalysisRequest(BaseModel):
-    """Request to analyze JSON for import requirements."""
+    """Request to analyse JSON for import requirements."""
     json_data: Dict[str, Any]
 
 

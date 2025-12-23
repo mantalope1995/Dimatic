@@ -209,9 +209,9 @@ const workerTemplates: WorkerTemplate[] = [
     category: 'marketing',
   },
   {
-    id: 'campaign-analyzer',
-    name: 'Campaign Analyzer',
-    description: 'Analyze marketing campaign performance',
+    id: 'campaign-analyser',
+    name: 'Campaign Analyser',
+    description: 'Analyse marketing campaign performance',
     icon: <BarChart3 className="w-5 h-5" />,
     category: 'marketing',
   },

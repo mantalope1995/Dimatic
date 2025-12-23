@@ -95,13 +95,13 @@ CREATE INDEX IF NOT EXISTS idx_agent_templates_name_trgm
 ON agent_templates USING gin (name gin_trgm_ops);
 
 -- ============================================================================
--- Analyze tables to update statistics for query planner
+-- Analyse tables to update statistics for query planner
 -- ============================================================================
 
-ANALYZE agent_runs;
-ANALYZE threads;
-ANALYZE credit_ledger;
-ANALYZE agent_triggers;
-ANALYZE agents;
-ANALYZE agent_versions;
-ANALYZE agent_templates;
+ANALYSE agent_runs;
+ANALYSE threads;
+ANALYSE credit_ledger;
+ANALYSE agent_triggers;
+ANALYSE agents;
+ANALYSE agent_versions;
+ANALYSE agent_templates;

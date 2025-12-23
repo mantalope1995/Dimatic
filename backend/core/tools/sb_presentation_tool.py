@@ -423,7 +423,7 @@ class SandboxPresentationTool(SandboxToolsBase):
                         "Study the HTML structure and CSS styling patterns",
                         "Learn the layout techniques and visual hierarchy",
                         "Understand the color scheme and typography usage",
-                        "Analyze how elements are positioned and styled",
+                        "Analyse how elements are positioned and styled",
                         "Create NEW slides with similar design but ORIGINAL content"
                     ],
                     "dont": [
@@ -998,7 +998,7 @@ print(json.dumps(result))
                     pass
                 return self.fail_response(f"Failed to measure slide dimensions: {str(e)}")
             
-            # Analyze results - simple pass/fail
+            # Analyse results - simple pass/fail
             validation_passed = not dimensions["overflows"]
             
             validation_results = {

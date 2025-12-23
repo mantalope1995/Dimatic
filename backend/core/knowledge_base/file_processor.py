@@ -281,7 +281,7 @@ class FileProcessor:
                         # Content too large, intelligent chunking
                         processed_content = self._smart_chunk_content(content, usable_context * 4)  # Convert back to chars
                     
-                    prompt = f"""Analyze this file and create a concise, actionable summary for an AI agent's knowledge base.
+                    prompt = f"""Analyse this file and create a concise, actionable summary for an AI agent's knowledge base.
 
 File: {filename}
 Content: {processed_content}

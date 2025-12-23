@@ -141,8 +141,8 @@ const defaultRegistry: ToolViewRegistryType = {
   'create-sheet': SheetsToolView,
   'update-sheet': SheetsToolView,
   'view-sheet': SheetsToolView,
-  'analyze-sheet': SheetsToolView,
-  'visualize-sheet': SheetsToolView,
+  'analyse-sheet': SheetsToolView,
+  'visualise-sheet': SheetsToolView,
   'format-sheet': SheetsToolView,
 
   'get-project-structure': GetProjectStructureView,

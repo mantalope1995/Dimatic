@@ -684,7 +684,7 @@ This implementation plan breaks down the development of the Kortix AI agent plat
   - _Requirements: 15.1-15.7_
 
 - [ ] 69. Perform cost analysis
-  - Analyze AgentCore usage costs
+  - Analyse AgentCore usage costs
   - Compare costs to previous architecture
   - Optimize expensive operations
   - Document cost projections

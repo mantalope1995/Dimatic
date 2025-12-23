@@ -124,10 +124,10 @@ export const getToolIcon = (toolName: string): LucideIcon => {
     case 'update_sheet':
     case 'view-sheet':
     case 'view_sheet':
-    case 'analyze-sheet':
-    case 'analyze_sheet':
-    case 'visualize-sheet':
-    case 'visualize_sheet':
+    case 'analyse-sheet':
+    case 'analyse_sheet':
+    case 'visualise-sheet':
+    case 'visualise_sheet':
     case 'format-sheet':
     case 'format_sheet':
       return Table2;
@@ -260,8 +260,8 @@ const TOOL_DISPLAY_NAMES = new Map([
   ['create-sheet', 'Creating Sheet'],
   ['update-sheet', 'Updating Sheet'],
   ['view-sheet', 'Viewing Sheet'],
-  ['analyze-sheet', 'Analyzing Sheet'],
-  ['visualize-sheet', 'Visualizing Sheet'],
+  ['analyse-sheet', 'Analyzing Sheet'],
+  ['visualise-sheet', 'Visualising Sheet'],
   ['format-sheet', 'Formatting Sheet'],
 
   ['update-agent', 'Updating Agent'],

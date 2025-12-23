@@ -140,7 +140,7 @@ export class MCPFormatDetector {
       // Not JSON, continue with text analysis
     }
     
-    // Analyze text patterns
+    // Analyse text patterns
     return this.detectTextFormat(text);
   }
   

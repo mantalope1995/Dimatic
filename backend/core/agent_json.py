@@ -19,8 +19,8 @@ class JsonImportService:
     def __init__(self, db_connection):
         self._db = db_connection
     
-    async def analyze_json(self, json_data: Dict[str, Any], account_id: str) -> JsonAnalysisResponse:
-        logger.debug(f"Analyzing imported JSON for user {account_id}")
+    async def analyse_json(self, json_data: Dict[str, Any], account_id: str) -> JsonAnalysisResponse:
+        logger.debug(f"Analysing imported JSON for user {account_id}")
         
         mcp_requirements = self._extract_mcp_requirements_from_json(json_data)
         
@@ -396,25 +396,25 @@ async def export_agent(agent_id: str, user_id: str = Depends(verify_and_get_user
         logger.error(f"Error exporting agent {agent_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to export agent: {str(e)}")
 
-@router.post("/agents/json/analyze", response_model=JsonAnalysisResponse, summary="Analyze Agent JSON", operation_id="analyze_agent_json")
-async def analyze_json_for_import(
+@router.post("/agents/json/analyse", response_model=JsonAnalysisResponse, summary="Analyse Agent JSON", operation_id="analyse_agent_json")
+async def analyse_json_for_import(
     request: JsonAnalysisRequest,
     user_id: str = Depends(verify_and_get_user_id_from_jwt)
 ):
-    """Analyze imported JSON to determine required credentials and configurations"""
-    logger.debug(f"Analyzing JSON for import - user: {user_id}")
+    """Analyse imported JSON to determine required credentials and configurations"""
+    logger.debug(f"Analysing JSON for import - user: {user_id}")
     
     
     try:
         import_service = JsonImportService(utils.db)
         
-        analysis = await import_service.analyze_json(request.json_data, user_id)
+        analysis = await import_service.analyse_json(request.json_data, user_id)
         
         return analysis
         
     except Exception as e:
-        logger.error(f"Error analyzing JSON: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"Failed to analyze JSON: {str(e)}")
+        logger.error(f"Error analysing JSON: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to analyse JSON: {str(e)}")
 
 @router.post("/agents/json/import", response_model=JsonImportResponse, summary="Import Agent from JSON", operation_id="import_agent_json")
 async def import_agent_from_json(

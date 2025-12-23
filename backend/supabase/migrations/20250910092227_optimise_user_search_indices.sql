@@ -22,8 +22,8 @@ CREATE INDEX IF NOT EXISTS idx_agent_runs_created_at_desc
 CREATE INDEX IF NOT EXISTS idx_threads_account_id 
     ON public.threads (account_id);
 
-ANALYZE basejump.billing_customers;
-ANALYZE basejump.accounts;
-ANALYZE public.credit_accounts;
-ANALYZE public.agent_runs;
-ANALYZE public.threads; 
+ANALYSE basejump.billing_customers;
+ANALYSE basejump.accounts;
+ANALYSE public.credit_accounts;
+ANALYSE public.agent_runs;
+ANALYSE public.threads; 

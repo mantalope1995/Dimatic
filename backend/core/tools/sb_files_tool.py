@@ -545,7 +545,7 @@ class SandboxFilesTool(SandboxToolsBase):
     #     "type": "function",
     #     "function": {
     #         "name": "read_file",
-    #         "description": "Read and return the contents of a file. This tool is essential for verifying data, checking file contents, and analyzing information. Always use this tool to read file contents before processing or analyzing data. The file path must be relative to /workspace.",
+    #         "description": "Read and return the contents of a file. This tool is essential for verifying data, checking file contents, and analysing information. Always use this tool to read file contents before processing or analysing data. The file path must be relative to /workspace.",
     #         "parameters": {
     #             "type": "object",
     #             "properties": {

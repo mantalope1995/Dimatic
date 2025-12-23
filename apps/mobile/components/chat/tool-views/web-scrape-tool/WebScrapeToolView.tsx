@@ -32,7 +32,7 @@ export function WebScrapeToolView({ toolCall, toolResult, isStreaming }: ToolVie
           Extracting Content
         </Text>
         <Text className="text-sm font-roobert text-muted-foreground text-center">
-          Analyzing and processing
+          Analysing and processing
         </Text>
         {url && (
           <View className="bg-card border border-border rounded-2xl px-4 py-3 mt-3 w-full">

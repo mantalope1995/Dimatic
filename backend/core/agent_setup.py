@@ -52,7 +52,7 @@ Respond with JSON:
 {"name": "Worker Name (2-4 words)", "system_prompt": "Detailed instructions for the worker's role and behavior"}
 
 Example:
-{"name": "Research Assistant", "system_prompt": "Act as an expert research assistant. Help users find and analyze information. Always verify facts and cite sources clearly."}"""
+{"name": "Research Assistant", "system_prompt": "Act as an expert research assistant. Help users find and analyse information. Always verify facts and cite sources clearly."}"""
 
         user_message = f"Generate name and system prompt for:\n\n{description}"
         messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_message}]

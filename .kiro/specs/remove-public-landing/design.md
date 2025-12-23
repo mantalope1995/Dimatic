@@ -55,7 +55,7 @@ No data model changes required.
 
 ### Property Reflection
 
-After analyzing the acceptance criteria:
+After analysing the acceptance criteria:
 - Properties 1.1 and 2.1 (unauthenticated redirects) can be combined - both test that unauthenticated users on removed marketing routes get redirected to `/auth`
 - Properties 1.2 and 2.1 (authenticated redirects) can be combined - both test that authenticated users on removed marketing routes get redirected to `/dashboard`
 - Property 1.3 is unique - tests auth callback parameter preservation

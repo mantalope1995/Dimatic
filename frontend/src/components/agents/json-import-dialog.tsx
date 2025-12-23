@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { ProfileConnector } from './installation/streamlined-profile-connector';
 import { CustomServerStep } from './installation/custom-server-step';
 import type { SetupStep } from './installation/types';
-import { useAnalyzeJsonForImport, useImportAgentFromJson, type JsonAnalysisResult, type JsonImportResult } from '@/hooks/agents/use-json-import';
+import { useAnalyseJsonForImport, useImportAgentFromJson, type JsonAnalysisResult, type JsonImportResult } from '@/hooks/agents/use-json-import';
 import { AgentCountLimitError } from '@/lib/api/errors';
 import { cn } from '@/lib/utils';
 
@@ -36,7 +36,7 @@ export const JsonImportDialog: React.FC<JsonImportDialogProps> = ({
   const [profileMappings, setProfileMappings] = useState<Record<string, string>>({});
   const [customMcpConfigs, setCustomMcpConfigs] = useState<Record<string, Record<string, any>>>({});
 
-  const analyzeJsonMutation = useAnalyzeJsonForImport();
+  const analyseJsonMutation = useAnalyseJsonForImport();
   const importJsonMutation = useImportAgentFromJson();
 
   const resetState = useCallback(() => {
@@ -58,7 +58,7 @@ export const JsonImportDialog: React.FC<JsonImportDialogProps> = ({
     }
   }, [open, resetState, initialJsonText]);
 
-    const analyzeJson = useCallback(() => {
+    const analyseJson = useCallback(() => {
     if (!jsonText.trim()) {
       toast.error('Please paste JSON content');
       return;
@@ -72,7 +72,7 @@ export const JsonImportDialog: React.FC<JsonImportDialogProps> = ({
       return;
     }
 
-    analyzeJsonMutation.mutate(
+    analyseJsonMutation.mutate(
       { json_data: parsedJson },
       {
         onSuccess: (result) => {
@@ -259,9 +259,9 @@ export const JsonImportDialog: React.FC<JsonImportDialogProps> = ({
         <Button variant="outline" onClick={() => onOpenChange(false)}>
           Cancel
         </Button>
-        <Button onClick={analyzeJson} disabled={analyzeJsonMutation.isPending || !jsonText.trim()}>
-          {analyzeJsonMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-          {analyzeJsonMutation.isPending ? 'Analyzing...' : 'Next'}
+        <Button onClick={analyseJson} disabled={analyseJsonMutation.isPending || !jsonText.trim()}>
+          {analyseJsonMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+          {analyseJsonMutation.isPending ? 'Analyzing...' : 'Next'}
         </Button>
       </div>
     </div>
@@ -404,11 +404,11 @@ export const JsonImportDialog: React.FC<JsonImportDialogProps> = ({
             </AlertDescription>
           </Alert>
         )}
-        {analyzeJsonMutation.isError && step === 'paste' && (
+        {analyseJsonMutation.isError && step === 'paste' && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Failed to analyze JSON. Please check the format and try again.
+              Failed to analyse JSON. Please check the format and try again.
             </AlertDescription>
           </Alert>
         )}

@@ -60,7 +60,7 @@ Suna demonstrates the full capabilities of the Kortix platform as a versatile AI
 
 **🔍 Research & Analysis**
 - Conduct comprehensive web research across multiple sources
-- Analyze documents, reports, and datasets
+- Analyse documents, reports, and datasets
 - Synthesize information and create detailed summaries
 - Market research and competitive intelligence
 
@@ -113,7 +113,7 @@ The Kortix platform enables you to create agents tailored to specific needs:
 **🔬 Research & Development Agents**
 - Conduct academic and scientific research
 - Monitor industry trends and innovations
-- Analyze patents and competitive landscapes
+- Analyse patents and competitive landscapes
 - Generate research reports and recommendations
 
 **🏭 Industry-Specific Agents**

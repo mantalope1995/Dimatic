@@ -1282,7 +1282,7 @@ class SetupWizard:
         
         # Semantic Scholar API key (optional for academic paper search)
         print_info(
-            "\nSemantic Scholar API enables searching and analyzing academic papers and research."
+            "\nSemantic Scholar API enables searching and analysing academic papers and research."
         )
         print_info(
             "This is optional but required for the Research Papers tool. Leave blank to skip."

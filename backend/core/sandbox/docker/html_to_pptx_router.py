@@ -1249,7 +1249,7 @@ class OptimizedHTMLToPPTXConverter:
                 picture.z_order = 0
     
     async def build_slide_from_analysis(self, presentation, slide_analysis: Dict, temp_dir: Path) -> None:
-        """Build a PowerPoint slide from pre-analyzed data."""
+        """Build a PowerPoint slide from pre-analysed data."""
         slide_info = slide_analysis['slide_info']
         visual_elements = slide_analysis['visual_elements']
         background_path = slide_analysis['background_path']
@@ -1435,7 +1435,7 @@ class OptimizedHTMLToPPTXConverter:
                 xml_slides = presentation.slides._sldIdLst
                 xml_slides.remove(xml_slides[0])
             
-            # Build slides using the analyzed data
+            # Build slides using the analysed data
             successful_slides = 0
             for i, slide_analysis in enumerate(all_slide_analyses, 1):
                 try:

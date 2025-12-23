@@ -30,7 +30,7 @@ export function StrReplaceToolView({ toolCall, toolResult, isStreaming }: ToolVi
           Processing Replacement
         </Text>
         <Text className="text-sm font-roobert text-muted-foreground text-center">
-          Analyzing text patterns
+          Analysing text patterns
         </Text>
         {filePath && (
           <View className="bg-card border border-border rounded-2xl px-4 py-3 mt-3 w-full">

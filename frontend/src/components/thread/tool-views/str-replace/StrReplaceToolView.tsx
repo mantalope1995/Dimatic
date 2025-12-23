@@ -239,7 +239,7 @@ export function StrReplaceToolView({
             bgColor="bg-gradient-to-b from-purple-100 to-purple-50 shadow-inner dark:from-purple-800/40 dark:to-purple-900/60 dark:shadow-purple-950/20"
             title="Processing String Replacement"
             filePath={filePath || 'Processing file...'}
-            progressText="Analyzing text patterns"
+            progressText="Analysing text patterns"
             subtitle="Please wait while the replacement is being processed"
           />
         ) : shouldShowError ? (

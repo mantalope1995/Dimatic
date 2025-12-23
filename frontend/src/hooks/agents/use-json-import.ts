@@ -47,14 +47,14 @@ interface JsonImportResult {
   agent_info?: any;
 }
 
-export const useAnalyzeJsonForImport = () => {
+export const useAnalyseJsonForImport = () => {
   return useMutation<JsonAnalysisResult, Error, JsonAnalysisRequest>({
     mutationFn: async (request) => {
       try {
-        const response = await backendApi.post('/agents/json/analyze', request);
+        const response = await backendApi.post('/agents/json/analyse', request);
         return response.data;
       } catch (error: any) {
-        const message = error.response?.data?.detail || error.message || 'Failed to analyze JSON';
+        const message = error.response?.data?.detail || error.message || 'Failed to analyse JSON';
         throw new Error(message);
       }
     },
