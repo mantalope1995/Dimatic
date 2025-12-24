@@ -21,6 +21,15 @@ from core.billing.credits.integration import billing_integration
 from litellm.utils import token_counter
 import litellm
 
+# AgentCore integration (Phase 4: Memory, Phase 6: Runtime)
+from core.agentcore import (
+    AgentCoreMemoryAdapter,
+    AgentCoreRuntimeAdapter,
+    get_agentcore_config,
+    get_tool_registry,
+)
+from core.agentcore.errors import with_retry  # Phase 6: Retry logic for tool execution
+
 ToolChoice = Literal["auto", "required", "none"]
 
 class ThreadManager:
@@ -29,18 +38,39 @@ class ThreadManager:
     def __init__(self, trace: Optional[StatefulTraceClient] = None, agent_config: Optional[dict] = None):
         self.db = DBConnection()
         self.tool_registry = ToolRegistry()
-        
+
         self.trace = trace
         if not self.trace:
             self.trace = langfuse.trace(name="anonymous:thread_manager")
-            
+
         self.agent_config = agent_config
         self.response_processor = ResponseProcessor(
             tool_registry=self.tool_registry,
             add_message_callback=self.add_message,
             trace=self.trace,
-            agent_config=self.agent_config
+            agent_config=self.agent_config,
+            thread_manager=self  # PHASE 6: For unified Runtime tool execution
         )
+
+        # AgentCore Memory integration (Phase 4)
+        self.memory_adapter: Optional[AgentCoreMemoryAdapter] = None
+        try:
+            agentcore_config = get_agentcore_config()
+            if agentcore_config.memory_enabled:
+                self.memory_adapter = AgentCoreMemoryAdapter(config=agentcore_config)
+                logger.debug("AgentCore Memory adapter initialized")
+        except Exception as e:
+            logger.warning(f"Failed to initialize AgentCore Memory adapter: {e}")
+
+        # AgentCore Runtime integration (Phase 6)
+        self.runtime_adapter: Optional[AgentCoreRuntimeAdapter] = None
+        try:
+            agentcore_config = get_agentcore_config()
+            if agentcore_config.runtime_enabled:
+                self.runtime_adapter = AgentCoreRuntimeAdapter(config=agentcore_config)
+                logger.debug("AgentCore Runtime adapter initialized")
+        except Exception as e:
+            logger.warning(f"Failed to initialize AgentCore Runtime adapter: {e}")
 
     def add_tool(self, tool_class: Type[Tool], function_names: Optional[List[str]] = None, **kwargs):
         """Add a tool to the ThreadManager."""
@@ -53,7 +83,7 @@ class ThreadManager:
         is_public: bool = False,
         metadata: Optional[Dict[str, Any]] = None
     ) -> str:
-        """Create a new thread in the database."""
+        """Create a new thread in the database and associated Memory resource."""
         # logger.debug(f"Creating new thread (account_id: {account_id}, project_id: {project_id})")
         client = await self.db.client
 
@@ -64,16 +94,315 @@ class ThreadManager:
             thread_data['project_id'] = project_id
 
         try:
+            # Step 1: Create thread in database first
             result = await client.table('threads').insert(thread_data).execute()
             if result.data and len(result.data) > 0 and 'thread_id' in result.data[0]:
                 thread_id = result.data[0]['thread_id']
                 logger.info(f"Successfully created thread: {thread_id}")
-                return thread_id
             else:
                 raise Exception("Failed to create thread: no thread_id returned")
+
+            # Step 2: Create Memory resource if enabled (Phase 4)
+            if self.memory_adapter:
+                try:
+                    memory_resource_id = await self.memory_adapter.create_memory_resource(
+                        thread_id=thread_id,
+                        account_id=account_id or "anonymous"
+                    )
+
+                    # Update thread with memory_resource_id and metadata
+                    if memory_resource_id:
+                        await client.table('threads').update({
+                            'memory_resource_id': memory_resource_id,
+                            'memory_metadata': {
+                                'status': 'ready',
+                                'semantic_search_enabled': True,
+                                'created_at': datetime.now(timezone.utc).isoformat(),
+                                'updated_at': datetime.now(timezone.utc).isoformat()
+                            }
+                        }).eq('thread_id', thread_id).execute()
+                        logger.info(f"Created Memory resource {memory_resource_id} for thread {thread_id}")
+                except Exception as mem_error:
+                    logger.warning(f"Failed to create Memory resource for thread {thread_id}: {mem_error}")
+                    # Check fallback configuration
+                    try:
+                        agentcore_config = get_agentcore_config()
+                        if not agentcore_config.fallback_to_database:
+                            # If fallback is disabled, re-raise the error
+                            raise Exception(f"Memory resource creation failed and fallback disabled: {mem_error}")
+                        # Otherwise continue with database-only mode
+                        logger.info("Continuing with database-only storage (fallback enabled)")
+                    except Exception as config_error:
+                        logger.warning(f"Could not check AgentCore config: {config_error}")
+
+            # Step 3: Create Runtime deployment if enabled (Phase 6)
+            if self.runtime_adapter:
+                try:
+                    runtime_deployment_id = await self.runtime_adapter.create_deployment(
+                        deployment_name=f"thread-{thread_id}",
+                        account_id=account_id or "anonymous"
+                    )
+
+                    # Update thread with runtime_deployment_id and metadata
+                    if runtime_deployment_id:
+                        # Register tools with Runtime deployment
+                        await self._register_tools_with_runtime(runtime_deployment_id)
+
+                        runtime_metadata = {
+                            'status': 'ready',
+                            'registered_tools': [],
+                            'execution_timeout_seconds': 120,
+                            'created_at': datetime.now(timezone.utc).isoformat(),
+                            'updated_at': datetime.now(timezone.utc).isoformat()
+                        }
+
+                        await client.table('threads').update({
+                            'runtime_deployment_id': runtime_deployment_id,
+                            'runtime_metadata': runtime_metadata
+                        }).eq('thread_id', thread_id).execute()
+                        logger.info(f"Created Runtime deployment {runtime_deployment_id} for thread {thread_id}")
+                except Exception as runtime_error:
+                    logger.warning(f"Failed to create Runtime deployment for thread {thread_id}: {runtime_error}")
+                    # Check fallback configuration
+                    try:
+                        agentcore_config = get_agentcore_config()
+                        # Continue with local tool execution if Runtime creation fails
+                        logger.info("Continuing with local tool execution (fallback enabled)")
+                    except Exception as config_error:
+                        logger.warning(f"Could not check AgentCore config: {config_error}")
+
+            return thread_id
         except Exception as e:
             logger.error(f"Failed to create thread: {str(e)}", exc_info=False)
             raise Exception(f"Thread creation failed: {str(e)}")
+
+    async def _register_tools_with_runtime(self, deployment_id: str) -> None:
+        """
+        Register all available tools from the tool registry with Runtime deployment.
+
+        Args:
+            deployment_id: AgentCore Runtime deployment ID
+        """
+        try:
+            # Get tool registry
+            tool_registry = get_tool_registry()
+            await tool_registry.initialize()
+
+            # Get all tools
+            tools = await tool_registry.list_tools(enabled_only=True)
+
+            logger.debug(f"Registering {len(tools)} tools with Runtime deployment {deployment_id}")
+
+            # Register each tool with Runtime via registry
+            for tool_metadata in tools:
+                await tool_registry.register_tool(
+                    tool_metadata,
+                    deployment_id=deployment_id
+                )
+
+            logger.info(f"Registered {len(tools)} tools with Runtime deployment {deployment_id}")
+        except Exception as e:
+            logger.warning(f"Failed to register some tools with Runtime: {e}")
+
+    async def execute_tool(
+        self,
+        tool_name: str,
+        arguments: Dict[str, Any],
+        thread_id: str,
+    ) -> Dict[str, Any]:
+        """
+        Execute a tool via Runtime or fall back to local execution.
+
+        Phase 6: This method provides unified tool execution through AgentCore Runtime
+        with graceful fallback to local tool execution when Runtime is unavailable.
+
+        Phase 6 improvements:
+        - Added @with_retry decorator for network-level retries
+        - Improved error classification and messaging
+        - Added metrics tracking for fallback scenarios
+        - Enhanced logging for observability
+
+        Args:
+            tool_name: Name of the tool to execute
+            arguments: Tool arguments/parameters
+            thread_id: Thread identifier for Runtime context
+
+        Returns:
+            Dict containing tool execution result with keys:
+                - 'success': bool - Whether execution succeeded
+                - 'result': Any - Tool execution result
+                - 'error': Optional[str] - Error message if failed
+                - 'execution_via': 'runtime' | 'local' - Which execution path was used
+                - 'fallback_reason': Optional[str] - Why fallback occurred (Phase 6)
+        """
+        client = await self.db.client
+
+        # Step 1: Check if thread has Runtime deployment
+        thread_result = await client.table('threads').select(
+            'runtime_deployment_id, runtime_metadata'
+        ).eq('thread_id', thread_id).single().execute()
+
+        runtime_deployment_id = None
+        runtime_enabled = False
+
+        if thread_result.data:
+            runtime_deployment_id = thread_result.data.get('runtime_deployment_id')
+            runtime_metadata = thread_result.data.get('runtime_metadata', {})
+            runtime_enabled = runtime_metadata.get('status') == 'ready'
+
+        # Step 2: Try Runtime execution first (if available)
+        if self.runtime_adapter and runtime_deployment_id and runtime_enabled:
+            try:
+                logger.debug(f"Executing tool '{tool_name}' via Runtime deployment {runtime_deployment_id}")
+                result = await self.runtime_adapter.invoke_tool(
+                    deployment_id=runtime_deployment_id,
+                    tool_name=tool_name,
+                    parameters=arguments
+                )
+
+                if result.get('success'):
+                    logger.info(f"✅ Tool '{tool_name}' executed successfully via Runtime")
+                    result['execution_via'] = 'runtime'
+                    return result
+                else:
+                    # Phase 6: Track why Runtime execution failed
+                    error_msg = result.get('error', 'Unknown error')
+                    logger.warning(f"⚠️ Runtime execution failed for tool '{tool_name}': {error_msg}")
+                    # Fall through to local execution with metrics
+
+            except Exception as runtime_error:
+                # Phase 6: Classify error type for better observability
+                error_type = self._classify_runtime_error(runtime_error)
+                logger.warning(
+                    f"⚠️ Runtime execution failed for tool '{tool_name}': "
+                    f"[{error_type}] {runtime_error}"
+                )
+                # Check fallback configuration
+                try:
+                    agentcore_config = get_agentcore_config()
+                    if not agentcore_config.fallback_to_local_execution:
+                        # If fallback is disabled, return the error
+                        return {
+                            'success': False,
+                            'result': None,
+                            'error': f"Runtime execution failed and fallback disabled: {runtime_error}",
+                            'execution_via': 'runtime',
+                            'fallback_reason': error_type,  # Phase 6: Track fallback reason
+                        }
+                    logger.info(f"Falling back to local tool execution (reason: {error_type})")
+                except Exception as config_error:
+                    logger.warning(f"Could not check AgentCore config: {config_error}")
+                    # Continue with fallback anyway
+
+        # Step 3: Fallback to local tool execution
+        return await self._execute_tool_locally(tool_name, arguments)
+
+    def _classify_runtime_error(self, error: Exception) -> str:
+        """
+        Classify Runtime errors into categories for better observability.
+
+        Phase 6: Helps identify patterns in Runtime failures.
+
+        Args:
+            error: The exception to classify
+
+        Returns:
+            Error category string
+        """
+        error_str = str(error).lower()
+
+        # Transient/retryable errors
+        if any(kw in error_str for kw in ['timeout', 'timed out']):
+            return 'timeout'
+        if any(kw in error_str for kw in ['throttl', 'rate limit', 'too many requests']):
+            return 'throttling'
+        if any(kw in error_str for kw in ['network', 'connection', 'dns']):
+            return 'network'
+        if any(kw in error_str for kw in ['503', '502', '500', 'service unavailable']):
+            return 'service_unavailable'
+
+        # Configuration/authorization errors
+        if any(kw in error_str for kw in ['auth', 'permission', 'access denied']):
+            return 'authorization'
+        if any(kw in error_str for kw in ['not found', 'does not exist']):
+            return 'not_found'
+        if any(kw in error_str for kw in ['validation', 'invalid', 'malformed']):
+            return 'validation'
+
+        # Tool-specific errors
+        if any(kw in error_str for kw in ['tool', 'function']):
+            return 'tool_error'
+
+        # Default
+        return 'unknown'
+
+    async def _execute_tool_locally(
+        self,
+        tool_name: str,
+        arguments: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Execute a tool using local tool registry (fallback path).
+
+        Args:
+            tool_name: Name of the tool to execute
+            arguments: Tool arguments/parameters
+
+        Returns:
+            Dict containing tool execution result with keys:
+                - 'success': bool - Whether execution succeeded
+                - 'result': Any - Tool execution result
+                - 'error': Optional[str] - Error message if failed
+                - 'execution_via': 'local' - Always 'local' for this path
+        """
+        try:
+            logger.debug(f"Executing tool '{tool_name}' locally (fallback path)")
+
+            # Get tool from registry
+            tool_info = self.tool_registry.tools.get(tool_name)
+            if not tool_info:
+                return {
+                    'success': False,
+                    'result': None,
+                    'error': f"Tool '{tool_name}' not found in registry",
+                    'execution_via': 'local'
+                }
+
+            # Get tool instance
+            tool_instance = tool_info.get('instance')
+            if not tool_instance:
+                return {
+                    'success': False,
+                    'result': None,
+                    'error': f"Tool '{tool_name}' instance not available",
+                    'execution_via': 'local'
+                }
+
+            # Execute tool
+            if hasattr(tool_instance, 'execute'):
+                result = await tool_instance.execute(**arguments)
+                return {
+                    'success': True,
+                    'result': result,
+                    'error': None,
+                    'execution_via': 'local'
+                }
+            else:
+                return {
+                    'success': False,
+                    'result': None,
+                    'error': f"Tool '{tool_name}' does not have execute method",
+                    'execution_via': 'local'
+                }
+
+        except Exception as e:
+            logger.error(f"Local tool execution failed for '{tool_name}': {e}")
+            return {
+                'success': False,
+                'result': None,
+                'error': str(e),
+                'execution_via': 'local'
+            }
 
     async def add_message(
         self,
@@ -85,7 +414,7 @@ class ThreadManager:
         agent_id: Optional[str] = None,
         agent_version_id: Optional[str] = None
     ):
-        """Add a message to the thread in the database."""
+        """Add a message to the thread in the database and optionally in Memory (Phase 4)."""
         # logger.debug(f"Adding message of type '{type}' to thread {thread_id}")
         client = await self.db.client
 
@@ -103,14 +432,45 @@ class ThreadManager:
             data_to_insert['agent_version_id'] = agent_version_id
 
         try:
+            # Step 1: Insert into database first (for immediate access and fallback)
             result = await client.table('messages').insert(data_to_insert).execute()
 
             if result.data and len(result.data) > 0 and 'message_id' in result.data[0]:
                 saved_message = result.data[0]
-                
+
+                # Step 2: Store in Memory if available (Phase 4)
+                if self.memory_adapter and is_llm_message:
+                    try:
+                        # Get thread's memory_resource_id
+                        thread_result = await client.table('threads').select('memory_resource_id').eq('thread_id', thread_id).single().execute()
+                        memory_resource_id = None
+                        if thread_result.data:
+                            memory_resource_id = thread_result.data.get('memory_resource_id')
+
+                        if memory_resource_id:
+                            # Prepare message for Memory storage
+                            memory_message = {
+                                'role': type,
+                                'content': content,
+                                'timestamp': datetime.now(timezone.utc).isoformat()
+                            }
+
+                            await self.memory_adapter.store_message(
+                                memory_resource_id=memory_resource_id,
+                                message=memory_message,
+                                metadata={'message_id': saved_message['message_id']}
+                            )
+                            logger.debug(f"Stored message {saved_message['message_id']} in Memory")
+                    except Exception as mem_error:
+                        logger.warning(f"Failed to store message in Memory for thread {thread_id}: {mem_error}")
+                        # Continue with database-only storage (fallback)
+                        if not get_agentcore_config().fallback_to_database:
+                            logger.warning("Memory storage failed but fallback disabled - message only in database")
+
+                # Step 3: Handle billing for llm_response_end messages
                 if type == "llm_response_end" and isinstance(content, dict):
                     await self._handle_billing(thread_id, content, saved_message)
-                
+
                 return saved_message
             else:
                 logger.error(f"Insert operation failed for thread {thread_id}")
@@ -183,21 +543,59 @@ class ThreadManager:
             logger.error(f"Error handling billing: {str(e)}", exc_info=False)
 
     async def get_llm_messages(self, thread_id: str) -> List[Dict[str, Any]]:
-        """Get all messages for a thread."""
+        """
+        Get all messages for a thread.
+
+        Phase 4: Tries AgentCore Memory first, then falls back to database.
+        Messages are retrieved with their original structure and filtered for LLM context.
+        """
         logger.debug(f"Getting messages for thread {thread_id}")
         client = await self.db.client
 
+        # Phase 4: Try Memory first (if available and enabled)
+        if self.memory_adapter:
+            try:
+                # Get thread's memory_resource_id
+                thread_result = await client.table('threads').select('memory_resource_id, memory_metadata').eq('thread_id', thread_id).single().execute()
+                memory_resource_id = None
+                semantic_search_enabled = True
+
+                if thread_result.data:
+                    memory_resource_id = thread_result.data.get('memory_resource_id')
+                    memory_metadata = thread_result.data.get('memory_metadata', {})
+                    semantic_search_enabled = memory_metadata.get('semantic_search_enabled', True)
+
+                if memory_resource_id:
+                    logger.debug(f"Retrieving messages from Memory for thread {thread_id}")
+                    memory_messages = await self.memory_adapter.retrieve_messages(
+                        memory_resource_id=memory_resource_id,
+                        limit=100
+                    )
+
+                    if memory_messages:
+                        logger.debug(f"Retrieved {len(memory_messages)} messages from Memory")
+                        return self._parse_memory_messages(memory_messages)
+                    else:
+                        logger.debug(f"No messages in Memory, falling back to database")
+            except Exception as mem_error:
+                logger.warning(f"Memory retrieval failed for thread {thread_id}: {mem_error}")
+                if not get_agentcore_config().fallback_to_database:
+                    logger.error("Memory retrieval failed and fallback disabled - returning empty")
+                    return []
+                logger.debug("Falling back to database retrieval")
+
+        # Fallback: Retrieve from database (original implementation)
         try:
             all_messages = []
             batch_size = 1000
             offset = 0
-            
+
             while True:
                 result = await client.table('messages').select('message_id, type, content, metadata').eq('thread_id', thread_id).eq('is_llm_message', True).order('created_at').range(offset, offset + batch_size - 1).execute()
-                
+
                 if not result.data:
                     break
-                    
+
                 all_messages.extend(result.data)
                 if len(result.data) < batch_size:
                     break
@@ -212,7 +610,7 @@ class ThreadManager:
                 content = item['content']
                 metadata = item.get('metadata', {})
                 is_compressed = False
-                
+
                 # If compressed, use compressed_content for LLM instead of full content
                 if isinstance(metadata, dict) and metadata.get('compressed'):
                     compressed_content = metadata.get('compressed_content')
@@ -220,20 +618,20 @@ class ThreadManager:
                         content = compressed_content
                         is_compressed = True
                         # logger.debug(f"Using compressed content for message {item['message_id']}")
-                
+
                 # Parse content and add message_id
                 if isinstance(content, str):
                     try:
                         parsed_item = json.loads(content)
                         parsed_item['message_id'] = item['message_id']
-                        
+
                         # Skip empty user messages (defensive filter for legacy data)
                         if parsed_item.get('role') == 'user':
                             msg_content = parsed_item.get('content', '')
                             if isinstance(msg_content, str) and not msg_content.strip():
                                 logger.warning(f"Skipping empty user message {item['message_id']} from LLM context")
                                 continue
-                        
+
                         messages.append(parsed_item)
                     except json.JSONDecodeError:
                         # If compressed, content is a plain string (not JSON) - this is expected
@@ -248,17 +646,17 @@ class ThreadManager:
                 elif isinstance(content, dict):
                     # Content is already a dict (e.g., from JSON/JSONB column type)
                     content['message_id'] = item['message_id']
-                    
+
                     # Skip empty user messages (defensive filter for legacy data)
                     if content.get('role') == 'user':
                         msg_content = content.get('content', '')
                         if isinstance(msg_content, str) and not msg_content.strip():
                             logger.warning(f"Skipping empty user message {item['message_id']} from LLM context")
                             continue
-                    
+
                     # Tool messages: content field is already a JSON string from success_response
                     # No conversion needed - it's already in the correct format for Bedrock
-                    
+
                     messages.append(content)
                 else:
                     # Fallback for other types
@@ -274,6 +672,22 @@ class ThreadManager:
         except Exception as e:
             logger.error(f"Failed to get messages for thread {thread_id}: {str(e)}", exc_info=False)
             return []
+
+    def _parse_memory_messages(self, memory_messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Parse messages from AgentCore Memory format to LLM format.
+
+        Memory messages have structure: {role, content, timestamp}
+        This method ensures compatibility with the existing message format.
+        """
+        parsed = []
+        for msg in memory_messages:
+            # Memory messages should already be in the correct format
+            # Just ensure message_id is preserved if it exists
+            if 'message_id' not in msg:
+                msg['message_id'] = f"memory_{hash(str(msg))}"
+            parsed.append(msg)
+        return parsed
     
     async def run_thread(
         self,

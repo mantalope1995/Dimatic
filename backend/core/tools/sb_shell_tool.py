@@ -6,6 +6,28 @@ from uuid import uuid4
 from core.agentpress.tool import ToolResult, openapi_schema, tool_metadata
 from core.sandbox.tool_base import SandboxToolsBase
 from core.agentpress.thread_manager import ThreadManager
+from core.utils.logger import logger
+
+# AgentCore Code Interpreter adapter - lazy loaded
+_agentcore_code_adapter = None
+
+def _get_agentcore_code_adapter():
+    """Lazy load AgentCore Code Interpreter adapter."""
+    global _agentcore_code_adapter
+    if _agentcore_code_adapter is None:
+        try:
+            from core.agentcore.adapters.code_interpreter import AgentCoreCodeInterpreterAdapter
+            from core.sandbox.tool_base import _get_agentcore_config
+
+            cfg = _get_agentcore_config()
+            if cfg and cfg.code_interpreter_enabled:
+                _agentcore_code_adapter = AgentCoreCodeInterpreterAdapter(config=cfg)
+            else:
+                _agentcore_code_adapter = False
+        except ImportError:
+            logger.debug("AgentCore Code Interpreter adapter not available")
+            _agentcore_code_adapter = False
+    return _agentcore_code_adapter
 
 @tool_metadata(
     display_name="Terminal & Commands",
@@ -17,8 +39,17 @@ from core.agentpress.thread_manager import ThreadManager
     visible=True
 )
 class SandboxShellTool(SandboxToolsBase):
-    """Tool for executing tasks in a Daytona sandbox with browser-use capabilities. 
-    Uses sessions for maintaining state between commands and provides comprehensive process management."""
+    """
+    Tool for executing shell commands with dual backend support.
+
+    This tool provides shell execution capabilities using:
+    1. AgentCore Code Interpreter (AWS Bedrock) - Serverless code execution in ap-southeast-2
+    2. Daytona Sandbox (Legacy) - Container-based shell execution with tmux sessions
+
+    Backend selection is automatic based on AgentCore configuration and feature flags.
+    Uses sessions for maintaining state between commands and provides comprehensive
+    process management.
+    """
 
     def __init__(self, project_id: str, thread_manager: ThreadManager):
         super().__init__(project_id, thread_manager)
@@ -30,21 +61,79 @@ class SandboxShellTool(SandboxToolsBase):
             session_id = str(uuid4())
             try:
                 await self._ensure_sandbox()  # Ensure sandbox is initialized
-                await self.sandbox.process.create_session(session_id)
-                self._sessions[session_name] = session_id
+
+                # For AgentCore, session is managed by the base class
+                if self.backend_type == 'agentcore':
+                    self._sessions[session_name] = self.agentcore_session_id
+                else:
+                    await self.sandbox.process.create_session(session_id)
+                    self._sessions[session_name] = session_id
             except Exception as e:
                 raise RuntimeError(f"Failed to create session: {str(e)}")
         return self._sessions[session_name]
 
+    async def _execute_agentcore_command(
+        self,
+        command: str,
+        timeout: int = 60
+    ) -> Dict[str, Any]:
+        """
+        Execute a shell command via AgentCore Code Interpreter.
+
+        Args:
+            command: The shell command to execute
+            timeout: Execution timeout in seconds
+
+        Returns:
+            Dict with output and exit_code
+        """
+        adapter = _get_agentcore_code_adapter()
+        if not adapter:
+            raise RuntimeError("AgentCore Code Interpreter adapter not available")
+
+        # Ensure we have an AgentCore session
+        await self._ensure_sandbox()
+        if self.backend_type != 'agentcore':
+            raise RuntimeError(f"Backend type is {self.backend_type}, expected 'agentcore'")
+
+        session_id = self.agentcore_session_id
+
+        # Execute shell command via AgentCore
+        result = await adapter.execute_shell_command(
+            session_id=session_id,
+            command=command,
+            project_id=self.project_id,
+            timeout_seconds=timeout
+        )
+
+        # Return in same format as _execute_raw_command
+        return {
+            "output": result.output or "",
+            "exit_code": result.exit_code if result.exit_code is not None else (0 if result.success else 1)
+        }
+
     async def _cleanup_session(self, session_name: str):
-        """Clean up a session if it exists."""
-        if session_name in self._sessions:
-            try:
-                await self._ensure_sandbox()  # Ensure sandbox is initialized
-                await self.sandbox.process.delete_session(self._sessions[session_name])
-                del self._sessions[session_name]
-            except Exception as e:
-                print(f"Warning: Failed to cleanup session {session_name}: {str(e)}")
+        """Clean up a session if it exists.
+
+        For AgentCore: Sessions are managed by the base class and don't require cleanup.
+        For Daytona: Deletes the tmux session from the sandbox.
+        """
+        if session_name not in self._sessions:
+            return
+
+        # For AgentCore, sessions are cached at the base class level
+        # and don't need per-session cleanup
+        if self.backend_type == 'agentcore':
+            del self._sessions[session_name]
+            return
+
+        # Legacy Daytona cleanup
+        try:
+            await self._ensure_sandbox()  # Ensure sandbox is initialized
+            await self.sandbox.process.delete_session(self._sessions[session_name])
+            del self._sessions[session_name]
+        except Exception as e:
+            print(f"Warning: Failed to cleanup session {session_name}: {str(e)}")
 
     @openapi_schema({
         "type": "function",
@@ -82,136 +171,205 @@ class SandboxShellTool(SandboxToolsBase):
         }
     })
     async def execute_command(
-        self, 
-        command: str, 
+        self,
+        command: str,
         folder: Optional[str] = None,
         session_name: Optional[str] = None,
         blocking: bool = False,
         timeout: int = 60
     ) -> ToolResult:
-        try:
-            # Ensure sandbox is initialized
-            await self._ensure_sandbox()
-            
-            # Set up working directory
-            cwd = self.workspace_path
-            if folder:
-                folder = folder.strip('/')
-                cwd = f"{self.workspace_path}/{folder}"
-            
-            # Generate a session name if not provided
-            if not session_name:
-                session_name = f"session_{str(uuid4())[:8]}"
-            
-            # Check if tmux session already exists
-            check_session = await self._execute_raw_command(f"tmux has-session -t {session_name} 2>/dev/null || echo 'not_exists'")
-            session_exists = "not_exists" not in check_session.get("output", "")
-            
-            if not session_exists:
-                # Create a new tmux session with the specified working directory
-                await self._execute_raw_command(f"tmux new-session -d -s {session_name} -c {cwd}")
-            
-            # Escape double quotes for the command
-            wrapped_command = command.replace('"', '\\"')
-            
-            if blocking:
-                # For blocking execution, use a more reliable approach
-                # Add a unique marker to detect command completion
-                marker = f"COMMAND_DONE_{str(uuid4())[:8]}"
-                completion_command = self._format_completion_command(command, marker)
-                wrapped_completion_command = completion_command.replace('"', '\\"')
-                
-                # Send the command with completion marker
-                await self._execute_raw_command(f'tmux send-keys -t {session_name} "{wrapped_completion_command}" Enter')
-                
-                start_time = time.time()
-                final_output = ""
-                
-                while (time.time() - start_time) < timeout:
-                    # Wait a shorter interval for more responsive checking
-                    await asyncio.sleep(0.5)
-                    
-                    # Check if session still exists (command might have exited)
-                    check_result = await self._execute_raw_command(f"tmux has-session -t {session_name} 2>/dev/null || echo 'ended'")
-                    if "ended" in check_result.get("output", ""):
-                        break
-                        
-                    # Get current output and check for our completion marker
-                    output_result = await self._execute_raw_command(f"tmux capture-pane -t {session_name} -p -S - -E -")
-                    current_output = output_result.get("output", "")
+        """
+        Execute a shell command in the workspace.
 
-                    if self._is_command_completed(current_output, marker):
-                        final_output = current_output
-                        break
-                
-                # If we didn't get the marker, capture whatever output we have
-                if not final_output:
-                    output_result = await self._execute_raw_command(f"tmux capture-pane -t {session_name} -p -S - -E -")
-                    final_output = output_result.get("output", "")
-                
-                # Kill the session after capture
-                await self._execute_raw_command(f"tmux kill-session -t {session_name}")
-                
-                # For blocking commands, do NOT return session_name since it's already cleaned up
-                # This prevents the LLM from incorrectly trying to call check_command_output
-                return self.success_response({
-                    "output": final_output,
-                    "cwd": cwd,
-                    "completed": True
-                })
+        Routes to AgentCore Code Interpreter or Daytona based on backend_type.
+
+        For AgentCore: Executes commands directly. Non-blocking is not supported.
+        For Daytona: Uses tmux sessions for blocking/non-blocking execution.
+        """
+        try:
+            await self._ensure_sandbox()
+
+            # Route to appropriate backend implementation
+            if self.backend_type == 'agentcore':
+                return await self._execute_agentcore_command_impl(command, folder, timeout)
             else:
-                # Send command to tmux session for non-blocking execution
-                await self._execute_raw_command(f'tmux send-keys -t {session_name} "{wrapped_command}" Enter')
-                
-                # For non-blocking, just return immediately
-                return self.success_response({
-                    "session_name": session_name,
-                    "cwd": cwd,
-                    "message": f"Command sent to tmux session '{session_name}'. Use check_command_output to view results.",
-                    "completed": False
-                })
-                
+                return await self._execute_daytona_command_impl(
+                    command, folder, session_name, blocking, timeout
+                )
+
         except Exception as e:
-            # Attempt to clean up session in case of error
-            if session_name:
+            # Attempt to clean up session in case of error (Daytona only)
+            if session_name and self.backend_type == 'daytona':
                 try:
                     await self._execute_raw_command(f"tmux kill-session -t {session_name}")
                 except:
                     pass
             return self.fail_response(f"Error executing command: {str(e)}")
 
+    async def _execute_agentcore_command_impl(
+        self,
+        command: str,
+        folder: Optional[str],
+        timeout: int
+    ) -> ToolResult:
+        """
+        Execute a command via AgentCore Code Interpreter.
+
+        Note: AgentCore executes commands directly and synchronously.
+        Non-blocking mode is not supported - all commands are blocking.
+        """
+        # Build command with folder change if needed
+        cwd = self.workspace_path
+        if folder:
+            folder = folder.strip('/')
+            cwd = f"{self.workspace_path}/{folder}"
+            command = f"cd {cwd} && {command}"
+
+        # Execute via AgentCore
+        result = await self._execute_agentcore_command(command, timeout=timeout)
+
+        return self.success_response({
+            "output": result["output"],
+            "cwd": cwd,
+            "exit_code": result.get("exit_code", 0),
+            "completed": True,
+            "backend": "agentcore"
+        })
+
+    async def _execute_daytona_command_impl(
+        self,
+        command: str,
+        folder: Optional[str],
+        session_name: Optional[str],
+        blocking: bool,
+        timeout: int
+    ) -> ToolResult:
+        """
+        Execute a command via Daytona with tmux session management.
+        """
+        # Set up working directory
+        cwd = self.workspace_path
+        if folder:
+            folder = folder.strip('/')
+            cwd = f"{self.workspace_path}/{folder}"
+
+        # Generate a session name if not provided
+        if not session_name:
+            session_name = f"session_{str(uuid4())[:8]}"
+
+        # Check if tmux session already exists
+        check_session = await self._execute_raw_command(f"tmux has-session -t {session_name} 2>/dev/null || echo 'not_exists'")
+        session_exists = "not_exists" not in check_session.get("output", "")
+
+        if not session_exists:
+            # Create a new tmux session with the specified working directory
+            await self._execute_raw_command(f"tmux new-session -d -s {session_name} -c {cwd}")
+
+        # Escape double quotes for the command
+        wrapped_command = command.replace('"', '\\"')
+
+        if blocking:
+            # For blocking execution, use a more reliable approach
+            # Add a unique marker to detect command completion
+            marker = f"COMMAND_DONE_{str(uuid4())[:8]}"
+            completion_command = self._format_completion_command(command, marker)
+            wrapped_completion_command = completion_command.replace('"', '\\"')
+
+            # Send the command with completion marker
+            await self._execute_raw_command(f'tmux send-keys -t {session_name} "{wrapped_completion_command}" Enter')
+
+            start_time = time.time()
+            final_output = ""
+
+            while (time.time() - start_time) < timeout:
+                # Wait a shorter interval for more responsive checking
+                await asyncio.sleep(0.5)
+
+                # Check if session still exists (command might have exited)
+                check_result = await self._execute_raw_command(f"tmux has-session -t {session_name} 2>/dev/null || echo 'ended'")
+                if "ended" in check_result.get("output", ""):
+                    break
+
+                # Get current output and check for our completion marker
+                output_result = await self._execute_raw_command(f"tmux capture-pane -t {session_name} -p -S - -E -")
+                current_output = output_result.get("output", "")
+
+                if self._is_command_completed(current_output, marker):
+                    final_output = current_output
+                    break
+
+            # If we didn't get the marker, capture whatever output we have
+            if not final_output:
+                output_result = await self._execute_raw_command(f"tmux capture-pane -t {session_name} -p -S - -E -")
+                final_output = output_result.get("output", "")
+
+            # Kill the session after capture
+            await self._execute_raw_command(f"tmux kill-session -t {session_name}")
+
+            # For blocking commands, do NOT return session_name since it's already cleaned up
+            # This prevents the LLM from incorrectly trying to call check_command_output
+            return self.success_response({
+                "output": final_output,
+                "cwd": cwd,
+                "completed": True,
+                "backend": "daytona"
+            })
+        else:
+            # Send command to tmux session for non-blocking execution
+            await self._execute_raw_command(f'tmux send-keys -t {session_name} "{wrapped_command}" Enter')
+
+            # For non-blocking, just return immediately
+            return self.success_response({
+                "session_name": session_name,
+                "cwd": cwd,
+                "message": f"Command sent to tmux session '{session_name}'. Use check_command_output to view results.",
+                "completed": False,
+                "backend": "daytona"
+            })
+
     async def _execute_raw_command(self, command: str) -> Dict[str, Any]:
-        """Execute a raw command directly in the sandbox."""
-        # Ensure session exists for raw commands
-        session_id = await self._ensure_session("raw_commands")
-        
-        # Execute command in session
-        from daytona_sdk import SessionExecuteRequest
-        req = SessionExecuteRequest(
-            command=command,
-            var_async=False,
-            cwd=self.workspace_path
-        )
-        
-        response = await self.sandbox.process.execute_session_command(
-            session_id=session_id,
-            req=req,
-            timeout=30  # Short timeout for utility commands
-        )
-        
-        logs = await self.sandbox.process.get_session_command_logs(
-            session_id=session_id,
-            command_id=response.cmd_id
-        )
-        
-        # Extract the actual log content from the SessionCommandLogsResponse object
-        # The response has .output, .stdout, and .stderr attributes
-        logs_output = logs.output if logs and logs.output else ""
-        
-        return {
-            "output": logs_output,
-            "exit_code": response.exit_code
-        }
+        """Execute a raw command directly in the sandbox.
+
+        Routes to AgentCore Code Interpreter or Daytona based on backend_type.
+        """
+        await self._ensure_sandbox()
+
+        # Route to appropriate backend
+        if self.backend_type == 'agentcore':
+            # Use AgentCore Code Interpreter for shell command execution
+            return await self._execute_agentcore_command(command, timeout=30)
+        else:
+            # Legacy Daytona implementation
+            # Ensure session exists for raw commands
+            session_id = await self._ensure_session("raw_commands")
+
+            # Execute command in session
+            from daytona_sdk import SessionExecuteRequest
+            req = SessionExecuteRequest(
+                command=command,
+                var_async=False,
+                cwd=self.workspace_path
+            )
+
+            response = await self.sandbox.process.execute_session_command(
+                session_id=session_id,
+                req=req,
+                timeout=30  # Short timeout for utility commands
+            )
+
+            logs = await self.sandbox.process.get_session_command_logs(
+                session_id=session_id,
+                command_id=response.cmd_id
+            )
+
+            # Extract the actual log content from the SessionCommandLogsResponse object
+            # The response has .output, .stdout, and .stderr attributes
+            logs_output = logs.output if logs and logs.output else ""
+
+            return {
+                "output": logs_output,
+                "exit_code": response.exit_code
+            }
 
     @openapi_schema({
         "type": "function",
@@ -240,32 +398,46 @@ class SandboxShellTool(SandboxToolsBase):
         session_name: str,
         kill_session: bool = False
     ) -> ToolResult:
+        """
+        Check the output of a NON-BLOCKING command running in a tmux session.
+
+        Note: This is only supported for the Daytona backend with tmux sessions.
+        For AgentCore, commands execute synchronously and return output directly.
+        """
         try:
-            # Ensure sandbox is initialized
             await self._ensure_sandbox()
-            
+
+            # For AgentCore, this method is not applicable
+            if self.backend_type == 'agentcore':
+                return self.fail_response(
+                    "check_command_output is not supported for AgentCore backend. "
+                    "AgentCore executes commands synchronously - use execute_command() which returns output directly."
+                )
+
+            # Daytona implementation with tmux
             # Check if session exists
             check_result = await self._execute_raw_command(f"tmux has-session -t {session_name} 2>/dev/null || echo 'not_exists'")
             if "not_exists" in check_result.get("output", ""):
                 return self.fail_response(f"Tmux session '{session_name}' does not exist.")
-            
+
             # Get output from tmux pane
             output_result = await self._execute_raw_command(f"tmux capture-pane -t {session_name} -p -S - -E -")
             output = output_result.get("output", "")
-            
+
             # Kill session if requested
             if kill_session:
                 await self._execute_raw_command(f"tmux kill-session -t {session_name}")
                 termination_status = "Session terminated."
             else:
                 termination_status = "Session still running."
-            
+
             return self.success_response({
                 "output": output,
                 "session_name": session_name,
-                "status": termination_status
+                "status": termination_status,
+                "backend": "daytona"
             })
-                
+
         except Exception as e:
             return self.fail_response(f"Error checking command output: {str(e)}")
 
@@ -290,22 +462,36 @@ class SandboxShellTool(SandboxToolsBase):
         self,
         session_name: str
     ) -> ToolResult:
+        """
+        Terminate a running command by killing its tmux session.
+
+        Note: This is only supported for the Daytona backend with tmux sessions.
+        For AgentCore, commands execute synchronously and cannot be terminated.
+        """
         try:
-            # Ensure sandbox is initialized
             await self._ensure_sandbox()
-            
+
+            # For AgentCore, this method is not applicable
+            if self.backend_type == 'agentcore':
+                return self.fail_response(
+                    "terminate_command is not supported for AgentCore backend. "
+                    "AgentCore executes commands synchronously with configurable timeouts."
+                )
+
+            # Daytona implementation with tmux
             # Check if session exists
             check_result = await self._execute_raw_command(f"tmux has-session -t {session_name} 2>/dev/null || echo 'not_exists'")
             if "not_exists" in check_result.get("output", ""):
                 return self.fail_response(f"Tmux session '{session_name}' does not exist.")
-            
+
             # Kill the session
             await self._execute_raw_command(f"tmux kill-session -t {session_name}")
-            
+
             return self.success_response({
-                "message": f"Tmux session '{session_name}' terminated successfully."
+                "message": f"Tmux session '{session_name}' terminated successfully.",
+                "backend": "daytona"
             })
-                
+
         except Exception as e:
             return self.fail_response(f"Error terminating command: {str(e)}")
 
@@ -321,20 +507,35 @@ class SandboxShellTool(SandboxToolsBase):
         }
     })
     async def list_commands(self) -> ToolResult:
+        """
+        List all running tmux sessions and their status.
+
+        Note: This is only supported for the Daytona backend with tmux sessions.
+        For AgentCore, commands execute synchronously and there are no background sessions.
+        """
         try:
-            # Ensure sandbox is initialized
             await self._ensure_sandbox()
-            
+
+            # For AgentCore, this method is not applicable
+            if self.backend_type == 'agentcore':
+                return self.success_response({
+                    "message": "AgentCore backend does not use background sessions. Commands execute synchronously.",
+                    "sessions": [],
+                    "backend": "agentcore"
+                })
+
+            # Daytona implementation with tmux
             # List all tmux sessions
             result = await self._execute_raw_command("tmux list-sessions 2>/dev/null || echo 'No sessions'")
             output = result.get("output", "")
-            
+
             if "No sessions" in output or not output.strip():
                 return self.success_response({
                     "message": "No active tmux sessions found.",
-                    "sessions": []
+                    "sessions": [],
+                    "backend": "daytona"
                 })
-            
+
             # Parse session list
             sessions = []
             for line in output.split('\n'):
@@ -343,12 +544,13 @@ class SandboxShellTool(SandboxToolsBase):
                     if parts:
                         session_name = parts[0].strip()
                         sessions.append(session_name)
-            
+
             return self.success_response({
                 "message": f"Found {len(sessions)} active sessions.",
-                "sessions": sessions
+                "sessions": sessions,
+                "backend": "daytona"
             })
-                
+
         except Exception as e:
             return self.fail_response(f"Error listing commands: {str(e)}")
 
@@ -448,10 +650,13 @@ class SandboxShellTool(SandboxToolsBase):
         """Clean up all sessions."""
         for session_name in list(self._sessions.keys()):
             await self._cleanup_session(session_name)
-        
-        # Also clean up any tmux sessions
-        try:
-            await self._ensure_sandbox()
-            await self._execute_raw_command("tmux kill-server 2>/dev/null || true")
-        except:
-            pass
+
+        # For Daytona, also clean up any tmux sessions
+        if self.backend_type == 'daytona':
+            try:
+                await self._ensure_sandbox()
+                await self._execute_raw_command("tmux kill-server 2>/dev/null || true")
+            except:
+                pass
+        # For AgentCore, sessions are managed at the base class level
+        # and don't require additional cleanup

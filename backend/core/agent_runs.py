@@ -589,6 +589,320 @@ async def _ensure_sandbox_for_thread(client, project_id: str, files: List[Upload
 
 
 # ============================================================================
+# AgentCore Runtime Integration (Phase 1 Migration)
+# ============================================================================
+
+async def _handle_execution_failure(
+    client,
+    agent_run_id: str,
+    error: Exception,
+    execution_backend: str,
+    is_transient: bool = False,
+) -> None:
+    """
+    Handle execution failure by updating agent run status and storing error details.
+
+    Args:
+        client: Database client
+        agent_run_id: Agent run ID that failed
+        error: The exception that occurred
+        execution_backend: Backend being used ('agentcore' or 'dramatiq')
+        is_transient: Whether the error is transient (retryable)
+    """
+    error_type = type(error).__name__
+    error_message = str(error)
+    error_details = {
+        "type": error_type,
+        "message": error_message,
+        "is_transient": is_transient,
+        "backend": execution_backend,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+    logger.error(
+        f"Execution failure for {agent_run_id} ({execution_backend}): {error_type}: {error_message}",
+        exc_info=not is_transient,  # Full stack trace for non-transient errors
+    )
+
+    try:
+        # Update agent run status to failed
+        await client.table('agent_runs').update({
+            'status': 'failed',
+            'ended_at': datetime.utcnow().isoformat(),
+            'error': error_message,
+            'metadata': {
+                'execution_backend': execution_backend,
+                'failure_reason': error_type,
+                'failure_details': error_details,
+                'is_transient_error': is_transient,
+            }
+        }).eq('id', agent_run_id).execute()
+        logger.debug(f"Updated agent run {agent_run_id} status to 'failed'")
+
+    except Exception as db_error:
+        logger.error(f"Failed to update agent run {agent_run_id} status after execution error: {db_error}")
+
+
+def _is_transient_error(error: Exception) -> bool:
+    """
+    Check if an error is transient (retryable).
+
+    Transient errors include:
+    - Timeout errors
+    - Throttling/rate limiting
+    - Service unavailable
+    - Network/connection issues
+    - Internal server errors (5xx)
+
+    Args:
+        error: The exception to check
+
+    Returns:
+        True if the error is transient, False otherwise
+    """
+    error_type = type(error).__name__
+    error_message = str(error).lower()
+
+    # Check error type
+    transient_error_types = {
+        'TimeoutError',
+        'asyncio.TimeoutError',
+        'ConnectionError',
+        'ConnectionRefusedError',
+        'ConnectTimeout',
+        'ReadTimeout',
+    }
+
+    if error_type in transient_error_types:
+        return True
+
+    # Check error message for transient keywords
+    transient_keywords = [
+        'timeout',
+        'throttl',
+        'too many requests',
+        'service unavailable',
+        'internal error',
+        'network',
+        'connection',
+        'temporary',
+        'retryable',
+    ]
+
+    return any(keyword in error_message for keyword in transient_keywords)
+
+
+# ============================================================================
+# AgentCore Runtime Integration Functions
+# ============================================================================
+
+async def _should_use_agentcore_runtime(agent_config: Optional[Dict]) -> bool:
+    """
+    Check if AgentCore Runtime should be used for this agent execution.
+
+    Args:
+        agent_config: Agent configuration dict
+
+    Returns:
+        True if AgentCore Runtime is enabled and should be used
+    """
+    try:
+        from core.agentcore import get_config
+        config = get_config()
+
+        # Check if Runtime is enabled
+        if not config.runtime_enabled:
+            return False
+
+        # Check if fallback to legacy is disabled (force AgentCore)
+        if not config.fallback_to_legacy_sandbox:
+            return True
+
+        # Check if agent has deployment_id (already deployed to AgentCore)
+        if agent_config:
+            metadata = agent_config.get('metadata', {})
+            deployment_id = metadata.get('deployment_id')
+            if deployment_id:
+                return True
+
+        return False
+
+    except Exception as e:
+        logger.warning(f"Error checking AgentCore Runtime availability: {e}")
+        return False
+
+
+async def _ensure_agentcore_deployment(
+    client,
+    agent_config: Dict,
+    version_id: str,
+) -> Optional[str]:
+    """
+    Ensure agent is deployed to AgentCore Runtime.
+
+    Checks if agent has a deployment_id. If not, triggers deployment
+    via DeploymentManager.
+
+    Args:
+        client: Database client
+        agent_config: Agent configuration
+        version_id: Agent version ID
+
+    Returns:
+        deployment_id if deployment was successful, None otherwise
+    """
+    try:
+        from core.agentcore import get_config
+        from core.agentcore.deployment import DeploymentManager
+
+        config = get_config()
+
+        # Check if auto-deploy is enabled
+        if not config.auto_deploy_enabled:
+            logger.debug(f"AgentCore auto-deploy disabled, skipping deployment")
+            return None
+
+        # Check if already deployed
+        metadata = agent_config.get('metadata', {})
+        deployment_id = metadata.get('deployment_id')
+        deployment_status = metadata.get('deployment_status')
+
+        if deployment_id and deployment_status == 'deployed':
+            logger.debug(f"Agent {agent_config.get('agent_id')} already deployed: {deployment_id}")
+            return deployment_id
+
+        # Trigger deployment
+        agent_id = agent_config.get('agent_id')
+        logger.info(f"Deploying agent {agent_id} version {version_id} to AgentCore Runtime")
+
+        deployment_manager = DeploymentManager(config=config)
+        result = await deployment_manager.deploy_agent_version(
+            agent_id=agent_id,
+            version_id=version_id,
+            agent_config=agent_config,
+        )
+
+        if result.success and result.deployment_id:
+            # Update agent version metadata with deployment info
+            await client.table('agent_versions').update({
+                'deployment_id': result.deployment_id,
+                'deployment_status': 'deployed',
+                'deployed_at': datetime.now(timezone.utc).isoformat(),
+                'deployment_metadata': result.metadata or {}
+            }).eq('version_id', version_id).execute()
+
+            logger.info(f"✅ Agent {agent_id} deployed successfully: {result.deployment_id}")
+            return result.deployment_id
+        else:
+            logger.warning(f"Agent {agent_id} deployment failed: {result.error}")
+            return None
+
+    except Exception as e:
+        logger.error(f"Error ensuring AgentCore deployment: {e}", exc_info=True)
+        return None
+
+
+async def _execute_with_agentcore(
+    deployment_id: str,
+    thread_id: str,
+    prompt: str,
+    agent_run_id: str,
+    timeout_seconds: int = 300,
+) -> Dict[str, Any]:
+    """
+    Execute agent using AgentCore Runtime with streaming.
+
+    This is a non-blocking execution that starts the streaming flow.
+    The actual streaming is handled via SSE endpoint.
+
+    Args:
+        deployment_id: Agent deployment ID
+        thread_id: Thread ID for session continuity
+        prompt: User prompt
+        agent_run_id: Agent run ID for tracking
+        timeout_seconds: Execution timeout
+
+    Returns:
+        Dict with execution info (status, execution_id, etc.)
+    """
+    try:
+        from core.agentcore import get_config
+        from core.agentcore.runtime import ExecutionManager, ExecutionConfig
+
+        config = get_config()
+        execution_manager = ExecutionManager(config=config)
+
+        # Create execution context
+        execution_id = f"{deployment_id}-{thread_id}-{agent_run_id}"
+
+        exec_config = ExecutionConfig(
+            timeout_seconds=timeout_seconds,
+            enable_streaming=True,
+            persist_results=True,
+        )
+
+        # Create execution context (this will be used for streaming)
+        context = await execution_manager.create_execution_context(
+            execution_id=execution_id,
+            agent_id=deployment_id,
+            session_id=thread_id,
+            input_text=prompt,
+            config=exec_config,
+        )
+
+        logger.info(f"✅ Created AgentCore execution context: {execution_id}")
+
+        return {
+            "status": "running",
+            "execution_id": execution_id,
+            "deployment_id": deployment_id,
+            "session_id": thread_id,
+            "backend": "agentcore",
+        }
+
+    except Exception as e:
+        logger.error(f"Error executing with AgentCore: {e}", exc_info=True)
+        raise
+
+
+async def _execute_with_dramatiq(
+    agent_run_id: str,
+    thread_id: str,
+    project_id: str,
+    model_name: str,
+    agent_id: Optional[str],
+    account_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Execute agent using Dramatiq background worker (legacy).
+
+    Args:
+        agent_run_id: Agent run ID
+        thread_id: Thread ID
+        project_id: Project ID
+        model_name: Model name
+        agent_id: Agent ID
+        account_id: Account ID for worker authorization
+
+    Returns:
+        Dict with status info
+    """
+    await _trigger_agent_background(
+        agent_run_id=agent_run_id,
+        thread_id=thread_id,
+        project_id=project_id,
+        effective_model=model_name,
+        agent_id=agent_id,
+        account_id=account_id,
+    )
+
+    return {
+        "status": "running",
+        "backend": "dramatiq",
+    }
+
+
+# ============================================================================
 # Core Agent Start Function (used by HTTP endpoint and triggers)
 # ============================================================================
 
@@ -755,12 +1069,121 @@ async def start_agent_run(
     
     _, agent_run_id = await asyncio.gather(create_message(), create_agent_run())
     logger.debug(f"⏱️ [TIMING] Parallel message+agent_run: {(time.time() - t_parallel2) * 1000:.1f}ms")
-    
-    # Trigger background execution
+
+    # Trigger background execution with AgentCore/Dramatiq routing
     t_dispatch = time.time()
-    await _trigger_agent_background(agent_run_id, thread_id, project_id, effective_model, agent_id, account_id)
+
+    # Check if AgentCore Runtime should be used
+    use_agentcore = await _should_use_agentcore_runtime(agent_config)
+    execution_result = None
+
+    if use_agentcore:
+        # Try to ensure AgentCore deployment
+        version_id = agent_config.get('current_version_id') if agent_config else None
+        deployment_id = await _ensure_agentcore_deployment(client, agent_config, version_id)
+
+        if deployment_id:
+            # Use AgentCore Runtime
+            logger.info(f"🚀 Using AgentCore Runtime for agent run {agent_run_id} (deployment: {deployment_id})")
+            try:
+                execution_result = await _execute_with_agentcore(
+                    deployment_id=deployment_id,
+                    thread_id=thread_id,
+                    prompt=final_message_content,
+                    agent_run_id=agent_run_id,
+                    timeout_seconds=300,  # TODO: Make configurable
+                )
+                # Store execution backend in metadata
+                await client.table('agent_runs').update({
+                    'metadata': {
+                        **(metadata or {}),
+                        'execution_backend': 'agentcore',
+                        'deployment_id': deployment_id,
+                        'execution_id': execution_result.get('execution_id'),
+                        'agentcore_session_id': thread_id,
+                        'prompt': final_message_content,
+                    }
+                }).eq('id', agent_run_id).execute()
+                logger.info(f"✅ AgentCore execution started successfully for {agent_run_id}")
+
+            except Exception as e:
+                is_transient = _is_transient_error(e)
+                logger.warning(
+                    f"AgentCore execution failed for {agent_run_id}: "
+                    f"{'transient' if is_transient else 'permanent'} error - {e}"
+                )
+
+                # Check if fallback to legacy sandbox is enabled
+                fallback_enabled = agent_config.get('metadata', {}).get('fallback_to_legacy_sandbox', True)
+
+                if not fallback_enabled:
+                    # Fallback disabled - handle as permanent failure
+                    await _handle_execution_failure(
+                        client=client,
+                        agent_run_id=agent_run_id,
+                        error=e,
+                        execution_backend='agentcore',
+                        is_transient=is_transient,
+                    )
+                    raise
+
+                # Check if we should retry or fallback
+                if is_transient:
+                    # For transient errors, we could retry (but for now, just fallback)
+                    logger.info(f"Transient error, falling back to Dramatiq for {agent_run_id}")
+                else:
+                    logger.info(f"Permanent error, falling back to Dramatiq for {agent_run_id}")
+
+                # Log the fallback in metadata
+                await client.table('agent_runs').update({
+                    'metadata': {
+                        **(metadata or {}),
+                        'agentcore_failure_reason': type(e).__name__,
+                        'agentcore_failure_message': str(e),
+                        'agentcore_failure_is_transient': is_transient,
+                        'fallback_attempted': True,
+                    }
+                }).eq('id', agent_run_id).execute()
+
+                use_agentcore = False
+
+    if not use_agentcore:
+        # Use Dramatiq background worker (legacy)
+        logger.info(f"🚀 Using Dramatiq for agent run {agent_run_id}")
+        try:
+            execution_result = await _execute_with_dramatiq(
+                agent_run_id=agent_run_id,
+                thread_id=thread_id,
+                project_id=project_id,
+                effective_model=effective_model,
+                agent_id=agent_id,
+                account_id=account_id,
+            )
+            # Store execution backend in metadata
+            await client.table('agent_runs').update({
+                'metadata': {
+                    **(metadata or {}),
+                    'execution_backend': 'dramatiq',
+                }
+            }).eq('id', agent_run_id).execute()
+            logger.info(f"✅ Dramatiq execution started successfully for {agent_run_id}")
+
+        except Exception as e:
+            # Dramatiq execution failed - handle the failure
+            is_transient = _is_transient_error(e)
+            logger.error(f"Dramatiq execution failed for {agent_run_id}: {e}")
+
+            await _handle_execution_failure(
+                client=client,
+                agent_run_id=agent_run_id,
+                error=e,
+                execution_backend='dramatiq',
+                is_transient=is_transient,
+            )
+            raise  # Re-raise since there's no fallback from Dramatiq
+
     logger.debug(f"⏱️ [TIMING] Worker dispatch: {(time.time() - t_dispatch) * 1000:.1f}ms")
-    
+
     logger.info(f"⏱️ [TIMING] start_agent_run total: {(time.time() - t_start) * 1000:.1f}ms")
     
     return {
@@ -1149,26 +1572,66 @@ async def get_thread_agent(thread_id: str, user_id: str = Depends(verify_and_get
         logger.error(f"Error fetching agent for thread {thread_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch thread agent: {str(e)}")
 
-@router.get("/agent-run/{agent_run_id}/stream", summary="Stream Agent Run", operation_id="stream_agent_run")
-async def stream_agent_run(
+async def _stream_agentcore_execution(
     agent_run_id: str,
-    token: Optional[str] = None,
-    request: Request = None
-):
-    logger.debug(f"🔐 Stream auth check - agent_run: {agent_run_id}, has_token: {bool(token)}")
-    client = await utils.db.client
+    agent_run_data: Dict[str, Any],
+    deployment_id: str,
+    session_id: str,
+    prompt: str,
+) -> AsyncGenerator[str, None]:
+    """
+    Stream agent execution from AgentCore Runtime using SSE.
 
-    user_id = await get_user_id_from_stream_auth(request, token)
-    agent_run_data = await _get_agent_run_with_access_check(client, agent_run_id, user_id) # 1 db query
+    Args:
+        agent_run_id: Agent run identifier
+        agent_run_data: Agent run data from database
+        deployment_id: AgentCore Runtime deployment ID
+        session_id: Session identifier for AgentCore
+        prompt: Input prompt
 
-    structlog.contextvars.bind_contextvars(
-        agent_run_id=agent_run_id,
-        user_id=user_id,
-    )
+    Yields:
+        SSE-formatted event strings
+    """
+    from core.agentcore.runtime.streaming_handler import StreamingHandler
+    from core.agentcore.config import get_config
 
+    try:
+        handler = StreamingHandler(config=get_config())
+
+        async for sse_event in handler.stream_agent_execution(
+            deployment_id=deployment_id,
+            session_id=session_id,
+            input_text=prompt,
+            input_data={"agent_run_id": agent_run_id},
+            enable_trace=False,
+            timeout_seconds=900,
+        ):
+            yield sse_event
+
+    except Exception as e:
+        logger.error(f"Error streaming AgentCore execution for {agent_run_id}: {e}")
+        yield f"data: {json.dumps({'type': 'status', 'status': 'error', 'message': str(e)})}\n\n"
+
+
+async def _stream_dramatiq_execution(
+    agent_run_id: str,
+    agent_run_data: Dict[str, Any],
+) -> AsyncGenerator[str, None]:
+    """
+    Stream agent execution from Dramatiq background worker using Redis pub/sub.
+
+    This is the legacy streaming implementation for Dramatiq-based execution.
+
+    Args:
+        agent_run_id: Agent run identifier
+        agent_run_data: Agent run data from database
+
+    Yields:
+        SSE-formatted event strings
+    """
     response_list_key = f"agent_run:{agent_run_id}:responses"
     response_channel = f"agent_run:{agent_run_id}:new_response"
-    control_channel = f"agent_run:{agent_run_id}:control" # Global control channel
+    control_channel = f"agent_run:{agent_run_id}:control"  # Global control channel
 
     async def stream_generator(agent_run_data):
         logger.debug(f"Streaming responses for {agent_run_id} using Redis list {response_list_key} and channel {response_channel}")
@@ -1334,8 +1797,81 @@ async def stream_agent_run(
             await asyncio.sleep(0.1)
             logger.debug(f"Streaming cleanup complete for agent run: {agent_run_id}")
 
-    return StreamingResponse(stream_generator(agent_run_data), media_type="text/event-stream", headers={
-        "Cache-Control": "no-cache, no-transform", "Connection": "keep-alive",
-        "X-Accel-Buffering": "no", "Content-Type": "text/event-stream",
-        "Access-Control-Allow-Origin": "*"
-    })
+    # Yield from the stream_generator
+    async for event in stream_generator(agent_run_data):
+        yield event
+
+
+@router.get("/agent-run/{agent_run_id}/stream", summary="Stream Agent Run", operation_id="stream_agent_run")
+async def stream_agent_run(
+    agent_run_id: str,
+    token: Optional[str] = None,
+    request: Request = None
+):
+    """
+    Stream agent execution results via SSE.
+
+    Routes to appropriate streaming backend based on execution metadata:
+    - AgentCore Runtime: Uses StreamingHandler for direct SSE streaming
+    - Dramatiq (legacy): Uses Redis pub/sub for background worker streaming
+    """
+    logger.debug(f"🔐 Stream auth check - agent_run: {agent_run_id}, has_token: {bool(token)}")
+    client = await utils.db.client
+
+    user_id = await get_user_id_from_stream_auth(request, token)
+    agent_run_data = await _get_agent_run_with_access_check(client, agent_run_id, user_id)
+
+    structlog.contextvars.bind_contextvars(
+        agent_run_id=agent_run_id,
+        user_id=user_id,
+    )
+
+    return StreamingResponse(
+        _generate_response_stream(agent_run_id, agent_run_data),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+            "Content-Type": "text/event-stream",
+            "Access-Control-Allow-Origin": "*"
+        }
+    )
+
+
+async def _generate_response_stream(agent_run_id: str, agent_run_data: Dict[str, Any]) -> AsyncGenerator[str, None]:
+    """
+    Helper to generate the streaming response based on backend.
+
+    Routes to appropriate streaming implementation:
+    - AgentCore Runtime: Uses StreamingHandler for direct SSE
+    - Dramatiq (legacy): Uses Redis pub/sub for background worker
+    """
+    metadata = agent_run_data.get('metadata', {}) or {}
+    execution_backend = metadata.get('execution_backend', 'dramatiq')
+
+    logger.debug(f"Streaming for {agent_run_id} using backend: {execution_backend}")
+
+    if execution_backend == 'agentcore':
+        deployment_id = metadata.get('agentcore_deployment_id')
+        session_id = metadata.get('agentcore_session_id')
+        prompt = metadata.get('prompt', '')
+
+        if not deployment_id or not session_id:
+            logger.warning(f"AgentCore metadata missing for {agent_run_id}, falling back to Dramatiq")
+            async for event in _stream_dramatiq_execution(agent_run_id, agent_run_data):
+                yield event
+        else:
+            logger.debug(f"Using AgentCore Runtime streaming for {agent_run_id}")
+            async for event in _stream_agentcore_execution(
+                agent_run_id=agent_run_id,
+                agent_run_data=agent_run_data,
+                deployment_id=deployment_id,
+                session_id=session_id,
+                prompt=prompt,
+            ):
+                yield event
+    else:
+        logger.debug(f"Using Dramatiq (Redis pub/sub) streaming for {agent_run_id}")
+        async for event in _stream_dramatiq_execution(agent_run_id, agent_run_data):
+            yield event

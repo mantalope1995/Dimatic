@@ -34,13 +34,15 @@ class ToolSchema:
 @dataclass
 class ToolResult:
     """Container for tool execution results.
-    
+
     Attributes:
         success (bool): Whether the tool execution succeeded
         output (Any): Output data (can be dict, list, or string)
+        execution_via (Optional[str]): Execution path used ('runtime' or 'local') - Phase 6
     """
     success: bool
     output: Any
+    execution_via: Optional[str] = None  # Phase 6: Track Runtime vs local execution
 
 @dataclass
 class ToolMetadata:

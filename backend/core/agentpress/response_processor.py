@@ -13,9 +13,11 @@ import uuid
 import asyncio
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional, AsyncGenerator, Tuple, Union, Callable, Literal
+from typing import List, Dict, Any, Optional, AsyncGenerator, Tuple, Union, Callable, Literal, TYPE_CHECKING
 from dataclasses import dataclass
 from core.utils.logger import logger
+if TYPE_CHECKING:
+    from core.agentpress.thread_manager import ThreadManager
 from core.utils.config import config as global_config
 from core.agentpress.tool import ToolResult
 from core.agentpress.tool_registry import ToolRegistry
@@ -105,17 +107,27 @@ class ProcessorConfig:
 class ResponseProcessor:
     """Processes LLM responses, extracting and executing tool calls."""
     
-    def __init__(self, tool_registry: ToolRegistry, add_message_callback: Callable, trace: Optional[StatefulTraceClient] = None, agent_config: Optional[dict] = None):
+    def __init__(
+        self,
+        tool_registry: ToolRegistry,
+        add_message_callback: Callable,
+        trace: Optional[StatefulTraceClient] = None,
+        agent_config: Optional[dict] = None,
+        thread_manager: Optional["ThreadManager"] = None
+    ):
         """Initialize the ResponseProcessor.
-        
+
         Args:
             tool_registry: Registry of available tools
             add_message_callback: Callback function to add messages to the thread.
                 MUST return the full saved message object (dict) or None.
+            trace: Optional Langfuse trace client
             agent_config: Optional agent configuration with version information
+            thread_manager: Optional ThreadManager for unified tool execution via Runtime
         """
         self.tool_registry = tool_registry
         self.add_message = add_message_callback
+        self.thread_manager = thread_manager  # PHASE 6: For Runtime tool execution
         
         self.trace = trace
         if not self.trace:
@@ -882,7 +894,7 @@ class ResponseProcessor:
                     self.trace.event(name="executing_tools_after_stream", level="DEFAULT", status_message=(f"Executing {len(final_tool_calls_to_process)} tools ({config.tool_execution_strategy}) after stream"))
 
                     try:
-                        results_list = await self._execute_tools(final_tool_calls_to_process, config.tool_execution_strategy)
+                        results_list = await self._execute_tools(final_tool_calls_to_process, config.tool_execution_strategy, thread_id)
                         logger.debug(f"✅ STREAMING: Tool execution after stream completed, got {len(results_list)} results")
                     except Exception as stream_exec_error:
                         logger.error(f"❌ STREAMING: Tool execution after stream failed: {str(stream_exec_error)}")
@@ -1435,7 +1447,7 @@ class ResponseProcessor:
                 self.trace.event(name="executing_tools_with_strategy", level="DEFAULT", status_message=(f"Executing {len(tool_calls_to_execute)} tools with strategy: {config.tool_execution_strategy}"))
 
                 try:
-                    tool_results = await self._execute_tools(tool_calls_to_execute, config.tool_execution_strategy)
+                    tool_results = await self._execute_tools(tool_calls_to_execute, config.tool_execution_strategy, thread_id)
                     logger.debug(f"✅ NON-STREAMING: Tool execution completed, got {len(tool_results)} results")
                 except Exception as exec_error:
                     logger.error(f"❌ NON-STREAMING: Tool execution failed: {str(exec_error)}")
@@ -1552,8 +1564,23 @@ class ResponseProcessor:
             if end_msg_obj: yield format_for_yield(end_msg_obj)
 
     # Tool execution methods
-    async def _execute_tool(self, tool_call: Dict[str, Any]) -> ToolResult:
-        """Execute a single tool call and return the result."""
+    async def _execute_tool(
+        self,
+        tool_call: Dict[str, Any],
+        thread_id: Optional[str] = None
+    ) -> ToolResult:
+        """Execute a single tool call and return the result.
+
+        PHASE 6: Uses ThreadManager's unified execute path which tries Runtime first,
+        then falls back to local execution.
+
+        Args:
+            tool_call: Tool call dict with function_name and arguments
+            thread_id: Optional thread ID for Runtime tool execution
+
+        Returns:
+            ToolResult with success status and output
+        """
         span = self.trace.span(name=f"execute_tool.{tool_call['function_name']}", input=tool_call["arguments"])
         function_name = "unknown"
         try:
@@ -1561,34 +1588,65 @@ class ResponseProcessor:
             arguments = tool_call["arguments"]
 
             logger.debug(f"🔧 EXECUTING TOOL: {function_name}")
-            # logger.debug(f"📝 RAW ARGUMENTS TYPE: {type(arguments)}")
             logger.debug(f"📝 RAW ARGUMENTS VALUE: {arguments}")
             self.trace.event(name="executing_tool", level="DEFAULT", status_message=(f"Executing tool: {function_name} with arguments: {arguments}"))
 
-            # Get available functions from tool registry
+            # PHASE 6: Try ThreadManager's unified Runtime-first execution path
+            if self.thread_manager and thread_id:
+                try:
+                    logger.debug(f"🚀 PHASE 6: Using ThreadManager's unified execute path for {function_name}")
+                    result_dict = await self.thread_manager.execute_tool(
+                        tool_name=function_name,
+                        arguments=arguments if isinstance(arguments, dict) else {"arg": arguments},
+                        thread_id=thread_id
+                    )
+
+                    # Check execution result
+                    if result_dict.get('success'):
+                        execution_via = result_dict.get('execution_via', 'unknown')
+                        logger.debug(f"✅ Tool executed via {execution_via}: {function_name}")
+                        # PHASE 6: Preserve structured result from Runtime (dict, list, or scalar)
+                        # This allows the LLM to receive structured data instead of string representations
+                        raw_result = result_dict.get('result')
+                        span.end(status_message=f"tool_executed_via_{execution_via}", output=str(raw_result))
+                        return ToolResult(success=True, output=raw_result, execution_via=execution_via)
+                    else:
+                        # Runtime failed, check if we should fall back
+                        error = result_dict.get('error', 'Unknown error')
+                        logger.warning(f"⚠️ ThreadManager execution failed: {error}")
+
+                        # Check if fallback is enabled
+                        from core.agentcore.config import get_agentcore_config
+                        agentcore_config = get_agentcore_config()
+                        if not agentcore_config.fallback_to_local_execution:
+                            span.end(status_message="runtime_failed_no_fallback", level="ERROR", output=error)
+                            return ToolResult(success=False, output=f"Runtime execution failed: {error}")
+
+                        logger.debug(f"🔄 Falling back to local execution for {function_name}")
+                except Exception as runtime_error:
+                    logger.warning(f"⚠️ ThreadManager execution error: {runtime_error}")
+                    # Continue to local execution
+
+            # Local execution path (original implementation)
             logger.debug(f"🔍 Looking up tool function: {function_name}")
             available_functions = self.tool_registry.get_available_functions()
-            # logger.debug(f"📋 Available functions: {list(available_functions.keys())}")
 
             # Look up the function by name
             tool_fn = available_functions.get(function_name)
             if not tool_fn:
                 logger.error(f"❌ Tool function '{function_name}' not found in registry")
-                # logger.error(f"❌ Available functions: {list(available_functions.keys())}")
                 span.end(status_message="tool_not_found", level="ERROR")
                 return ToolResult(success=False, output=f"Tool function '{function_name}' not found. Available: {list(available_functions.keys())}")
 
             logger.debug(f"✅ Found tool function for '{function_name}'")
-            # logger.debug(f"🔧 Tool function type: {type(tool_fn)}")
 
             # Handle arguments - ensure proper parsing
-            # If tool_call has raw_arguments, use that for better error messages
             raw_args_for_logging = tool_call.get("raw_arguments", arguments) if isinstance(tool_call.get("raw_arguments"), str) else arguments
-            
+
             if isinstance(arguments, str):
                 logger.debug(f"🔄 Parsing string arguments for {function_name}")
                 logger.debug(f"📝 Raw arguments string: {raw_args_for_logging[:200]}...")
-                
+
                 # Try parsing with safe_json_parse first
                 parsed_args = None
                 try:
@@ -1634,19 +1692,21 @@ class ResponseProcessor:
                     result = await tool_fn(arguments)
 
             logger.debug(f"✅ Tool execution completed successfully")
-            # logger.debug(f"📤 Result type: {type(result)}")
-            # logger.debug(f"📤 Result: {result}")
 
             # Validate result is a ToolResult object
             if not isinstance(result, ToolResult):
                 logger.warning(f"⚠️ Tool returned non-ToolResult object: {type(result)}")
                 # Convert to ToolResult if possible
                 if hasattr(result, 'success') and hasattr(result, 'output'):
-                    result = ToolResult(success=result.success, output=result.output)
+                    result = ToolResult(success=result.success, output=result.output, execution_via='local')
                     logger.debug("✅ Converted result to ToolResult")
                 else:
                     logger.error(f"❌ Tool returned invalid result type: {type(result)}")
-                    result = ToolResult(success=False, output=f"Tool returned invalid result type: {type(result)}")
+                    result = ToolResult(success=False, output=f"Tool returned invalid result type: {type(result)}", execution_via='local')
+            else:
+                # PHASE 6: Set execution_via for local execution if not already set
+                if result.execution_via is None:
+                    result.execution_via = 'local'
 
             span.end(status_message="tool_executed", output=str(result))
             return result
@@ -1657,12 +1717,13 @@ class ResponseProcessor:
             logger.error(f"❌ Tool call data: {tool_call}")
             logger.error(f"❌ Full traceback:", exc_info=False)
             span.end(status_message="critical_error", output=str(e), level="ERROR")
-            return ToolResult(success=False, output=f"Critical error executing tool: {str(e)}")
+            return ToolResult(success=False, output=f"Critical error executing tool: {str(e)}", execution_via='local')
 
     async def _execute_tools(
         self,
         tool_calls: List[Dict[str, Any]],
-        execution_strategy: ToolExecutionStrategy = "sequential"
+        execution_strategy: ToolExecutionStrategy = "sequential",
+        thread_id: Optional[str] = None
     ) -> List[Tuple[Dict[str, Any], ToolResult]]:
         """Execute tool calls with the specified strategy.
 
@@ -1674,11 +1735,14 @@ class ResponseProcessor:
             execution_strategy: Strategy for executing tools:
                 - "sequential": Execute tools one after another, waiting for each to complete
                 - "parallel": Execute all tools simultaneously for better performance
+            thread_id: Optional thread ID for Runtime tool execution (PHASE 6)
 
         Returns:
             List of tuples containing the original tool call and its result
         """
         logger.debug(f"🎯 MAIN EXECUTE_TOOLS: Executing {len(tool_calls)} tools with strategy: {execution_strategy}")
+        if thread_id:
+            logger.debug(f"📍 Thread ID: {thread_id} (for Runtime execution)")
         logger.debug(f"📋 Tool calls received: {tool_calls}")
 
         # Validate tool_calls structure
@@ -1700,20 +1764,24 @@ class ResponseProcessor:
         try:
             if execution_strategy == "sequential":
                 logger.debug("🔄 Dispatching to sequential execution")
-                return await self._execute_tools_sequentially(tool_calls)
+                return await self._execute_tools_sequentially(tool_calls, thread_id)
             elif execution_strategy == "parallel":
                 logger.debug("🔄 Dispatching to parallel execution")
-                return await self._execute_tools_in_parallel(tool_calls)
+                return await self._execute_tools_in_parallel(tool_calls, thread_id)
             else:
                 logger.warning(f"⚠️ Unknown execution strategy: {execution_strategy}, falling back to sequential")
-                return await self._execute_tools_sequentially(tool_calls)
+                return await self._execute_tools_sequentially(tool_calls, thread_id)
         except Exception as dispatch_error:
             logger.error(f"❌ CRITICAL: Failed to dispatch tool execution: {str(dispatch_error)}")
             logger.error(f"❌ Dispatch error type: {type(dispatch_error).__name__}")
             logger.error(f"❌ Tool calls that caused dispatch failure: {tool_calls}")
             raise
 
-    async def _execute_tools_sequentially(self, tool_calls: List[Dict[str, Any]]) -> List[Tuple[Dict[str, Any], ToolResult]]:
+    async def _execute_tools_sequentially(
+        self,
+        tool_calls: List[Dict[str, Any]],
+        thread_id: Optional[str] = None
+    ) -> List[Tuple[Dict[str, Any], ToolResult]]:
         """Execute tool calls sequentially and return results.
 
         This method executes tool calls one after another, waiting for each tool to complete
@@ -1721,6 +1789,7 @@ class ResponseProcessor:
 
         Args:
             tool_calls: List of tool calls to execute
+            thread_id: Optional thread ID for Runtime tool execution (PHASE 6)
 
         Returns:
             List of tuples containing the original tool call and its result
@@ -1743,7 +1812,7 @@ class ResponseProcessor:
 
                 try:
                     logger.debug(f"🚀 Calling _execute_tool for {tool_name}")
-                    result = await self._execute_tool(tool_call)
+                    result = await self._execute_tool(tool_call, thread_id)
                     logger.debug(f"✅ _execute_tool returned for {tool_name}: success={result.success if hasattr(result, 'success') else 'N/A'}")
 
                     # Validate result
@@ -1806,7 +1875,11 @@ class ResponseProcessor:
 
             return completed_results + error_results
 
-    async def _execute_tools_in_parallel(self, tool_calls: List[Dict[str, Any]]) -> List[Tuple[Dict[str, Any], ToolResult]]:
+    async def _execute_tools_in_parallel(
+        self,
+        tool_calls: List[Dict[str, Any]],
+        thread_id: Optional[str] = None
+    ) -> List[Tuple[Dict[str, Any], ToolResult]]:
         """Execute tool calls in parallel and return results.
 
         This method executes all tool calls simultaneously using asyncio.gather, which
@@ -1814,6 +1887,7 @@ class ResponseProcessor:
 
         Args:
             tool_calls: List of tool calls to execute
+            thread_id: Optional thread ID for Runtime tool execution (PHASE 6)
 
         Returns:
             List of tuples containing the original tool call and its result
@@ -1833,7 +1907,7 @@ class ResponseProcessor:
             tasks = []
             for i, tool_call in enumerate(tool_calls):
                 logger.debug(f"📋 Creating task {i+1} for tool: {tool_call.get('function_name', 'unknown')}")
-                task = self._execute_tool(tool_call)
+                task = self._execute_tool(tool_call, thread_id)
                 tasks.append(task)
 
             logger.debug(f"✅ Created {len(tasks)} tasks for parallel execution")
@@ -1990,7 +2064,11 @@ class ResponseProcessor:
                 
                 # Add function_name directly to metadata (not in result)
                 metadata["function_name"] = function_name
-                
+
+                # PHASE 6: Add execution_via to metadata for observability
+                if hasattr(result, 'execution_via') and result.execution_via:
+                    metadata["execution_via"] = result.execution_via
+
                 # Add structured result to metadata for frontend (only output, success, error)
                 metadata["result"] = structured_result
                 metadata["return_format"] = "native"
@@ -2033,10 +2111,14 @@ class ResponseProcessor:
             # Add function_name directly to metadata (not in result)
             if metadata is None:
                 metadata = {}
-            
+
             function_name = tool_call.get("function_name", "unknown")
             metadata["function_name"] = function_name
-            
+
+            # PHASE 6: Add execution_via to metadata for observability
+            if hasattr(result, 'execution_via') and result.execution_via:
+                metadata["execution_via"] = result.execution_via
+
             # Add structured result (only output, success, error) and return format to metadata
             metadata['result'] = structured_result_for_frontend
             metadata['return_format'] = 'xml'
@@ -2107,17 +2189,23 @@ class ResponseProcessor:
         if for_llm:
             return {
                 "success": result.success if hasattr(result, 'success') else True,
-                "output": output, 
+                "output": output,
                 "error": getattr(result, 'error', None) if hasattr(result, 'error') else None
             }
-        
+
         # For Frontend: Return only pure result (output, success, error)
         # function_name and tool_call_id are stored directly in metadata, not in result
-        return {
+        formatted_result = {
             "success": result.success if hasattr(result, 'success') else True,
-            "output": output, 
+            "output": output,
             "error": getattr(result, 'error', None) if hasattr(result, 'error') else None
         }
+
+        # PHASE 6: Include execution_via for observability
+        if hasattr(result, 'execution_via') and result.execution_via:
+            formatted_result["execution_via"] = result.execution_via
+
+        return formatted_result
 
     def _create_tool_context(self, tool_call: Dict[str, Any], tool_index: int, assistant_message_id: Optional[str] = None) -> ToolExecutionContext:
         """Create a tool execution context with display name populated."""

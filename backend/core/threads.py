@@ -712,7 +712,25 @@ async def delete_thread(
                 logger.debug(f"Successfully deleted sandbox {sandbox_id}")
             except Exception as e:
                 logger.error(f"Error deleting sandbox {sandbox_id}: {str(e)}")
-        
+
+        # Phase 4: Delete AgentCore Memory resource (if exists)
+        memory_resource_id = thread.get('memory_resource_id')
+        if memory_resource_id:
+            try:
+                from core.agentcore import AgentCoreMemoryAdapter, get_agentcore_config
+                agentcore_config = get_agentcore_config()
+                if agentcore_config.memory_enabled:
+                    logger.debug(f"Deleting Memory resource {memory_resource_id} for thread {thread_id}")
+                    memory_adapter = AgentCoreMemoryAdapter(config=agentcore_config)
+                    deleted = await memory_adapter.delete_memory_resource(memory_resource_id)
+                    if deleted:
+                        logger.debug(f"Successfully deleted Memory resource {memory_resource_id}")
+                    else:
+                        logger.warning(f"Memory resource deletion returned False for {memory_resource_id}")
+            except Exception as mem_error:
+                logger.warning(f"Failed to delete Memory resource {memory_resource_id}: {mem_error}")
+                # Continue with thread deletion even if Memory cleanup fails
+
         logger.debug(f"Deleting agent runs for thread {thread_id}")
         await client.table('agent_runs').delete().eq('thread_id', thread_id).execute()
         

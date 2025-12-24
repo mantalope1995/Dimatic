@@ -2,7 +2,59 @@
 
 This module provides integration with AWS Bedrock AgentCore for the Kortix AI agent platform. It includes configuration management and adapter classes for all AgentCore primitives.
 
+> **📘 Developer Guide**: For detailed guidance on working with the AgentCore migration, see **[CLAUDE.md](CLAUDE.md)**. It includes migration status, architecture overview, testing strategies, and AWS SDK patterns.
+
 ## Overview
+
+## Implementation Status
+
+| Migration | Tasks Complete | Progress |
+|-----------|----------------|----------|
+| **Phase 1** (Runtime Integration) | 15 / 15 | **100%** ✅ |
+| **Phase 2** (Code Interpreter & Browser) | 15 / 15 | **100%** ✅ |
+| **Phase 4** (Memory Integration) | 15 / 15 | **100%** ✅ |
+| **Phase 5** (MCP Integration) | 8 / 8 | **100%** ✅ |
+| **Phase 6** (ThreadManager & Tool Registry) | 4 / 4 | **100%** ✅ |
+| **Full Migration** (Complete Platform) | 57 / 77 | ~74% |
+
+**Phase 1 Runtime Integration Complete** (Tasks 1-5):
+- ✅ Task 1: AgentCore SDK integration (boto3 dependency, config.py)
+- ✅ Task 2: Runtime Adapter implementation (deploy_agent, invoke_agent, cancel_execution)
+- ✅ Task 3: Agent packaging and deployment automation
+- ✅ Task 4: Execution Manager with SSE streaming
+- ✅ Task 5: Integration tests and property tests
+
+**Phase 2 Code Interpreter & Browser Complete** (Tasks 6-9):
+- ✅ Task 6: Code Interpreter Adapter (execute_code, execute_shell_command, file operations)
+- ✅ Task 7: Browser Adapter (navigate, extract_content, fill_form, screenshot)
+- ✅ Task 8: Property tests (Properties 1-6, 9-17)
+- ✅ Task 9: Integration tests and fallback verification
+
+**Phase 4 Memory Integration Complete** (Tasks 10-13):
+- ✅ Task 10: Memory Adapter Implementation (create_memory_resource, store_message, retrieve_messages)
+- ✅ Task 11: ThreadManager Memory Integration (create Memory on thread creation, store/retrieve messages)
+- ✅ Task 12: Memory cleanup on thread deletion
+- ✅ Task 13: Property tests (Properties 7, 8, 20, 24)
+
+**Phase 5 MCP Integration Complete** (Tasks 14-21):
+- ✅ Task 14: Gateway Adapter Implementation (deploy_mcp_server, invoke_mcp_tool, list_tools)
+- ✅ Task 15: OAuth flow management (generate_auth_url, exchange_code_for_tokens, refresh_tokens)
+- ✅ Task 16: MCP catalog and deployment tracking (DynamoDB tables, CRUD operations)
+- ✅ Task 17: Tool discovery and registration (list_mcp_tools, register_tool_with_gateway)
+- ✅ Task 18: Credential management (Secrets Manager integration, OAuth token storage)
+- ✅ Task 19: MCP server deployment automation (deploy_server, update_config, delete_deployment)
+- ✅ Task 20: Property tests (Properties 21-24: OAuth flow, credential storage, server deployment)
+- ✅ Task 21: Integration tests (end-to-end MCP tool execution via Gateway)
+
+**Phase 6 ThreadManager & Tool Registry Complete** (Tasks 22-25):
+- ✅ Task 22: Tool Registry Service (centralized tool discovery and metadata management)
+- ✅ Task 23: ThreadManager Runtime Integration (create Runtime deployment on thread creation)
+- ✅ Task 24: Tool Execution Coordination (unified execute() path via Runtime with fallback)
+- ✅ Task 25: Integration tests and verification (end-to-end flows, tool registry discovery)
+
+**Remaining Phases**: Advanced features and optimization (see CLAUDE.md for details)
+
+**See**: [CLAUDE.md](CLAUDE.md) for detailed migration status and next steps.
 
 AWS Bedrock AgentCore provides serverless infrastructure for AI agents with the following primitives:
 
@@ -35,30 +87,39 @@ Configure AgentCore using environment variables in your `.env` file:
 AGENTCORE_ENVIRONMENT=local
 
 # AWS Configuration
-AGENTCORE_AWS_REGION=us-east-1
+# CRITICAL: Phase 1 requires ap-southeast-2 for data residency
+AGENTCORE_AWS_REGION=ap-southeast-2
 AGENTCORE_AWS_ACCESS_KEY_ID=your-access-key
 AGENTCORE_AWS_SECRET_ACCESS_KEY=your-secret-key
 
 # Feature Flags (default: true)
-AGENTCORE_RUNTIME_ENABLED=true
-AGENTCORE_MEMORY_ENABLED=true
-AGENTCORE_CODE_INTERPRETER_ENABLED=true
-AGENTCORE_BROWSER_ENABLED=true
-AGENTCORE_GATEWAY_ENABLED=true
+AGENTCORE_RUNTIME_ENABLED=true           # ✅ Phase 1 Complete
+AGENTCORE_MEMORY_ENABLED=true             # ✅ Phase 4 Complete
+AGENTCORE_CODE_INTERPRETER_ENABLED=true # ✅ Phase 2 Complete
+AGENTCORE_BROWSER_ENABLED=true            # ✅ Phase 2 Complete
+AGENTCORE_GATEWAY_ENABLED=false          # Phase 5
 
 # S3 Configuration (required for Code Interpreter and Browser)
 AGENTCORE_S3_BUCKET_NAME=your-bucket-name
-AGENTCORE_S3_BUCKET_REGION=us-east-1
+AGENTCORE_S3_BUCKET_REGION=ap-southeast-2
+
+# Runtime Configuration (Phase 1)
+AGENTCORE_RUNTIME_MEMORY_LIMIT_MB=2048
+AGENTCORE_RUNTIME_TIMEOUT_SECONDS=900
+
+# Deployment Automation (Phase 1)
+AGENTCORE_AUTO_DEPLOY_ENABLED=true
+AGENTCORE_DEPLOYMENT_RETRY_ATTEMPTS=3
+AGENTCORE_ROLLBACK_ON_FAILURE=true
 
 # Timeouts (in seconds)
-AGENTCORE_RUNTIME_TIMEOUT_SECONDS=300
 AGENTCORE_CODE_INTERPRETER_TIMEOUT_SECONDS=30
 AGENTCORE_BROWSER_TIMEOUT_SECONDS=60
 AGENTCORE_GATEWAY_TIMEOUT_SECONDS=30
 
 # Fallback Configuration
 AGENTCORE_FALLBACK_TO_DATABASE=true
-AGENTCORE_FALLBACK_TO_LEGACY_SANDBOX=false
+AGENTCORE_FALLBACK_TO_LEGACY_SANDBOX=true  # Dramatiq background worker
 ```
 
 ### Programmatic Configuration
@@ -84,12 +145,95 @@ config = get_agentcore_config()
 
 ## Usage
 
-### AgentCore Runtime
+### AgentCore Runtime (Phase 1 - Complete)
 
-Deploy and invoke agents using AgentCore Runtime:
+The Runtime integration provides serverless agent execution with SSE streaming and automatic deployment management.
+
+#### Execution Manager
 
 ```python
-from core.agentcore import AgentCoreRuntimeAdapter
+from core.agentcore.runtime import ExecutionManager, ExecutionContext, ExecutionConfig
+
+# Initialize execution manager
+manager = ExecutionManager()
+
+# Create execution context
+context = ExecutionContext(
+    agent_id="my-agent",
+    user_id="user-123",
+    session_id="session-abc",
+    input_text="What is the weather today?",
+    config=ExecutionConfig(
+        deployment_id="dep-my-agent-v1",  # Auto-deployed if needed
+        timeout_seconds=300,
+        enable_trace=False,
+        fallback_to_dramatiq=True,
+    ),
+)
+
+# Execute agent and stream results
+async for chunk in manager.execute_agent(context=context):
+    if chunk["type"] == "token":
+        print(f"Token: {chunk['data'].get('content', '')}")
+    elif chunk["type"] == "metadata":
+        print(f"Status: {chunk['data'].get('status')}")
+
+# Get execution info
+info = await manager.get_execution_info(execution_id="exec-123")
+print(f"Status: {info['status']}, Duration: {info['duration_seconds']}s")
+```
+
+#### SSE Streaming Handler
+
+```python
+from core.agentcore.runtime import stream_agent_execution_sse
+
+# Stream agent execution via Server-Sent Events
+async for sse_event in stream_agent_execution_sse(
+    deployment_id="dep-my-agent-v1",
+    session_id="session-abc",
+    input_text="Hello, agent!",
+    enable_trace=True,
+    timeout_seconds=300,
+):
+    print(sse_event)  # Formatted SSE event string
+```
+
+#### Deployment Manager
+
+```python
+from core.agentcore.deployment import DeploymentManager
+
+# Initialize deployment manager
+deployer = DeploymentManager()
+
+# Deploy agent version
+result = await deployer.deploy_agent_version(
+    agent_id="my-agent",
+    version_id="v1.0.0",
+    agent_config={
+        "name": "My Agent",
+        "system_prompt": "You are a helpful assistant",
+        "model": "claude-3-5-sonnet-20241022",
+    },
+)
+
+print(f"Deployment ID: {result.deployment_id}")
+print(f"Status: {result.status}")
+
+# Trigger deployment on agent update
+result = await deployer.trigger_deployment(
+    agent_id="my-agent",
+    version_id="v1.1.0",
+    agent_config={"name": "My Agent v1.1"},
+    trigger_type="agent_update",
+)
+```
+
+#### Runtime Adapter (Direct Usage)
+
+```python
+from core.agentcore.adapters import AgentCoreRuntimeAdapter
 
 # Initialize adapter
 runtime = AgentCoreRuntimeAdapter()
@@ -104,8 +248,8 @@ deployment_id = await runtime.deploy_agent(
 # Invoke agent with streaming
 async for response in runtime.invoke_agent(
     deployment_id=deployment_id,
-    thread_id="thread-123",
-    input_data={"message": "Hello"},
+    session_id="thread-123",
+    input_text="Hello",
     stream=True
 ):
     print(response)
@@ -115,6 +259,118 @@ await runtime.cancel_execution(execution_id="exec-123")
 
 # Get execution status
 status = await runtime.get_execution_status(execution_id="exec-123")
+```
+
+### Tool Registry (Phase 6)
+
+Centralized tool discovery and metadata management:
+
+```python
+from core.agentcore import ToolRegistry, ToolMetadata
+
+# Initialize registry
+registry = ToolRegistry()
+
+# Discover all tools in a package
+tools = await registry.discover_tools(tool_package="core.tools")
+print(f"Discovered {len(tools)} tools")
+
+# Register a tool with metadata
+metadata = ToolMetadata(
+    name="web_search",
+    description="Search the web for information",
+    category="mcp",
+    input_schema={"type": "object", "properties": {"query": {"type": "string"}}},
+    output_schema={"type": "object"},
+    is_agentcore_native=False
+)
+await registry.register_tool(metadata)
+
+# Get tool by name
+tool = await registry.get_tool("web_search")
+print(f"Tool: {tool.name} - {tool.description}")
+
+# List tools by category
+mcp_tools = await registry.list_tools(category="mcp")
+for tool in mcp_tools:
+    print(f"  - {tool.name}")
+
+# Unregister a tool
+await registry.unregister_tool("web_search")
+```
+
+### ThreadManager Runtime Integration (Phase 6)
+
+ThreadManager integration with AgentCore Runtime for serverless tool execution:
+
+```python
+from core.agentpress import ThreadManager
+from core.agentcore import get_config
+
+# Initialize ThreadManager (auto-creates Runtime deployment)
+manager = ThreadManager(
+    account_id="account-456",
+    project_id="project-123"
+)
+
+# Create thread - automatically creates Runtime deployment
+thread_id = await manager.create_thread(
+    name="My Thread",
+    runtime_enabled=True  # Set to false to disable Runtime
+)
+print(f"Thread created: {thread_id}")
+
+# ThreadManager automatically registers tools with Runtime
+# Tools are executed through Runtime when available
+
+# Execute tool via Runtime (automatic fallback to local)
+result = await manager.execute_tool(
+    tool_name="web_search",
+    arguments={"query": "AWS AgentCore documentation"},
+    thread_id=thread_id
+)
+print(f"Result: {result}")
+
+# Get thread with Runtime metadata
+thread = await manager.get_thread(thread_id)
+print(f"Runtime Deployment: {thread.get('runtime_deployment_id')}")
+print(f"Runtime Status: {thread.get('runtime_metadata', {}).get('status')}")
+
+# Delete thread - automatically cleans up Runtime deployment
+await manager.delete_thread(thread_id)
+```
+
+### ThreadManager with Custom Runtime Configuration
+
+```python
+from core.agentpress import ThreadManager
+from core.agentcore import AgentCoreConfig, ExecutionConfig
+
+# Create ThreadManager with custom Runtime config
+manager = ThreadManager(
+    account_id="account-456",
+    runtime_config=ExecutionConfig(
+        timeout_seconds=300,
+        enable_trace=True,
+        fallback_to_local=True
+    )
+)
+
+# Create thread with specific Runtime settings
+thread_id = await manager.create_thread(
+    name="Production Thread",
+    runtime_enabled=True,
+    runtime_timeout_seconds=600,
+    runtime_memory_mb=4096
+)
+
+# Execute tool with explicit Runtime preference
+result = await manager.execute_tool(
+    tool_name="data_analysis",
+    arguments={"dataset": "sales_2024.csv"},
+    thread_id=thread_id,
+    prefer_runtime=True  # Try Runtime first, fallback to local
+)
 ```
 
 ### AgentCore Memory
@@ -281,19 +537,38 @@ await gateway.delete_gateway_deployment(deployment_id)
 
 ```
 backend/core/agentcore/
-├── __init__.py              # Module exports
-├── config.py                # Configuration management
+├── __init__.py              # Module exports (Runtime, Memory, ToolRegistry, etc.)
+├── config.py                # Configuration management with environment variables
+├── models.py                # Data models (RuntimeStatus, DeploymentResult, ToolMetadata, etc.)
+├── errors.py                # Error hierarchy and retry decorators
 ├── adapters/
 │   ├── __init__.py
-│   ├── runtime.py           # Runtime adapter
-│   ├── memory.py            # Memory adapter
-│   ├── code_interpreter.py  # Code Interpreter adapter
-│   ├── browser.py           # Browser adapter
-│   └── gateway.py           # Gateway adapter
+│   ├── runtime.py           # ✅ Runtime adapter (deploy_agent, invoke_agent, etc.)
+│   ├── memory.py            # ✅ Memory adapter (create_memory_resource, store_message, etc.)
+│   ├── code_interpreter.py  # ✅ Code Interpreter adapter (execute_code, execute_shell_command)
+│   ├── browser.py           # ✅ Browser adapter (navigate, extract_content, fill_form)
+│   └── gateway.py           # ✅ Gateway adapter (MCP server deployment, tool invocation)
+├── runtime/
+│   ├── __init__.py
+│   ├── execution_manager.py # ✅ Execution lifecycle management
+│   └── streaming_handler.py # ✅ SSE streaming handler
+├── deployment/
+│   ├── __init__.py
+│   ├── agent_packager.py    # ✅ Agent packaging for AgentCore deployment
+│   └── deployment_manager.py # ✅ Deployment orchestration and rollback
+├── registry/
+│   ├── __init__.py
+│   ├── tool_registry.py     # ✅ Tool Registry for centralized tool discovery
+│   └── tool_metadata.py     # ✅ Tool metadata models and schemas
 ├── tests/
 │   ├── __init__.py
 │   ├── test_config.py       # Configuration tests
-│   └── test_adapters.py     # Adapter tests
+│   ├── test_adapters.py     # Adapter unit tests
+│   ├── test_deployment.py   # Deployment automation tests
+│   ├── test_runtime_execution.py  # Runtime execution flow tests
+│   ├── test_integration_phase6.py   # ✅ Phase 6 integration tests (end-to-end)
+│   ├── test_property_runtime.py   # Property-based tests (7 properties)
+│   └── test_tool_registry.py      # ✅ Tool registry tests
 └── README.md                # This file
 ```
 
@@ -311,15 +586,51 @@ backend/core/agentcore/
 Run the test suite:
 
 ```bash
-# Run all tests
+# Run all AgentCore tests
 uv run pytest core/agentcore/tests/ -v
 
 # Run specific test file
 uv run pytest core/agentcore/tests/test_config.py -v
 
+# Run integration tests
+uv run pytest core/agentcore/tests/test_runtime_integration.py -v
+
+# Run property-based tests
+uv run pytest core/agentcore/tests/test_property_runtime.py -v
+
 # Run with coverage
 uv run pytest core/agentcore/tests/ --cov=core.agentcore --cov-report=html
+
+# Run by marker
+uv run pytest -m unit  # Fast tests, no external dependencies
+uv run pytest -m integration  # Tests with database/external services
 ```
+
+### Test Coverage
+
+Phase 1 Runtime Integration includes comprehensive test coverage:
+
+1. **Unit Tests**: Individual component testing
+   - Configuration loading and validation
+   - Adapter method implementations
+   - Model serialization/deserialization
+
+2. **Property Tests**: Hypothesis-based invariant testing
+   - Property 1: AgentCore Runtime Routing
+   - Property 2: Concurrent Execution Scaling
+   - Property 3: Execution Result Persistence
+   - Property 16: API Endpoint Behavior
+   - Property 17: Streaming Functionality
+   - Property 18: Deployment Packaging
+   - Property 19: Deployment ID Persistence
+
+3. **Integration Tests**: End-to-end execution flow
+   - Full agent execution flow (deployment → execution → result)
+   - Concurrent execution throughput
+   - SSE streaming format validation
+   - Deployment and execution pipeline
+   - Graceful fallback to Dramatiq
+   - Region enforcement (ap-southeast-2)
 
 ## Development
 
