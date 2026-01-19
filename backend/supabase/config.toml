@@ -112,7 +112,7 @@ allowed_mime_types = ["text/plain", "application/json", "text/markdown", "text/c
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "https://dimatic.com.au"
+site_url = "https://app.dimatic.com.au"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 # Note: For cloud Supabase, configure these in Dashboard → Authentication → URL Configuration
 additional_redirect_urls = [
