@@ -66,9 +66,9 @@ export const siteConfig = {
     {
       title: 'Dimatic',
       links: [
-        { id: 1, title: 'About', url: 'https://dimatic.com.au' },
-        { id: 3, title: 'Contact', url: 'mailto:hey@dimatic.com.au' },
-        { id: 4, title: 'Careers', url: 'https://dimatic.com.au/careers' },
+        { id: 1, title: 'About', url: 'https://app.dimatic.com.au' },
+        { id: 3, title: 'Contact', url: 'mailto:hey@app.dimatic.com.au' },
+        { id: 4, title: 'Careers', url: 'https://app.dimatic.com.au/careers' },
       ],
     },
     {
@@ -89,12 +89,12 @@ export const siteConfig = {
         {
           id: 9,
           title: 'Privacy Policy',
-          url: 'https://kortix.com/legal?tab=privacy',
+          url: 'https://app.dimatic.com.au/privacy',
         },
         {
           id: 10,
           title: 'Terms of Service',
-          url: 'https://kortix.com/legal?tab=terms',
+          url: 'https://app.dimatic.com.au/terms',
         },
         {
           id: 11,

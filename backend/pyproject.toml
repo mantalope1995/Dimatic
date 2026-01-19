@@ -94,7 +94,7 @@ dependencies = [
 ]
 
 [project.urls]
-homepage = "https://www.dimatic.com.au/"
+homepage = "https://app.dimatic.com.au/"
 repository = "https://github.com/mantalope1995/Dimatic"
 
 [tool.uv]

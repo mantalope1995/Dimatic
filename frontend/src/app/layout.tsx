@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   },
   description: siteMetadata.description,
   keywords: siteMetadata.keywords,
-  authors: [{ name: 'Dimatic Team', url: 'https://dimatic.com.au' }],
+  authors: [{ name: 'Dimatic Team', url: 'https://app.dimatic.com.au' }],
   creator: 'Dimatic Team',
   publisher: 'Dimatic Team',
   applicationName: siteMetadata.name,
@@ -106,12 +106,12 @@ export default function RootLayout({
           type="font/woff2"
           crossOrigin="anonymous"
         />
-        
+
         {/* DNS prefetch for analytics (loaded later but resolve DNS early) */}
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://connect.facebook.net" />
         <link rel="dns-prefetch" href="https://eu.i.posthog.com" />
-        
+
         {/* Static SEO meta tags - rendered in initial HTML */}
         <title>dimatic: Your Autonomous AI Worker</title>
         <meta name="description" content="Built for complex tasks, designed for everything. The ultimate AI assistant that handles it all—from simple requests to mega-complex projects." />
@@ -127,7 +127,7 @@ export default function RootLayout({
         <meta name="twitter:description" content="Built for complex tasks, designed for everything. The ultimate AI assistant that handles it all—from simple requests to mega-complex projects." />
         <meta name="twitter:image" content="https://kortix.com/banner.png" />
         <meta name="twitter:site" content="@kortix" />
-        <link rel="canonical" href="https://dimatic.com.au" />
+        <link rel="canonical" href="https://app.dimatic.com.au" />
 
         <Script id="facebook-pixel" strategy="lazyOnload">
           {`
@@ -234,13 +234,13 @@ export default function RootLayout({
           <I18nProvider>
             <AuthProvider>
               <PresenceProvider>
-              <ReactQueryProvider>
-                {children}
-                <Toaster />
-                <Suspense fallback={null}>
-                  <PlanSelectionModal />
-                </Suspense>
-              </ReactQueryProvider>
+                <ReactQueryProvider>
+                  {children}
+                  <Toaster />
+                  <Suspense fallback={null}>
+                    <PlanSelectionModal />
+                  </Suspense>
+                </ReactQueryProvider>
               </PresenceProvider>
             </AuthProvider>
           </I18nProvider>

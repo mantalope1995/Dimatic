@@ -319,7 +319,7 @@ class Configuration:
     OPENROUTER_API_BASE: Optional[str] = "https://openrouter.ai/api/v1"
     OPENAI_COMPATIBLE_API_KEY: Optional[str] = None
     OPENAI_COMPATIBLE_API_BASE: Optional[str] = None
-    OR_SITE_URL: Optional[str] = "https://dimatic.com.au"
+    OR_SITE_URL: Optional[str] = "https://app.dimatic.com.au"
     OR_APP_NAME: Optional[str] = "Dimatic"
     
     # Minimax API configuration (OpenAI-compatible)
@@ -528,12 +528,12 @@ class Configuration:
         
         # Environment-based defaults
         if self.ENV_MODE == EnvMode.PRODUCTION:
-            return 'https://dimatic.com.au'
+            return 'https://app.dimatic.com.au'
         elif self.ENV_MODE == EnvMode.STAGING:
-            return 'https://dimatic.com.au'
+            return 'https://app.dimatic.com.au'
             # return 'https://staging.suna.so'
         else:
-            return 'https://dimatic.com.au'
+            return 'https://app.dimatic.com.au'
     
     def _generate_admin_api_key(self) -> str:
         """Generate a secure admin API key for Kortix administrative functions."""

@@ -3,13 +3,13 @@
 import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Coins, 
-  Clock, 
-  Infinity, 
-  Zap, 
-  Gift, 
-  RefreshCw, 
+import {
+  Coins,
+  Clock,
+  Infinity,
+  Zap,
+  Gift,
+  RefreshCw,
   DollarSign,
   Mail,
   MessageCircle,
@@ -66,8 +66,8 @@ export default function CreditsPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  These credits are included with your paid subscription and are renewed automatically each month 
-                  on your subscription date. They expire at the end of each billing cycle and are always consumed 
+                  These credits are included with your paid subscription and are renewed automatically each month
+                  on your subscription date. They expire at the end of each billing cycle and are always consumed
                   first before any non-expiring credits.
                 </p>
               </CardContent>
@@ -89,8 +89,8 @@ export default function CreditsPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  These credits never expire and carry over month to month. They include top-up purchases, 
-                  refunds, and promotional grants. Non-expiring credits are only used after your expiring 
+                  These credits never expire and carry over month to month. They include top-up purchases,
+                  refunds, and promotional grants. Non-expiring credits are only used after your expiring
                   credits have been depleted.
                 </p>
               </CardContent>
@@ -100,7 +100,7 @@ export default function CreditsPage() {
           <Alert className="mb-8">
             <Info className="h-4 w-4" />
             <AlertDescription>
-              <strong>Credit Priority:</strong> When you use Dimatic, expiring credits are consumed first. 
+              <strong>Credit Priority:</strong> When you use Dimatic, expiring credits are consumed first.
               Only after your expiring credits run out will non-expiring credits be used.
             </AlertDescription>
           </Alert>
@@ -129,8 +129,8 @@ export default function CreditsPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  Different AI models have different costs based on their capabilities and token usage. 
-                  Credits are consumed for input tokens (your prompts and context), output tokens (agent responses), 
+                  Different AI models have different costs based on their capabilities and token usage.
+                  Credits are consumed for input tokens (your prompts and context), output tokens (agent responses),
                   and vary by model tier (GPT-4, Claude, etc.).
                 </p>
               </CardContent>
@@ -152,8 +152,8 @@ export default function CreditsPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  We apply a 20% markup on all API and model costs to cover platform infrastructure, 
-                  security, and ongoing development. This transparent pricing ensures you know exactly 
+                  We apply a 20% markup on all API and model costs to cover platform infrastructure,
+                  security, and ongoing development. This transparent pricing ensures you know exactly
                   what you're paying for.
                 </p>
               </CardContent>
@@ -315,7 +315,7 @@ export default function CreditsPage() {
             <Button
               variant="outline"
               className="gap-2"
-              onClick={() => window.location.href = 'mailto:support@dimatic.com.au'}
+              onClick={() => window.location.href = 'mailto:support@app.dimatic.com.au'}
             >
               <Mail className="h-4 w-4" />
               Email Support
@@ -333,7 +333,7 @@ export default function CreditsPage() {
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              We're committed to fair and transparent billing. If you believe there's an error in your 
+              We're committed to fair and transparent billing. If you believe there's an error in your
               credit usage, please contact our support team and we'll investigate promptly.
             </AlertDescription>
           </Alert>

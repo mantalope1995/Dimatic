@@ -40,13 +40,13 @@ export function getFrontendUrl(): string {
   if (FRONTEND_URL) {
     return FRONTEND_URL.replace(/\/$/, ''); // Remove trailing slash
   }
-  
+
   // Environment-based defaults
   switch (ENV_MODE) {
     case EnvMode.PRODUCTION:
-      return 'https://dimatic.com.au';
+      return 'https://app.dimatic.com.au';
     case EnvMode.STAGING:
-      return 'https://dimatic.com.au';
+      return 'https://app.dimatic.com.au';
     case EnvMode.LOCAL:
     default:
       return 'http://dimatic.com.au';
@@ -63,7 +63,7 @@ export async function getAuthToken(): Promise<string | null> {
 
 export async function getAuthHeaders(): Promise<HeadersInit> {
   const token = await getAuthToken();
-  
+
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),

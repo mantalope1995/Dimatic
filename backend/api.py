@@ -220,6 +220,7 @@ async def log_requests_middleware(request: Request, call_next):
 allowed_origins = [
     "https://www.dimatic.com.au",
     "https://dimatic.com.au",
+    "https://app.dimatic.com.au",
     "https://backend.dimatic.com.au"
 ]
 allow_origin_regex = None

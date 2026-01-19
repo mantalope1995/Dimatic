@@ -2,7 +2,7 @@
  * Site metadata configuration - SIMPLE AND WORKING
  */
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://dimatic.com.au';
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.dimatic.com.au';
 
 export const siteMetadata = {
   name: 'Dimatic',

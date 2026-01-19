@@ -1,6 +1,6 @@
 export const siteConfig = {
   name: 'Dimatic',
-  url: 'https://dimatic.com.au',
+  url: 'https://app.dimatic.com.au',
   description: 'Dimatic',
   tagline: 'Stop guessing, start knowing.',
   features: [

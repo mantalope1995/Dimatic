@@ -43,12 +43,12 @@ const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 function parseCreditsFromFeatures(features: string[]): { base: number; bonus: number; total: number } | null {
   const creditsFeature = features.find(f => f.startsWith('CREDITS_BONUS:'));
   if (!creditsFeature) return null;
-  
+
   const parts = creditsFeature.split(':');
   const base = parseInt(parts[1]) || 0;
   const total = parseInt(parts[2]) || 0;
   const bonus = total - base;
-  
+
   return { base, bonus, total };
 }
 
@@ -137,18 +137,18 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
 
   // Build list of all plan options (monthly + yearly for each tier)
   const planOptions: PlanOption[] = [];
-  
+
   PRICING_TIERS.filter(tier => tier.hidden !== true).forEach(tier => {
     const pricingData = revenueCatPricing?.get(tier.id);
-    
+
     // Monthly option
     if (pricingData?.monthlyPackage || tier.priceMonthly >= 0) {
       planOptions.push({
         tier,
         package: pricingData?.monthlyPackage || null,
         commitmentType: 'monthly',
-        price: pricingData && useRevenueCat 
-          ? pricingData.monthlyPriceString 
+        price: pricingData && useRevenueCat
+          ? pricingData.monthlyPriceString
           : tier.price,
         priceNumber: pricingData && useRevenueCat
           ? pricingData.monthlyPrice
@@ -156,7 +156,7 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
         isAvailable: pricingData?.isAvailable ?? true,
       });
     }
-    
+
     // Yearly option - exclude Ultra (tier_25_200) as yearly is not available
     if (tier.id !== 'tier_25_200' && (pricingData?.yearlyPackage || tier.priceYearly)) {
       let yearlyPriceDisplay: string;
@@ -166,7 +166,7 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
         const yearlyTotal = tier.priceYearly ? tier.priceYearly * 12 : tier.priceMonthly * 12;
         yearlyPriceDisplay = `$${yearlyTotal}`;
       }
-      
+
       planOptions.push({
         tier,
         package: pricingData?.yearlyPackage || null,
@@ -186,7 +186,7 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
   // Group plan options by tier
   const tierGroups = useMemo(() => {
     const groups: Record<string, { monthly: PlanOption | null; yearly: PlanOption | null; tier: PricingTier }> = {};
-    
+
     planOptions.forEach(opt => {
       if (!groups[opt.tier.id]) {
         groups[opt.tier.id] = { monthly: null, yearly: null, tier: opt.tier };
@@ -197,7 +197,7 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
         groups[opt.tier.id].yearly = opt;
       }
     });
-    
+
     // Return as array sorted by monthly price
     return Object.values(groups).sort((a, b) => {
       const priceA = a.monthly?.priceNumber ?? 0;
@@ -234,7 +234,7 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
     const currentProvider = subscriptionData?.provider as 'stripe' | 'revenuecat' | null;
     const currentTierKey = subscriptionData?.tier_key;
     const isStripeSubscriber = currentProvider === 'stripe' && currentTierKey && currentTierKey !== 'free';
-    
+
     if (isStripeSubscriber) {
       console.warn('⚠️ Cannot subscribe - user has web subscription. Please manage on web platform.');
       return;
@@ -245,13 +245,13 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
       setError(null);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-        // Use RevenueCat purchase if package available
+      // Use RevenueCat purchase if package available
       if (useRevenueCat && selectedPlanOption.package) {
         const syncResponseRef = { value: null as SyncResponse | null };
-        
+
         await purchasePackage(
-          selectedPlanOption.package, 
-          user?.email, 
+          selectedPlanOption.package,
+          user?.email,
           user?.id,
           async (response) => {
             syncResponseRef.value = response;
@@ -260,9 +260,9 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
             await refetchSubscription();
           }
         );
-        
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        
+
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
         // If webhook is pending, schedule a single refetch after webhook processes
         // Backend invalidates cache when webhook processes, but we schedule a refetch
         // as a safety net since mobile doesn't get push notifications
@@ -271,14 +271,14 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
           console.log('⏳ Webhook processing - will refetch in 15 seconds');
           setTimeout(async () => {
             invalidateAccountState(queryClient);
-          await refetchSubscription();
+            await refetchSubscription();
           }, 15000); // Webhook typically processes within 10-30 seconds
         }
-        
+
         // Let onPurchaseComplete handle navigation - don't call onClose here
         // This prevents double navigation and auth issues
-          onPurchaseComplete?.();
-          return;
+        onPurchaseComplete?.();
+        return;
       }
 
       // Fallback to unified checkout
@@ -290,12 +290,12 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
           // Let onPurchaseComplete handle navigation - don't call onClose here
           onPurchaseComplete?.();
         },
-        () => {},
+        () => { },
         async (response) => {
           // Handle sync response - invalidate cache immediately
           invalidateAccountState(queryClient);
           await refetchSubscription();
-          
+
           // If pending webhook, schedule a single refetch after webhook processes
           if (response.status === 'pending_webhook') {
             console.log('⏳ Webhook processing - will refetch in 15 seconds');
@@ -308,14 +308,14 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
       );
     } catch (err: any) {
       // Check if this is an "already subscribed with different account" error
-      const isAlreadySubscribedDifferentAccount = 
+      const isAlreadySubscribedDifferentAccount =
         err.code === 'ALREADY_SUBSCRIBED_DIFFERENT_ACCOUNT' ||
         err.code === 'PRODUCT_ALREADY_PURCHASED' ||
         err.code === 'ALREADY_PURCHASED' ||
         (err.message?.toLowerCase().includes('already') && err.message?.toLowerCase().includes('subscribed'));
 
       // Check if this is a session/linking error
-      const isSessionError = 
+      const isSessionError =
         err.code === 'SESSION_FIX_FAILED' ||
         err.code === 'ANONYMOUS_USER' ||
         err.code === 'USER_MISMATCH';
@@ -325,7 +325,7 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         Alert.alert(
           t('billing.subscriptionExists', 'Already Subscribed'),
-          Platform.OS === 'ios' 
+          Platform.OS === 'ios'
             ? 'You are already subscribed with a different account on this Apple ID. Please log into your original account to access your subscription.'
             : 'You are already subscribed with a different account on this Google Play ID. Please log into your original account to access your subscription.',
           [{ text: t('billing.gotIt', 'Got it') }]
@@ -347,16 +347,16 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
 
   const isCurrentPlan = (option: PlanOption): boolean => {
     if (!isAuthenticated || !subscriptionData) return false;
-    return subscriptionData.tier_key === option.tier.id && 
-           (option.commitmentType === 'monthly' 
-             ? currentBillingPeriod === 'monthly'
-             : (currentBillingPeriod === 'yearly_commitment' || currentBillingPeriod === 'yearly'));
+    return subscriptionData.tier_key === option.tier.id &&
+      (option.commitmentType === 'monthly'
+        ? currentBillingPeriod === 'monthly'
+        : (currentBillingPeriod === 'yearly_commitment' || currentBillingPeriod === 'yearly'));
   };
 
   // Get scheduled change info - check both scheduledChangesData and accountState (like BillingPage does)
   const scheduledChange = scheduledChangesData?.scheduled_change || accountState?.subscription?.scheduled_change;
   const hasScheduledChange = scheduledChangesData?.has_scheduled_change ?? accountState?.subscription?.has_scheduled_change ?? false;
-  
+
   // Debug logging
   useEffect(() => {
     if (hasScheduledChange) {
@@ -370,7 +370,7 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
       });
     }
   }, [hasScheduledChange, scheduledChange, accountState, scheduledChangesData]);
-  
+
   // Check if a plan option is the scheduled target plan
   const isScheduledTargetPlan = (option: PlanOption): boolean => {
     if (!hasScheduledChange || !scheduledChange) return false;
@@ -382,7 +382,7 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
     }
     return matches;
   };
-  
+
 
   const getCurrentProvider = (): 'stripe' | 'revenuecat' | null => {
     if (!isAuthenticated || !subscriptionData) return null;
@@ -399,11 +399,11 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
   return (
     <View className="flex-1 bg-background">
       {/* Header with Title and Toggle */}
-        <AnimatedView 
-          entering={FadeIn.duration(400)}
+      <AnimatedView
+        entering={FadeIn.duration(400)}
         className="px-6 bg-background border-b border-border/30"
         style={{ paddingTop: insets.top + 12, paddingBottom: 16 }}
-        >
+      >
         {/* Title row with close button on right */}
         <View className="flex-row items-center justify-between">
           <Text className="text-xl font-roobert-semibold text-foreground">
@@ -416,40 +416,40 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
                 onClose();
               }}
               className="h-10 w-10 items-center justify-center -mr-2"
-          >
+            >
               <Icon as={X} size={20} className="text-muted-foreground" strokeWidth={2} />
             </Pressable>
           )}
         </View>
-        </AnimatedView>
+      </AnimatedView>
 
-      <AnimatedScrollView 
+      <AnimatedScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ 
+        contentContainerStyle={{
           paddingTop: 16,
           paddingBottom: 16
         }}
       >
         {/* Scheduled Change Alert - compact variant like frontend */}
         {hasScheduledChange && scheduledChange && (
-        <AnimatedView 
+          <AnimatedView
             entering={FadeIn.duration(400).delay(150)}
-          className="px-6 mb-4"
-        >
+            className="px-6 mb-4"
+          >
             <ScheduledDowngradeCard
               scheduledChange={scheduledChange}
               variant="compact"
               onCancel={handleSubscriptionUpdate}
             />
-        </AnimatedView>
+          </AnimatedView>
         )}
 
         {/* Plan Cards - Each tier with its own billing toggle */}
         {/* Hide plans if user has Stripe subscription */}
         {!isStripeSubscriber && (
-          <AnimatedView 
-            entering={FadeIn.duration(600).delay(200)} 
+          <AnimatedView
+            entering={FadeIn.duration(600).delay(200)}
             className="px-4 mb-6"
           >
             {isLoadingPricing && useRevenueCat ? (
@@ -464,13 +464,13 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
                 const isFree = tierId === 'free';
                 const hasYearly = hasYearlyOption(tierId) && yearly;
                 const selectedBilling = getTierBilling(tierId);
-                
+
                 // Get the option based on selected billing period
                 const option = selectedBilling === 'yearly' && hasYearly ? yearly : monthly;
                 if (!option) return null;
-                
-                const isSelected = selectedPlanOption?.tier.id === option.tier.id && 
-                                  selectedPlanOption?.commitmentType === option.commitmentType;
+
+                const isSelected = selectedPlanOption?.tier.id === option.tier.id &&
+                  selectedPlanOption?.commitmentType === option.commitmentType;
                 const isCurrent = isCurrentPlan(option);
                 const isScheduledTarget = isScheduledTargetPlan(option);
                 const credits = parseCreditsFromFeatures(option.tier.features);
@@ -481,29 +481,28 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
                   <Pressable
                     key={tierId}
                     onPress={() => {
-                    if (!isCurrent && !isScheduledTarget) {
+                      if (!isCurrent && !isScheduledTarget) {
                         handlePlanSelect(option);
                       }
                     }}
-                    className={`mb-4 rounded-[18px] overflow-hidden border-2 ${
-                      isSelected 
-                        ? 'bg-primary/10 border-primary' 
+                    className={`mb-4 rounded-[18px] overflow-hidden border-2 ${isSelected
+                        ? 'bg-primary/10 border-primary'
                         : isScheduledTarget
                           ? 'bg-yellow-500/5 border-yellow-500/30'
-                          : isFree 
-                            ? 'bg-muted/30 border-border/30' 
+                          : isFree
+                            ? 'bg-muted/30 border-border/30'
                             : 'bg-card border-border/30'
-                    } ${!option.isAvailable ? 'opacity-60' : ''}`}
+                      } ${!option.isAvailable ? 'opacity-60' : ''}`}
                   >
                     {/* Header Section */}
                     <View className="p-4 pb-3">
                       <View className="flex-row items-start justify-between">
                         {/* Left: Name + Badges */}
-                      <View className="flex-1">
+                        <View className="flex-1">
                           <View className="flex-row items-center gap-2 flex-wrap mb-1">
                             <Text className="text-lg font-roobert-semibold text-foreground">
                               {tier.name}
-                          </Text>
+                            </Text>
                             {isCurrent && (
                               <View className="bg-primary/10 rounded-full px-2 py-0.5">
                                 <Text className="text-[10px] font-roobert-medium text-primary">
@@ -519,10 +518,10 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
                               </View>
                             )}
                           </View>
-                          
+
                           {/* Billing Toggle - only for non-free tiers with yearly option */}
                           {hasYearly && (
-                            <Pressable 
+                            <Pressable
                               onPress={(e) => {
                                 e.stopPropagation();
                                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -537,32 +536,28 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
                               className="flex-row items-center gap-2 mt-2"
                             >
                               {/* Toggle Label - Left */}
-                              <Text className={`text-xs font-roobert-medium ${
-                                selectedBilling === 'monthly' ? 'text-foreground' : 'text-muted-foreground'
-                              }`}>
+                              <Text className={`text-xs font-roobert-medium ${selectedBilling === 'monthly' ? 'text-foreground' : 'text-muted-foreground'
+                                }`}>
                                 Monthly
                               </Text>
                               {/* Toggle Switch */}
-                              <View 
-                                className={`w-11 h-6 rounded-full p-0.5 ${
-                                  selectedBilling === 'yearly' ? 'bg-primary' : 'bg-muted'
-                                }`}
-                              >
-                                <View 
-                                  className={`w-5 h-5 rounded-full bg-white shadow-sm ${
-                                    selectedBilling === 'yearly' ? 'ml-auto' : ''
+                              <View
+                                className={`w-11 h-6 rounded-full p-0.5 ${selectedBilling === 'yearly' ? 'bg-primary' : 'bg-muted'
                                   }`}
+                              >
+                                <View
+                                  className={`w-5 h-5 rounded-full bg-white shadow-sm ${selectedBilling === 'yearly' ? 'ml-auto' : ''
+                                    }`}
                                 />
-                            </View>
+                              </View>
                               {/* Toggle Label - Right */}
-                              <Text className={`text-xs font-roobert-medium ${
-                                selectedBilling === 'yearly' ? 'text-foreground' : 'text-muted-foreground'
-                              }`}>
+                              <Text className={`text-xs font-roobert-medium ${selectedBilling === 'yearly' ? 'text-foreground' : 'text-muted-foreground'
+                                }`}>
                                 Annual
                               </Text>
                             </Pressable>
                           )}
-                      </View>
+                        </View>
 
                         {/* Right: Price */}
                         <View className="items-end">
@@ -651,7 +646,7 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
                             </View>
                           ))}
                         </View>
-                        
+
                         {/* Disabled features for free tier */}
                         {isFree && tier.disabledFeatures && tier.disabledFeatures.length > 0 && (
                           <View className="mt-3 pt-3 border-t border-border/50 space-y-2">
@@ -674,7 +669,7 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
                         <View className="bg-primary/10 rounded-lg px-3 py-2">
                           <Text className="text-xs font-roobert-medium text-primary text-center">
                             🎉 {option.package.product.introPrice.priceString} for first {option.package.product.introPrice.period}
-                        </Text>
+                          </Text>
                         </View>
                       </View>
                     )}
@@ -687,8 +682,8 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
 
         {/* Stripe Subscriber Message */}
         {isStripeSubscriber && (
-          <AnimatedView 
-            entering={FadeIn.duration(600).delay(200)} 
+          <AnimatedView
+            entering={FadeIn.duration(600).delay(200)}
             className="px-6 mb-6"
           >
             <View className="bg-card border border-border rounded-[18px] p-5">
@@ -703,11 +698,11 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
                 </View>
                 <View className="flex-1">
                   <Text className="text-base font-roobert-semibold text-foreground mb-1">
-                  {t('billing.webSubscriptionActive', 'Web Subscription Active')}
-                </Text>
+                    {t('billing.webSubscriptionActive', 'Web Subscription Active')}
+                  </Text>
                   <Text className="text-sm text-muted-foreground leading-relaxed">
-                  {t('billing.stripeSubscriberMessage', 'You have a web subscription. Please manage your plan on the web platform where you upgraded.')}
-                </Text>
+                    {t('billing.stripeSubscriberMessage', 'You have a web subscription. Please manage your plan on the web platform where you upgraded.')}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -722,13 +717,13 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
         const isCurrent = selectedPlan ? isCurrentPlan(selectedPlan) : false;
         const isScheduledTarget = selectedPlan ? isScheduledTargetPlan(selectedPlan) : false;
         const isDisabled = isPurchasing || isCurrent || isScheduledTarget;
-        
+
         return (
-        <AnimatedView 
-          entering={FadeIn.duration(600).delay(500)} 
+          <AnimatedView
+            entering={FadeIn.duration(600).delay(500)}
             className="px-6 py-4 bg-background border-t border-border/50"
             style={{ paddingBottom: insets.bottom + 8 }}
-        >
+          >
             {selectedPlan ? (
               <AnimatedView
                 style={[
@@ -739,29 +734,27 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
                 ]}
               >
                 <Pressable
-              onPress={handlePurchase}
+                  onPress={handlePurchase}
                   disabled={isDisabled}
-              onPressIn={() => {
+                  onPressIn={() => {
                     if (!isPurchasing && !isDisabled) {
-                  purchaseButtonScale.value = withSpring(0.96, { damping: 15, stiffness: 400 });
-                }
-              }}
-              onPressOut={() => {
-                purchaseButtonScale.value = withSpring(1, { damping: 15, stiffness: 400 });
-              }}
-                  className={`w-full h-12 rounded-xl items-center justify-center ${
-                    isDisabled
-                      ? 'bg-primary/5' 
+                      purchaseButtonScale.value = withSpring(0.96, { damping: 15, stiffness: 400 });
+                    }
+                  }}
+                  onPressOut={() => {
+                    purchaseButtonScale.value = withSpring(1, { damping: 15, stiffness: 400 });
+                  }}
+                  className={`w-full h-12 rounded-xl items-center justify-center ${isDisabled
+                      ? 'bg-primary/5'
                       : 'bg-primary'
-              }`}
-            >
-              {isPurchasing ? (
+                    }`}
+                >
+                  {isPurchasing ? (
                     <ActivityIndicator color={isDark ? '#fff' : '#000'} />
-              ) : (
-                    <Text className={`text-sm font-roobert-medium ${
-                      isDisabled ? 'text-primary' : 'text-primary-foreground'
-                }`}>
-                      {isCurrent 
+                  ) : (
+                    <Text className={`text-sm font-roobert-medium ${isDisabled ? 'text-primary' : 'text-primary-foreground'
+                      }`}>
+                      {isCurrent
                         ? t('billing.currentPlan', 'Current Plan')
                         : isScheduledTarget
                           ? t('billing.scheduled', 'Scheduled')
@@ -769,17 +762,17 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
                             ? t('billing.selectPlan', 'Select Plan')
                             : t('billing.upgrade', 'Upgrade')
                       }
-                </Text>
-              )}
+                    </Text>
+                  )}
                 </Pressable>
               </AnimatedView>
-          ) : (
+            ) : (
               <View className="w-full h-12 rounded-xl items-center justify-center bg-muted">
                 <Text className="text-sm font-roobert-medium text-muted-foreground">
-                {t('billing.selectPlan', 'Select a plan')}
-              </Text>
-            </View>
-          )}
+                  {t('billing.selectPlan', 'Select a plan')}
+                </Text>
+              </View>
+            )}
 
             {error && (
               <View className="mt-3 bg-destructive/10 rounded-lg px-4 py-2">
@@ -790,18 +783,18 @@ export function PlanPage({ visible = true, onClose, onPurchaseComplete, customTi
             )}
 
             <View className="flex-row justify-center mt-4 gap-4">
-              <Pressable onPress={() => WebBrowser.openBrowserAsync('https://dimatic.com.au/privacy')}>
+              <Pressable onPress={() => WebBrowser.openBrowserAsync('https://app.dimatic.com.au/privacy')}>
                 <Text className="text-xs text-muted-foreground font-roobert-medium">
-                {t('billing.privacyPolicy', 'Privacy Policy')}
-              </Text>
-            </Pressable>
-              <Pressable onPress={() => WebBrowser.openBrowserAsync('https://dimatic.com.au/terms')}>
+                  {t('billing.privacyPolicy', 'Privacy Policy')}
+                </Text>
+              </Pressable>
+              <Pressable onPress={() => WebBrowser.openBrowserAsync('https://app.dimatic.com.au/terms')}>
                 <Text className="text-xs text-muted-foreground font-roobert-medium">
-                {t('billing.termsOfService', 'Terms of Service')}
-              </Text>
-            </Pressable>
-          </View>
-        </AnimatedView>
+                  {t('billing.termsOfService', 'Terms of Service')}
+                </Text>
+              </Pressable>
+            </View>
+          </AnimatedView>
         );
       })()}
 

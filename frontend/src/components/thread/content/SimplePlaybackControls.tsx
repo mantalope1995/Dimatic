@@ -1,12 +1,12 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  SkipForward, 
+import {
+  Play,
+  Pause,
+  RotateCcw,
+  SkipForward,
   FileText,
-  PanelRightOpen 
+  PanelRightOpen
 } from 'lucide-react';
 import Link from 'next/link';
 import { KortixLogo } from '@/components/sidebar/kortix-logo';
@@ -18,11 +18,11 @@ interface SimplePlaybackControlsProps {
   onToggleSidePanel: () => void;
 }
 
-export function SimplePlaybackControls({ 
-  projectName, 
+export function SimplePlaybackControls({
+  projectName,
   messageCount,
   isSidePanelOpen,
-  onToggleSidePanel 
+  onToggleSidePanel
 }: SimplePlaybackControlsProps) {
   const [isPlaying, setIsPlaying] = React.useState(false);
 
@@ -35,7 +35,7 @@ export function SimplePlaybackControls({
       <div className="flex items-center gap-2 rounded-full border border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 px-3 py-2 shadow-lg">
         {/* Kortix Logo */}
         <Link
-          href="https://dimatic.com.au"
+          href="https://app.dimatic.com.au"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 text-sm font-medium hover:opacity-80 transition-opacity"

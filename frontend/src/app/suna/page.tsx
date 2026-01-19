@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     title: 'Dimatic',
     description: 'Dimatic.',
     type: 'website',
-    url: 'https://dimatic.com.au/suna',
+    url: 'https://app.dimatic.com.au/suna',
     siteName: 'Dimatic',
     images: [
       {
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     images: ['/banner.png'],
   },
   alternates: {
-    canonical: 'https://dimatic.com.au/',
+    canonical: 'https://app.dimatic.com.au/',
   },
   robots: {
     index: true,
